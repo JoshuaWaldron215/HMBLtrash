@@ -23,6 +23,10 @@ This is a full-stack web application for "Acapella Trash Removal powered by HMBL
 - ✓ Added back buttons to login/register pages for better user experience
 - ✓ Removed role selection from signup - all new users register as customers for security
 - ✓ Streamlined registration process with clean form design
+- ✓ Updated navigation structure to match role-specific requirements:
+  * Customer: Home, Next Pickup, Pickup History, Billing, Settings
+  * Driver: My Route, Map View, Pickup History, Profile (sticky bottom mobile nav)
+  * Admin: Dashboard, Subscribers, One-Time Requests, Route Optimization, Driver Assignments, Reports, Settings
 
 ## User Preferences
 

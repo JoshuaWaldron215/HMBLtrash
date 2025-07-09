@@ -12,6 +12,7 @@ import {
   type Subscription,
   type InsertSubscription
 } from "@shared/schema";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
   // User operations
@@ -75,8 +76,6 @@ export class MemStorage implements IStorage {
   }
 
   private createTestUsers() {
-    const bcrypt = require('bcryptjs');
-    
     // Create test users with pre-hashed passwords (sync)
     const hashedPassword = bcrypt.hashSync('password123', 10);
     

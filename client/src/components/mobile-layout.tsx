@@ -11,7 +11,15 @@ import {
   Bell,
   MapPin,
   X,
-  LogOut
+  LogOut,
+  CreditCard,
+  History,
+  Users,
+  Package,
+  BarChart3,
+  Route,
+  ClipboardList,
+  Map
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,76 +50,125 @@ export default function MobileLayout({
   const getNavigationItems = () => {
     if (!user) return [];
     
-    const baseItems = [
-      { 
-        icon: Home, 
-        label: 'Dashboard', 
-        path: user.role === 'admin' ? '/admin' : user.role === 'driver' ? '/driver' : '/dashboard',
-        active: location === '/dashboard' || location === '/admin' || location === '/driver' || location === '/'
-      }
-    ];
-    
     if (user.role === 'customer') {
       return [
-        ...baseItems,
         { 
-          icon: Calendar, 
-          label: 'Bookings', 
+          icon: Home, 
+          label: 'Home', 
           path: '/dashboard',
           active: location === '/dashboard'
         },
         { 
+          icon: Calendar, 
+          label: 'Next Pickup', 
+          path: '/dashboard/next-pickup',
+          active: location === '/dashboard/next-pickup'
+        },
+        { 
+          icon: History, 
+          label: 'Pickup History', 
+          path: '/dashboard/history',
+          active: location === '/dashboard/history'
+        },
+        { 
+          icon: CreditCard, 
+          label: 'Billing', 
+          path: '/dashboard/billing',
+          active: location === '/dashboard/billing'
+        },
+        { 
           icon: Settings, 
           label: 'Settings', 
-          path: '/dashboard',
-          active: false
+          path: '/dashboard/settings',
+          active: location === '/dashboard/settings'
         }
       ];
     }
     
     if (user.role === 'driver') {
       return [
-        ...baseItems,
         { 
-          icon: Truck, 
-          label: 'Routes', 
+          icon: ClipboardList, 
+          label: 'My Route', 
           path: '/driver',
           active: location === '/driver'
         },
         { 
-          icon: MapPin, 
-          label: 'Navigation', 
-          path: '/driver',
-          active: false
+          icon: Map, 
+          label: 'Map View', 
+          path: '/driver/map',
+          active: location === '/driver/map'
+        },
+        { 
+          icon: History, 
+          label: 'Pickup History', 
+          path: '/driver/history',
+          active: location === '/driver/history'
+        },
+        { 
+          icon: User, 
+          label: 'Profile', 
+          path: '/driver/profile',
+          active: location === '/driver/profile'
         }
       ];
     }
     
     if (user.role === 'admin') {
       return [
-        ...baseItems,
         { 
-          icon: User, 
-          label: 'Users', 
+          icon: BarChart3, 
+          label: 'Dashboard', 
           path: '/admin',
           active: location === '/admin'
         },
         { 
-          icon: Truck, 
-          label: 'Drivers', 
-          path: '/admin',
-          active: false
+          icon: Users, 
+          label: 'Subscribers', 
+          path: '/admin/subscribers',
+          active: location === '/admin/subscribers'
         },
         { 
-          icon: Calendar, 
-          label: 'Pickups', 
-          path: '/admin',
-          active: false
+          icon: Package, 
+          label: 'One-Time Requests', 
+          path: '/admin/requests',
+          active: location === '/admin/requests'
+        },
+        { 
+          icon: Route, 
+          label: 'Route Optimization', 
+          path: '/admin/routes',
+          active: location === '/admin/routes'
+        },
+        { 
+          icon: Truck, 
+          label: 'Driver Assignments', 
+          path: '/admin/drivers',
+          active: location === '/admin/drivers'
+        },
+        { 
+          icon: ClipboardList, 
+          label: 'Pickup Reports', 
+          path: '/admin/reports',
+          active: location === '/admin/reports'
+        },
+        { 
+          icon: Settings, 
+          label: 'Settings', 
+          path: '/admin/settings',
+          active: location === '/admin/settings'
         }
       ];
     }
     
-    return baseItems;
+    return [
+      { 
+        icon: Home, 
+        label: 'Home', 
+        path: '/',
+        active: location === '/'
+      }
+    ];
   };
   
   const navigationItems = getNavigationItems();
