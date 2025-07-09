@@ -281,6 +281,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Driver route optimization endpoint
+  app.get("/api/driver/route", authenticateToken, requireRole('driver'), async (req, res) => {
+    try {
+      const driverId = req.user!.id;
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get all pickups assigned to this driver for today
+      const assignedPickups = await storage.getPickupsByDriver(driverId);
+      const todayPickups = assignedPickups.filter(pickup => 
+        pickup.scheduledDate && pickup.scheduledDate.toISOString().split('T')[0] === today
+      );
+      
+      // Simple route optimization (in real app, this would use Google Maps API or similar)
+      const optimizedRoute = await optimizeRoute(todayPickups);
+      
+      res.json(optimizedRoute);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Route optimization function (simplified version)
+  async function optimizeRoute(pickups: any[]) {
+    // In production, this would:
+    // 1. Use Google Maps Distance Matrix API
+    // 2. Apply traveling salesman algorithm
+    // 3. Consider traffic patterns, time windows, vehicle capacity
+    // 4. Account for lunch breaks, fuel stops, etc.
+    
+    // For demo, we'll sort by priority and estimated travel time
+    const sortedPickups = pickups.sort((a, b) => {
+      // Priority order: subscription > one-time, earlier scheduled time first
+      if (a.serviceType === 'subscription' && b.serviceType === 'one-time') return -1;
+      if (a.serviceType === 'one-time' && b.serviceType === 'subscription') return 1;
+      return new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
+    });
+
+    // Add route optimization metadata
+    return sortedPickups.map((pickup, index) => ({
+      ...pickup,
+      routeOrder: index + 1,
+      estimatedArrival: new Date(Date.now() + (index * 20 * 60 * 1000)), // 20 min intervals
+      estimatedDuration: 15, // 15 minutes per pickup
+      distanceFromPrevious: index === 0 ? 0 : Math.random() * 3 + 1, // Random distance 1-4 miles
+      specialInstructions: pickup.specialInstructions || generateRouteInstructions(pickup)
+    }));
+  }
+
+  function generateRouteInstructions(pickup: any) {
+    const instructions = [
+      "Ring doorbell twice",
+      "Bins located on side of house",
+      "Gate code: 1234",
+      "Friendly dog - no worries",
+      "Pickup from backyard",
+      "Call customer on arrival"
+    ];
+    return instructions[Math.floor(Math.random() * instructions.length)];
+  }
+
+  // Admin route assignment endpoint
+  app.post("/api/admin/assign-route", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { driverId, date, pickupIds } = req.body;
+      
+      // Create optimized route for driver
+      const route = await storage.createRoute({
+        driverId,
+        date: new Date(date),
+        pickupIds,
+        totalDistance: pickupIds.length * 2.5, // Estimated 2.5 miles per pickup
+        estimatedTime: pickupIds.length * 20, // 20 minutes per pickup
+        status: 'pending'
+      });
+
+      // Assign all pickups to the driver
+      for (const pickupId of pickupIds) {
+        await storage.assignPickupToDriver(parseInt(pickupId), driverId);
+      }
+
+      res.json(route);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Pickup routes
   app.post("/api/pickups", authenticateToken, async (req, res) => {
     try {

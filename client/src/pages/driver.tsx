@@ -38,10 +38,10 @@ export default function Driver() {
     queryFn: () => authenticatedRequest('/api/pickups').then(res => res.json() as Promise<Pickup[]>),
   });
 
-  // Fetch today's route
+  // Fetch today's optimized route
   const { data: todayRoute = [] } = useQuery({
     queryKey: ['/api/driver/route'],
-    queryFn: () => authenticatedRequest('/api/driver/route').then(res => res.json() as Promise<Pickup[]>),
+    queryFn: () => authenticatedRequest('/api/driver/route').then(res => res.json()),
   });
 
   // Complete pickup mutation
