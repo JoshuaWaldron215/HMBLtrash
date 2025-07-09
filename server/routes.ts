@@ -350,8 +350,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const route = await storage.createRoute({
         driverId,
         date: new Date(date),
-        pickupIds: pickupIds.join(','), // Store as comma-separated string
-        totalDistance: pickupIds.length * 2.5, // Estimated 2.5 miles per pickup
+        pickupIds: pickupIds.map(String), // Convert to string array
+        totalDistance: (pickupIds.length * 2.5).toString(), // Estimated 2.5 miles per pickup
         estimatedTime: pickupIds.length * 20, // 20 minutes per pickup
         status: 'pending'
       });

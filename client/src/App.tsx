@@ -11,6 +11,9 @@ import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import Admin from "@/pages/admin";
 import Driver from "@/pages/driver";
+import DriverMap from "@/pages/driver-map";
+import DriverHistory from "@/pages/driver-history";
+import DriverProfile from "@/pages/driver-profile";
 import Checkout from "@/pages/checkout";
 import Subscribe from "@/pages/subscribe";
 import NotFound from "@/pages/not-found";
@@ -65,6 +68,24 @@ function Router() {
       <Route path="/driver">
         <ProtectedRoute allowedRoles={['driver']}>
           <Driver />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/driver/map">
+        <ProtectedRoute allowedRoles={['driver']}>
+          <DriverMap />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/driver/history">
+        <ProtectedRoute allowedRoles={['driver']}>
+          <DriverHistory />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/driver/profile">
+        <ProtectedRoute allowedRoles={['driver']}>
+          <DriverProfile />
         </ProtectedRoute>
       </Route>
       

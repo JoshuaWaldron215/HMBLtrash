@@ -123,6 +123,37 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.users.set(customerUser.id, customerUser);
+    
+    // Add sample pickups for testing route optimization
+    const today = new Date();
+    const addresses = [
+      "123 Main St, Springfield, IL 62701",
+      "456 Oak Ave, Springfield, IL 62702", 
+      "789 Pine Rd, Springfield, IL 62703",
+      "321 Elm St, Springfield, IL 62704",
+      "654 Maple Dr, Springfield, IL 62705",
+      "987 Cedar Ln, Springfield, IL 62706"
+    ];
+    
+    addresses.forEach((address, index) => {
+      this.createPickup({
+        customerId: customerUser.id,
+        address: address,
+        bagCount: Math.floor(Math.random() * 5) + 1, // 1-5 bags
+        amount: "30.00",
+        serviceType: index % 2 === 0 ? "subscription" : "one-time",
+        status: "assigned",
+        scheduledDate: new Date(today.getTime() + (index * 60 * 60 * 1000)), // Spread throughout day
+        specialInstructions: index === 0 ? "Gate code: 1234" : index === 1 ? "Bins on side of house" : undefined
+      });
+    });
+    
+    // Assign all pickups to the driver after creation
+    Array.from(this.pickups.values()).forEach(pickup => {
+      if (pickup.status === "assigned") {
+        pickup.driverId = driverUser.id;
+      }
+    });
   }
 
   // User operations
