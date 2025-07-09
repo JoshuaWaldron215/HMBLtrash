@@ -148,7 +148,7 @@ export default function Home() {
             <p className="text-xl text-white text-opacity-90">powered by HMBL</p>
           </div>
           <p className="text-lg text-white text-opacity-80 mb-8 leading-relaxed">
-            Professional residential trash pickup service for busy homeowners
+            Where Anything Is Possible and No Job is Too Big or Small We Will Get it Done  
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <MobileButton 
