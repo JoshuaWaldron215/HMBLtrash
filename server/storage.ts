@@ -69,6 +69,58 @@ export class MemStorage implements IStorage {
     this.pickupIdCounter = 1;
     this.routeIdCounter = 1;
     this.subscriptionIdCounter = 1;
+    
+    // Create test users for different roles
+    this.createTestUsers();
+  }
+
+  private async createTestUsers() {
+    const bcrypt = require('bcryptjs');
+    
+    // Test admin user
+    const adminUser: User = {
+      id: this.userIdCounter++,
+      username: 'admin',
+      email: 'admin@test.com',
+      password: await bcrypt.hash('password123', 10),
+      role: 'admin',
+      phone: null,
+      address: null,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      createdAt: new Date(),
+    };
+    this.users.set(adminUser.id, adminUser);
+
+    // Test driver user
+    const driverUser: User = {
+      id: this.userIdCounter++,
+      username: 'driver',
+      email: 'driver@test.com',
+      password: await bcrypt.hash('password123', 10),
+      role: 'driver',
+      phone: null,
+      address: null,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      createdAt: new Date(),
+    };
+    this.users.set(driverUser.id, driverUser);
+
+    // Test customer user
+    const customerUser: User = {
+      id: this.userIdCounter++,
+      username: 'customer',
+      email: 'customer@test.com',
+      password: await bcrypt.hash('password123', 10),
+      role: 'customer',
+      phone: null,
+      address: null,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      createdAt: new Date(),
+    };
+    this.users.set(customerUser.id, customerUser);
   }
 
   // User operations
