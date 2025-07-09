@@ -111,9 +111,34 @@ export default function Home() {
   }
 
   return (
-    <MobileLayout showBottomNav={false}>
-      {/* Hero Section */}
-      <div className="app-gradient-bg text-white">
+    <div className="min-h-screen bg-background">
+      {/* Public Navigation Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <Truck className="w-8 h-8 text-primary" />
+              <div>
+                <h1 className="font-bold text-lg">Acapella Trash</h1>
+                <p className="text-sm text-muted-foreground">powered by HMBL</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={handleLogin}>
+                Sign In
+              </Button>
+              <Button onClick={() => setLocation('/register')}>
+                Get Started
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        {/* Hero Section */}
+        <div className="app-gradient-bg text-white">
         <MobileSection className="text-center py-12">
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-10 rounded-full mb-4">
@@ -280,6 +305,7 @@ export default function Home() {
           </p>
         </MobileSection>
       </footer>
-    </MobileLayout>
+      </main>
+    </div>
   );
 }

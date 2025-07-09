@@ -20,6 +20,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User>;
+  updateUserRole(userId: number, role: string): Promise<User>;
   getUsersByRole(role: string): Promise<User[]>;
   
   // Pickup operations
@@ -108,6 +109,22 @@ export class MemStorage implements IStorage {
       stripeCustomerId, 
       stripeSubscriptionId: stripeSubscriptionId || user.stripeSubscriptionId 
     };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserRole(userId: number, role: string): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    const updatedUser = {
+      ...user,
+      role,
+      updatedAt: new Date()
+    };
+    
     this.users.set(userId, updatedUser);
     return updatedUser;
   }

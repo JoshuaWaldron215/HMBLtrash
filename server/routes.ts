@@ -142,6 +142,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin-only routes for user management
+  app.get('/api/admin/users', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const customers = await storage.getUsersByRole('customer');
+      const drivers = await storage.getUsersByRole('driver');
+      const admins = await storage.getUsersByRole('admin');
+      
+      res.json({
+        customers: customers.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role })),
+        drivers: drivers.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role })),
+        admins: admins.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role }))
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch('/api/admin/users/:id/role', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      
+      if (!['customer', 'driver', 'admin'].includes(role)) {
+        return res.status(400).json({ message: 'Invalid role' });
+      }
+      
+      const user = await storage.getUser(parseInt(id));
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Update user role using a new method we'll add to storage
+      const updatedUser = await storage.updateUserRole(parseInt(id), role);
+      res.json({ id: updatedUser.id, email: updatedUser.email, username: updatedUser.username, role: updatedUser.role });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Stripe payment routes
   app.post("/api/create-payment-intent", authenticateToken, async (req, res) => {
     try {

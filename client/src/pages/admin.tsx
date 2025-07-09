@@ -44,9 +44,32 @@ export default function Admin() {
     queryFn: () => authenticatedRequest('/api/admin/pickups').then(res => res.json() as Promise<Pickup[]>),
   });
 
-  const { data: users = [] } = useQuery({
+  const { data: usersData } = useQuery({
     queryKey: ['/api/admin/users'],
-    queryFn: () => authenticatedRequest('/api/admin/users').then(res => res.json() as Promise<User[]>),
+    queryFn: () => authenticatedRequest('/api/admin/users').then(res => res.json()),
+  });
+
+  // Role change mutation
+  const changeRoleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: number; role: string }) => 
+      authenticatedRequest(`/api/admin/users/${userId}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({
+        title: "Role Updated",
+        description: "User role has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update user role. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const { data: subscriptions = [] } = useQuery({

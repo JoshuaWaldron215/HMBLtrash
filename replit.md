@@ -17,10 +17,25 @@ This is a full-stack web application for "Acapella Trash Removal powered by HMBL
 - ✓ Added collapsible sidebar functionality for mobile and desktop
 - ✓ Implemented proper route protection based on user roles (customer/driver/admin)
 - ✓ Added mobile sidebar overlay with proper open/close functionality
+- ✓ Fixed home page navigation - shows Sign In/Get Started buttons instead of sidebar for unauthenticated users
+- ✓ Set up admin-controlled role assignment system for optimal user management
+- ✓ Implemented role change functionality for admins to promote customers to drivers or admins
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Authentication Strategy
+
+**Optimal Signup/Login Process:**
+1. **Customer Registration**: All new users register as 'customer' by default
+2. **Admin Role Assignment**: Admin promotes users to 'driver' or 'admin' roles as needed
+3. **Role-Based Redirects**: Users are automatically redirected to appropriate dashboards:
+   - Customers → /dashboard (booking and subscription management)
+   - Drivers → /driver (route management and pickup completion)
+   - Admins → /admin (user management, pickup assignment, business overview)
+4. **Landing Page**: Unauthenticated users see marketing page with Sign In/Get Started buttons
+5. **Security**: Admin-controlled role assignment prevents unauthorized access to sensitive areas
 
 ## System Architecture
 
