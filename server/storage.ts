@@ -1,0 +1,266 @@
+import { 
+  users, 
+  pickups, 
+  routes, 
+  subscriptions,
+  type User, 
+  type InsertUser, 
+  type Pickup, 
+  type InsertPickup,
+  type Route,
+  type InsertRoute,
+  type Subscription,
+  type InsertSubscription
+} from "@shared/schema";
+
+export interface IStorage {
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User>;
+  getUsersByRole(role: string): Promise<User[]>;
+  
+  // Pickup operations
+  getPickup(id: number): Promise<Pickup | undefined>;
+  getPickupsByCustomer(customerId: number): Promise<Pickup[]>;
+  getPickupsByDriver(driverId: number): Promise<Pickup[]>;
+  getPickupsByStatus(status: string): Promise<Pickup[]>;
+  getPickupsByDate(date: string): Promise<Pickup[]>;
+  createPickup(pickup: InsertPickup): Promise<Pickup>;
+  updatePickupStatus(id: number, status: string, driverId?: number): Promise<Pickup>;
+  assignPickupToDriver(pickupId: number, driverId: number): Promise<Pickup>;
+  completePickup(id: number): Promise<Pickup>;
+  
+  // Route operations
+  getRoute(id: number): Promise<Route | undefined>;
+  getRoutesByDriver(driverId: number): Promise<Route[]>;
+  getRoutesByDate(date: string): Promise<Route[]>;
+  createRoute(route: InsertRoute): Promise<Route>;
+  updateRouteStatus(id: number, status: string): Promise<Route>;
+  
+  // Subscription operations
+  getSubscription(id: number): Promise<Subscription | undefined>;
+  getSubscriptionByCustomer(customerId: number): Promise<Subscription | undefined>;
+  getSubscriptionByStripeId(stripeId: string): Promise<Subscription | undefined>;
+  createSubscription(subscription: InsertSubscription): Promise<Subscription>;
+  updateSubscriptionStatus(id: number, status: string): Promise<Subscription>;
+  getActiveSubscriptions(): Promise<Subscription[]>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private pickups: Map<number, Pickup>;
+  private routes: Map<number, Route>;
+  private subscriptions: Map<number, Subscription>;
+  private userIdCounter: number;
+  private pickupIdCounter: number;
+  private routeIdCounter: number;
+  private subscriptionIdCounter: number;
+
+  constructor() {
+    this.users = new Map();
+    this.pickups = new Map();
+    this.routes = new Map();
+    this.subscriptions = new Map();
+    this.userIdCounter = 1;
+    this.pickupIdCounter = 1;
+    this.routeIdCounter = 1;
+    this.subscriptionIdCounter = 1;
+  }
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.username === username);
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.userIdCounter++;
+    const user: User = { 
+      ...insertUser, 
+      id,
+      createdAt: new Date(),
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      address: insertUser.address || null,
+      phone: insertUser.phone || null,
+      role: insertUser.role || "customer"
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error('User not found');
+    
+    const updatedUser = { 
+      ...user, 
+      stripeCustomerId, 
+      stripeSubscriptionId: stripeSubscriptionId || user.stripeSubscriptionId 
+    };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(user => user.role === role);
+  }
+
+  // Pickup operations
+  async getPickup(id: number): Promise<Pickup | undefined> {
+    return this.pickups.get(id);
+  }
+
+  async getPickupsByCustomer(customerId: number): Promise<Pickup[]> {
+    return Array.from(this.pickups.values()).filter(pickup => pickup.customerId === customerId);
+  }
+
+  async getPickupsByDriver(driverId: number): Promise<Pickup[]> {
+    return Array.from(this.pickups.values()).filter(pickup => pickup.driverId === driverId);
+  }
+
+  async getPickupsByStatus(status: string): Promise<Pickup[]> {
+    return Array.from(this.pickups.values()).filter(pickup => pickup.status === status);
+  }
+
+  async getPickupsByDate(date: string): Promise<Pickup[]> {
+    return Array.from(this.pickups.values()).filter(pickup => 
+      pickup.scheduledDate && pickup.scheduledDate.toISOString().split('T')[0] === date
+    );
+  }
+
+  async createPickup(insertPickup: InsertPickup): Promise<Pickup> {
+    const id = this.pickupIdCounter++;
+    const pickup: Pickup = { 
+      ...insertPickup, 
+      id,
+      driverId: null,
+      completedAt: null,
+      createdAt: new Date(),
+      status: insertPickup.status || "pending",
+      scheduledDate: insertPickup.scheduledDate || null,
+      specialInstructions: insertPickup.specialInstructions || null
+    };
+    this.pickups.set(id, pickup);
+    return pickup;
+  }
+
+  async updatePickupStatus(id: number, status: string, driverId?: number): Promise<Pickup> {
+    const pickup = this.pickups.get(id);
+    if (!pickup) throw new Error('Pickup not found');
+    
+    const updatedPickup = { 
+      ...pickup, 
+      status, 
+      driverId: driverId || pickup.driverId 
+    };
+    this.pickups.set(id, updatedPickup);
+    return updatedPickup;
+  }
+
+  async assignPickupToDriver(pickupId: number, driverId: number): Promise<Pickup> {
+    return this.updatePickupStatus(pickupId, 'assigned', driverId);
+  }
+
+  async completePickup(id: number): Promise<Pickup> {
+    const pickup = this.pickups.get(id);
+    if (!pickup) throw new Error('Pickup not found');
+    
+    const updatedPickup = { 
+      ...pickup, 
+      status: 'completed', 
+      completedAt: new Date() 
+    };
+    this.pickups.set(id, updatedPickup);
+    return updatedPickup;
+  }
+
+  // Route operations
+  async getRoute(id: number): Promise<Route | undefined> {
+    return this.routes.get(id);
+  }
+
+  async getRoutesByDriver(driverId: number): Promise<Route[]> {
+    return Array.from(this.routes.values()).filter(route => route.driverId === driverId);
+  }
+
+  async getRoutesByDate(date: string): Promise<Route[]> {
+    return Array.from(this.routes.values()).filter(route => 
+      route.date.toISOString().split('T')[0] === date
+    );
+  }
+
+  async createRoute(insertRoute: InsertRoute): Promise<Route> {
+    const id = this.routeIdCounter++;
+    const route: Route = { 
+      ...insertRoute, 
+      id,
+      createdAt: new Date(),
+      status: insertRoute.status || "pending",
+      pickupIds: insertRoute.pickupIds || null,
+      totalDistance: insertRoute.totalDistance || null,
+      estimatedTime: insertRoute.estimatedTime || null
+    };
+    this.routes.set(id, route);
+    return route;
+  }
+
+  async updateRouteStatus(id: number, status: string): Promise<Route> {
+    const route = this.routes.get(id);
+    if (!route) throw new Error('Route not found');
+    
+    const updatedRoute = { ...route, status };
+    this.routes.set(id, updatedRoute);
+    return updatedRoute;
+  }
+
+  // Subscription operations
+  async getSubscription(id: number): Promise<Subscription | undefined> {
+    return this.subscriptions.get(id);
+  }
+
+  async getSubscriptionByCustomer(customerId: number): Promise<Subscription | undefined> {
+    return Array.from(this.subscriptions.values()).find(sub => sub.customerId === customerId);
+  }
+
+  async getSubscriptionByStripeId(stripeId: string): Promise<Subscription | undefined> {
+    return Array.from(this.subscriptions.values()).find(sub => sub.stripeSubscriptionId === stripeId);
+  }
+
+  async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
+    const id = this.subscriptionIdCounter++;
+    const subscription: Subscription = { 
+      ...insertSubscription, 
+      id,
+      createdAt: new Date(),
+      nextPickupDate: insertSubscription.nextPickupDate || null
+    };
+    this.subscriptions.set(id, subscription);
+    return subscription;
+  }
+
+  async updateSubscriptionStatus(id: number, status: string): Promise<Subscription> {
+    const subscription = this.subscriptions.get(id);
+    if (!subscription) throw new Error('Subscription not found');
+    
+    const updatedSubscription = { ...subscription, status };
+    this.subscriptions.set(id, updatedSubscription);
+    return updatedSubscription;
+  }
+
+  async getActiveSubscriptions(): Promise<Subscription[]> {
+    return Array.from(this.subscriptions.values()).filter(sub => sub.status === 'active');
+  }
+}
+
+export const storage = new MemStorage();

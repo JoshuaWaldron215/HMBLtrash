@@ -1,0 +1,135 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Trash2, Loader2 } from "lucide-react";
+import { loginSchema, type LoginData } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { setStoredToken, setStoredUser } from "@/lib/auth";
+
+export default function Login() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginData) => {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/login", data);
+      const result = await response.json();
+      
+      setStoredToken(result.token);
+      setStoredUser(result.user);
+      
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
+
+      // Redirect based on user role
+      if (result.user.role === 'admin') {
+        setLocation('/admin');
+      } else if (result.user.role === 'driver') {
+        setLocation('/driver');
+      } else {
+        setLocation('/dashboard');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-service-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <Trash2 className="h-8 w-8 text-service-primary mr-2" />
+            <div>
+              <h1 className="text-xl font-bold text-service-text">Acapella Trash Removal</h1>
+              <p className="text-xs text-service-secondary">powered by HMBL</p>
+            </div>
+          </div>
+          <CardTitle className="text-2xl font-bold text-center text-service-text">
+            Sign in to your account
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-service-text">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                {...register("email")}
+                className="w-full"
+              />
+              {errors.email && (
+                <p className="text-sm text-red-500">{errors.email.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-service-text">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                {...register("password")}
+                className="w-full"
+              />
+              {errors.password && (
+                <p className="text-sm text-red-500">{errors.password.message}</p>
+              )}
+            </div>
+            <Button 
+              type="submit" 
+              className="w-full bg-service-primary text-white hover:bg-service-accent"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </Button>
+          </form>
+          <div className="mt-4 text-center">
+            <p className="text-sm text-service-secondary">
+              Don't have an account?{" "}
+              <Link href="/register" className="text-service-primary hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
