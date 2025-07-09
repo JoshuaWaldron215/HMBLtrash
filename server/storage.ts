@@ -74,15 +74,18 @@ export class MemStorage implements IStorage {
     this.createTestUsers();
   }
 
-  private async createTestUsers() {
+  private createTestUsers() {
     const bcrypt = require('bcryptjs');
+    
+    // Create test users with pre-hashed passwords (sync)
+    const hashedPassword = bcrypt.hashSync('password123', 10);
     
     // Test admin user
     const adminUser: User = {
       id: this.userIdCounter++,
       username: 'admin',
       email: 'admin@test.com',
-      password: await bcrypt.hash('password123', 10),
+      password: hashedPassword,
       role: 'admin',
       phone: null,
       address: null,
@@ -97,7 +100,7 @@ export class MemStorage implements IStorage {
       id: this.userIdCounter++,
       username: 'driver',
       email: 'driver@test.com',
-      password: await bcrypt.hash('password123', 10),
+      password: hashedPassword,
       role: 'driver',
       phone: null,
       address: null,
@@ -112,7 +115,7 @@ export class MemStorage implements IStorage {
       id: this.userIdCounter++,
       username: 'customer',
       email: 'customer@test.com',
-      password: await bcrypt.hash('password123', 10),
+      password: hashedPassword,
       role: 'customer',
       phone: null,
       address: null,
