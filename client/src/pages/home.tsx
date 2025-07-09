@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { 
   Truck, 
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import MobileLayout, { MobileCard, MobileButton, MobileSection } from '@/components/mobile-layout';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 const serviceFeatures = [
   {
@@ -65,11 +66,49 @@ const pricingOptions = [
 export default function Home() {
   const [, setLocation] = useLocation();
   const [selectedService, setSelectedService] = useState<'subscription' | 'one-time' | null>(null);
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      // Redirect authenticated users to their appropriate dashboard
+      switch (user.role) {
+        case 'admin':
+          setLocation('/admin');
+          break;
+        case 'driver':
+          setLocation('/driver');
+          break;
+        default:
+          setLocation('/dashboard');
+      }
+    }
+  }, [isAuthenticated, isLoading, user, setLocation]);
 
   const handleBooking = (serviceType: 'subscription' | 'one-time') => {
     setSelectedService(serviceType);
     setLocation('/register');
   };
+
+  const handleLogin = () => {
+    setLocation('/login');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  // If user is authenticated, they'll be redirected in useEffect
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <MobileLayout showBottomNav={false}>

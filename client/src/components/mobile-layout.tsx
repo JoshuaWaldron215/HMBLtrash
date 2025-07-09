@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { useLocation } from 'wouter';
 import { 
   Home, 
@@ -9,9 +9,12 @@ import {
   PlusCircle,
   Menu,
   Bell,
-  MapPin
+  MapPin,
+  X,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -31,70 +34,193 @@ export default function MobileLayout({
   onBack
 }: MobileLayoutProps) {
   const [location, setLocation] = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const { user, logout } = useAuth();
   
-  const navigationItems = [
-    { 
-      icon: Home, 
-      label: 'Home', 
-      path: '/dashboard',
-      active: location === '/dashboard' || location === '/'
-    },
-    { 
-      icon: Calendar, 
-      label: 'Bookings', 
-      path: '/dashboard',
-      active: location === '/bookings'
-    },
-    { 
-      icon: Truck, 
-      label: 'Driver', 
-      path: '/driver',
-      active: location === '/driver'
-    },
-    { 
-      icon: User, 
-      label: 'Admin', 
-      path: '/admin',
-      active: location === '/admin'
-    },
-  ];
+  // Role-based navigation items
+  const getNavigationItems = () => {
+    if (!user) return [];
+    
+    const baseItems = [
+      { 
+        icon: Home, 
+        label: 'Dashboard', 
+        path: user.role === 'admin' ? '/admin' : user.role === 'driver' ? '/driver' : '/dashboard',
+        active: location === '/dashboard' || location === '/admin' || location === '/driver' || location === '/'
+      }
+    ];
+    
+    if (user.role === 'customer') {
+      return [
+        ...baseItems,
+        { 
+          icon: Calendar, 
+          label: 'Bookings', 
+          path: '/dashboard',
+          active: location === '/dashboard'
+        },
+        { 
+          icon: Settings, 
+          label: 'Settings', 
+          path: '/dashboard',
+          active: false
+        }
+      ];
+    }
+    
+    if (user.role === 'driver') {
+      return [
+        ...baseItems,
+        { 
+          icon: Truck, 
+          label: 'Routes', 
+          path: '/driver',
+          active: location === '/driver'
+        },
+        { 
+          icon: MapPin, 
+          label: 'Navigation', 
+          path: '/driver',
+          active: false
+        }
+      ];
+    }
+    
+    if (user.role === 'admin') {
+      return [
+        ...baseItems,
+        { 
+          icon: User, 
+          label: 'Users', 
+          path: '/admin',
+          active: location === '/admin'
+        },
+        { 
+          icon: Truck, 
+          label: 'Drivers', 
+          path: '/admin',
+          active: false
+        },
+        { 
+          icon: Calendar, 
+          label: 'Pickups', 
+          path: '/admin',
+          active: false
+        }
+      ];
+    }
+    
+    return baseItems;
+  };
+  
+  const navigationItems = getNavigationItems();
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card border-r border-border px-6 pb-4">
-          <div className="flex h-16 shrink-0 items-center">
-            <div className="flex items-center space-x-3">
-              <Truck className="w-8 h-8 text-primary" />
-              <div>
-                <h2 className="font-bold text-lg">Acapella Trash</h2>
-                <p className="text-sm text-muted-foreground">powered by HMBL</p>
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 bg-black/20" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed left-0 top-0 h-full w-72 bg-card border-r border-border">
+            <div className="flex h-16 items-center justify-between px-6">
+              <div className="flex items-center space-x-3">
+                <Truck className="w-8 h-8 text-primary" />
+                <div>
+                  <h2 className="font-bold text-lg">Acapella Trash</h2>
+                  <p className="text-sm text-muted-foreground">powered by HMBL</p>
+                </div>
               </div>
+              <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
+                <X className="w-5 h-5" />
+              </Button>
             </div>
+            <nav className="px-6 py-4">
+              <div className="space-y-1">
+                {navigationItems.map((item) => (
+                  <button
+                    key={item.path}
+                    onClick={() => {
+                      setLocation(item.path);
+                      setSidebarOpen(false);
+                    }}
+                    className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold w-full ${
+                      item.active
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <item.icon className="h-6 w-6 shrink-0" />
+                    {item.label}
+                  </button>
+                ))}
+                <div className="border-t border-border mt-4 pt-4">
+                  <button
+                    onClick={logout}
+                    className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold w-full text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut className="h-6 w-6 shrink-0" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Sidebar */}
+      <div className={`hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col transition-all duration-300 ${
+        desktopSidebarOpen ? 'lg:w-72' : 'lg:w-16'
+      }`}>
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card border-r border-border px-6 pb-4">
+          <div className="flex h-16 shrink-0 items-center justify-between">
+            {desktopSidebarOpen && (
+              <div className="flex items-center space-x-3">
+                <Truck className="w-8 h-8 text-primary" />
+                <div>
+                  <h2 className="font-bold text-lg">Acapella Trash</h2>
+                  <p className="text-sm text-muted-foreground">powered by HMBL</p>
+                </div>
+              </div>
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
+              className="shrink-0"
+            >
+              {desktopSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
           </div>
           <nav className="flex flex-1 flex-col">
-            <ul role="list" className="flex flex-1 flex-col gap-y-7">
-              <li>
-                <ul role="list" className="-mx-2 space-y-1">
-                  {navigationItems.map((item) => (
-                    <li key={item.path}>
-                      <button
-                        onClick={() => setLocation(item.path)}
-                        className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold w-full ${
-                          item.active
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        <item.icon className="h-6 w-6 shrink-0" />
-                        {item.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            </ul>
+            <div className="space-y-1">
+              {navigationItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => setLocation(item.path)}
+                  className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold w-full ${
+                    item.active
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                  title={desktopSidebarOpen ? '' : item.label}
+                >
+                  <item.icon className="h-6 w-6 shrink-0" />
+                  {desktopSidebarOpen && item.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-auto border-t border-border pt-4">
+              <button
+                onClick={logout}
+                className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold w-full text-red-600 hover:bg-red-50"
+                title={desktopSidebarOpen ? '' : 'Sign Out'}
+              >
+                <LogOut className="h-6 w-6 shrink-0" />
+                {desktopSidebarOpen && 'Sign Out'}
+              </button>
+            </div>
           </nav>
         </div>
       </div>
@@ -117,6 +243,7 @@ export default function MobileLayout({
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => setSidebarOpen(true)}
                   className="p-2"
                 >
                   <Menu className="w-5 h-5" />
@@ -142,7 +269,9 @@ export default function MobileLayout({
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-72">
+      <div className={`transition-all duration-300 ${
+        desktopSidebarOpen ? 'lg:pl-72' : 'lg:pl-16'
+      }`}>
         <div className="lg:px-8">
           <main className={`${showBottomNav ? 'pb-20 lg:pb-8' : 'pb-4'}`}>
             <div className="mx-auto max-w-7xl">
@@ -156,7 +285,7 @@ export default function MobileLayout({
       {showBottomNav && (
         <nav className="app-bottom-nav lg:hidden">
           <div className="flex justify-around">
-            {navigationItems.map((item) => (
+            {navigationItems.slice(0, 4).map((item) => (
               <button
                 key={item.path}
                 onClick={() => setLocation(item.path)}

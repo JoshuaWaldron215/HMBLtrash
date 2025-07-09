@@ -14,6 +14,9 @@ This is a full-stack web application for "Acapella Trash Removal powered by HMBL
 - ✓ Removed customer reviews section from home page per user feedback
 - ✓ Added proper CSS opacity syntax fixes across all components
 - ✓ Set up complete authentication flow with role-based access control
+- ✓ Added collapsible sidebar functionality for mobile and desktop
+- ✓ Implemented proper route protection based on user roles (customer/driver/admin)
+- ✓ Added mobile sidebar overlay with proper open/close functionality
 
 ## User Preferences
 
