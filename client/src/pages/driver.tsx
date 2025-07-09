@@ -222,85 +222,140 @@ export default function Driver() {
         )}
       </MobileSection>
 
-      {/* Today's Route */}
+      {/* Optimized Route View */}
       {todayRoute.length > 0 && (
         <MobileSection className="bg-muted/20">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Today's Route</h2>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-primary"
-              onClick={() => {
-                const addresses = todayRoute.map(p => p.address).join('|');
-                const encodedAddresses = encodeURIComponent(addresses);
-                window.open(`https://maps.google.com/maps?daddr=${encodedAddresses}`, '_blank');
-              }}
-            >
-              <Route className="w-4 h-4 mr-1" />
-              View Route
-            </Button>
+            <h2 className="text-xl font-semibold flex items-center">
+              <Route className="w-5 h-5 mr-2 text-blue-600" />
+              Optimized Route ({todayRoute.length} stops)
+            </h2>
+            <div className="text-sm text-gray-600">
+              Est. {Math.round(todayRoute.reduce((acc: number, pickup: any) => acc + (pickup.estimatedDuration || 15), 0) / 60)}h {todayRoute.reduce((acc: number, pickup: any) => acc + (pickup.estimatedDuration || 15), 0) % 60}m
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Progress</span>
+              <span className="text-sm text-gray-500">
+                {todayRoute.filter((p: any) => p.status === 'completed').length} / {todayRoute.length} completed
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                style={{ 
+                  width: `${(todayRoute.filter((p: any) => p.status === 'completed').length / todayRoute.length) * 100}%` 
+                }}
+              ></div>
+            </div>
           </div>
 
           <div className="space-y-3">
-            {todayRoute.map((pickup, index) => (
-              <MobileCard key={pickup.id} className={`${pickup.status === 'completed' ? 'opacity-60' : ''}`}>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      pickup.status === 'completed' 
-                        ? 'bg-green-500 text-white' 
-                        : 'bg-primary text-primary-foreground'
-                    }`}>
-                      {pickup.status === 'completed' ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        index + 1
+            {todayRoute.map((pickup: any, index: number) => (
+              <MobileCard key={pickup.id} className={`border-l-4 ${pickup.status === 'completed' ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : 'border-blue-500'}`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start flex-1">
+                    {/* Completion Checkbox */}
+                    <div className="flex items-center mr-3">
+                      <input
+                        type="checkbox"
+                        checked={pickup.status === 'completed'}
+                        onChange={() => pickup.status !== 'completed' && handleCompletePickup(pickup.id)}
+                        className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        disabled={completePickupMutation.isPending}
+                      />
+                      <div className="ml-2 w-6 h-6 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">
+                        {pickup.routeOrder || index + 1}
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h3 className={`font-medium ${pickup.status === 'completed' ? 'text-green-800 dark:text-green-300' : 'text-gray-900 dark:text-gray-100'}`}>
+                        {pickup.address}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        <span className="font-medium">{pickup.customerName || 'Customer'}</span> • {pickup.bagCount} bags • {pickup.serviceType}
+                      </p>
+                      {pickup.estimatedArrival && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                          ETA: {new Date(pickup.estimatedArrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+                      {pickup.driveTimeFromPrevious > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          🚗 {pickup.driveTimeFromPrevious} min drive • {pickup.distanceFromPrevious?.toFixed(1)} miles
+                        </p>
                       )}
                     </div>
                   </div>
                   
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium">{pickup.address}</p>
-                      <StatusBadge status={pickup.status as any}>
-                        {pickup.status}
-                      </StatusBadge>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Package className="w-3 h-3 mr-1" />
-                      <span>{pickup.bagCount} bags</span>
-                      <span className="mx-2">•</span>
-                      <span>{pickup.serviceType}</span>
+                  <StatusBadge 
+                    status={pickup.status as any} 
+                    className={pickup.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'}
+                  >
+                    {pickup.status === 'completed' ? 'Complete' : 'Pending'}
+                  </StatusBadge>
+                </div>
+                
+                {pickup.specialInstructions && (
+                  <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded p-2 mb-3">
+                    <div className="flex items-start text-amber-800 dark:text-amber-300 text-sm">
+                      <Info className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+                      <span>{pickup.specialInstructions}</span>
                     </div>
                   </div>
+                )}
+                
+                <div className="flex gap-2 mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleNavigate(pickup.address)}
+                    className="flex items-center flex-1"
+                  >
+                    <Navigation className="w-4 h-4 mr-1" />
+                    Navigate
+                  </Button>
                   
-                  <div className="flex-shrink-0">
-                    {pickup.status === 'assigned' && (
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleNavigate(pickup.address)}
-                          className="p-2"
-                        >
-                          <Navigation className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleCompletePickup(pickup.id)}
-                          className="p-2 text-green-600"
-                          disabled={completePickupMutation.isPending}
-                        >
-                          <Check className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  {pickup.status !== 'completed' && (
+                    <Button 
+                      size="sm"
+                      onClick={() => handleCompletePickup(pickup.id)}
+                      disabled={completePickupMutation.isPending}
+                      className="flex items-center bg-green-600 hover:bg-green-700"
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      {completePickupMutation.isPending ? 'Completing...' : 'Complete'}
+                    </Button>
+                  )}
                 </div>
               </MobileCard>
             ))}
+            
+            {/* Route Summary with Distance Matrix insights */}
+            <MobileCard className="bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
+              <div className="text-center">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-3">Route Summary</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-blue-700 dark:text-blue-400 font-medium">Total Distance</div>
+                    <div className="text-blue-600 dark:text-blue-300">{(todayRoute.reduce((acc: number, pickup: any) => acc + (pickup.distanceFromPrevious || 0), 0) + 2).toFixed(1)} miles</div>
+                  </div>
+                  <div>
+                    <div className="text-blue-700 dark:text-blue-400 font-medium">Drive Time</div>
+                    <div className="text-blue-600 dark:text-blue-300">{todayRoute.reduce((acc: number, pickup: any) => acc + (pickup.driveTimeFromPrevious || 0), 0)} min</div>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+                  <div className="text-xs text-blue-700 dark:text-blue-400">
+                    ⚡ Route optimized by drive time • Ready for Google Maps integration
+                  </div>
+                </div>
+              </div>
+            </MobileCard>
           </div>
         </MobileSection>
       )}

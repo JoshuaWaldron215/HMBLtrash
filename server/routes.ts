@@ -321,17 +321,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const optimizedPickups = await applyGeographicOptimization(prioritizedPickups);
 
     // Step 3: Add route metadata with realistic timing
-    return optimizedPickups.map((pickup, index) => ({
-      ...pickup,
-      routeOrder: index + 1,
-      estimatedArrival: new Date(Date.now() + (index * 25 * 60 * 1000)), // 25 min intervals
-      estimatedDuration: 15, // 15 minutes per pickup
-      driveTimeFromPrevious: index === 0 ? 0 : Math.floor(Math.random() * 8) + 3, // 3-10 minutes
-      distanceFromPrevious: index === 0 ? 0 : (Math.random() * 2.5) + 0.5, // 0.5-3 miles
-      specialInstructions: pickup.specialInstructions || generateRouteInstructions(pickup),
-      customerName: await getCustomerName(pickup.customerId),
-      completionStatus: pickup.status === 'completed' ? 'complete' : 'pending'
-    }));
+    const enrichedPickups = [];
+    for (let index = 0; index < optimizedPickups.length; index++) {
+      const pickup = optimizedPickups[index];
+      const customerName = await getCustomerName(pickup.customerId);
+      
+      enrichedPickups.push({
+        ...pickup,
+        routeOrder: index + 1,
+        estimatedArrival: new Date(Date.now() + (index * 25 * 60 * 1000)), // 25 min intervals
+        estimatedDuration: 15, // 15 minutes per pickup
+        driveTimeFromPrevious: index === 0 ? 0 : Math.floor(Math.random() * 8) + 3, // 3-10 minutes
+        distanceFromPrevious: index === 0 ? 0 : (Math.random() * 2.5) + 0.5, // 0.5-3 miles
+        specialInstructions: pickup.specialInstructions || generateRouteInstructions(pickup),
+        customerName,
+        completionStatus: pickup.status === 'completed' ? 'complete' : 'pending'
+      });
+    }
+    
+    return enrichedPickups;
   }
 
   // Simulate geographic optimization (in production, use Google Maps Distance Matrix API)
