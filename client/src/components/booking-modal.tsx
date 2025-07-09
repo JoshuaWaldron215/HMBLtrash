@@ -1,12 +1,15 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { CreditCard, Calendar } from "lucide-react";
-import { useLocation } from "wouter";
+import { useState } from 'react';
+import { useLocation } from 'wouter';
+import { Calendar, Clock, MapPin, Package, CreditCard, X, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { authenticatedRequest } from '@/lib/auth';
+import { MobileButton, MobileCard, MobileInput } from '@/components/mobile-layout';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -14,164 +17,288 @@ interface BookingModalProps {
   serviceType?: 'subscription' | 'one-time';
 }
 
+const bagPricing = [
+  { count: 4, price: 30 },
+  { count: 8, price: 45 },
+  { count: 10, price: 50 },
+  { count: 25, price: 100 }
+];
+
 export default function BookingModal({ isOpen, onClose, serviceType = 'one-time' }: BookingModalProps) {
-  const [selectedServiceType, setSelectedServiceType] = useState<'subscription' | 'one-time'>(serviceType);
-  const [bagCount, setBagCount] = useState('4');
-  const [address, setAddress] = useState('');
-  const [date, setDate] = useState('');
-  const [instructions, setInstructions] = useState('');
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState({
+    serviceType,
+    bagCount: 4,
+    scheduledDate: '',
+    address: '',
+    specialInstructions: ''
+  });
 
-  const bagPrices = {
-    '4': 30,
-    '8': 45,
-    '10': 50,
-    '25': 100
-  };
+  const totalSteps = 3;
 
-  const getPrice = () => {
-    if (selectedServiceType === 'subscription') {
-      return 20;
-    }
-    return bagPrices[bagCount as keyof typeof bagPrices];
-  };
+  if (!isOpen) return null;
 
-  const handleProceedToPayment = () => {
-    const bookingData = {
-      serviceType: selectedServiceType,
-      bagCount: parseInt(bagCount),
-      amount: getPrice(),
-      address,
-      scheduledDate: date,
-      specialInstructions: instructions
-    };
-
-    // Store booking data in localStorage for checkout
-    localStorage.setItem('bookingData', JSON.stringify(bookingData));
-    
-    // Navigate to appropriate checkout page
-    if (selectedServiceType === 'subscription') {
-      setLocation('/subscribe');
+  const handleNext = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
     } else {
-      setLocation('/checkout');
+      handleSubmit();
     }
-    
-    onClose();
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const amount = serviceType === 'subscription' ? 20 : 
+        bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
+
+      // Store booking data for checkout
+      localStorage.setItem('bookingData', JSON.stringify({
+        ...formData,
+        amount,
+        serviceType
+      }));
+
+      // Navigate to checkout
+      if (serviceType === 'subscription') {
+        setLocation('/subscribe');
+      } else {
+        setLocation('/checkout');
+      }
+
+      onClose();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create booking. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getCurrentPrice = () => {
+    if (serviceType === 'subscription') return 20;
+    return bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-service-text">Book Your Pickup</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-6">
-          {/* Service Type */}
-          <div>
-            <Label className="text-sm font-medium text-service-text mb-2 block">Service Type</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={selectedServiceType === 'subscription' ? 'default' : 'outline'}
-                onClick={() => setSelectedServiceType('subscription')}
-                className={selectedServiceType === 'subscription' 
-                  ? 'bg-service-primary text-white hover:bg-service-accent' 
-                  : 'border-service-primary text-service-primary hover:bg-service-primary hover:text-white'
-                }
-              >
-                Subscription
-              </Button>
-              <Button
-                type="button"
-                variant={selectedServiceType === 'one-time' ? 'default' : 'outline'}
-                onClick={() => setSelectedServiceType('one-time')}
-                className={selectedServiceType === 'one-time' 
-                  ? 'bg-service-primary text-white hover:bg-service-accent' 
-                  : 'border-service-primary text-service-primary hover:bg-service-primary hover:text-white'
-                }
-              >
-                One-Time
-              </Button>
-            </div>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+      <div className="bg-background rounded-t-3xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden animate-slide-up">
+        {/* Header */}
+        <div className="app-header border-b-0 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <h2 className="text-lg font-semibold">
+              {serviceType === 'subscription' ? 'Weekly Subscription' : 'One-Time Pickup'}
+            </h2>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="p-2"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
 
-          {/* Bag Count (for one-time only) */}
-          {selectedServiceType === 'one-time' && (
-            <div>
-              <Label className="text-sm font-medium text-service-text mb-2 block">Bag Count</Label>
-              <Select value={bagCount} onValueChange={setBagCount}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="4">Up to 4 bags - $30</SelectItem>
-                  <SelectItem value="8">Up to 8 bags - $45</SelectItem>
-                  <SelectItem value="10">Up to 10 bags - $50</SelectItem>
-                  <SelectItem value="25">Up to 25 bags - $100</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Progress Indicator */}
+        <div className="px-6 py-4 border-b">
+          <div className="flex items-center justify-between">
+            {[1, 2, 3].map((step) => (
+              <div key={step} className="flex items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  step <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                }`}>
+                  {step}
+                </div>
+                {step < 3 && (
+                  <div className={`w-16 h-1 mx-2 ${
+                    step < currentStep ? 'bg-primary' : 'bg-muted'
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            <span>Service</span>
+            <span>Details</span>
+            <span>Confirm</span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 flex-1 overflow-y-auto">
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold mb-4">Service Details</h3>
+                
+                {serviceType === 'one-time' && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Number of Bags</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {bagPricing.map((option) => (
+                          <button
+                            key={option.count}
+                            onClick={() => setFormData({...formData, bagCount: option.count})}
+                            className={`p-4 rounded-xl border text-center transition-all ${
+                              formData.bagCount === option.count
+                                ? 'border-primary bg-primary bg-opacity-10 text-primary'
+                                : 'border-border hover:border-primary hover:border-opacity-50'
+                            }`}
+                          >
+                            <div className="font-semibold">{option.count} bags</div>
+                            <div className="text-sm text-muted-foreground">${option.price}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="scheduledDate" className="text-sm font-medium mb-2 block">
+                      {serviceType === 'subscription' ? 'Start Date' : 'Pickup Date'}
+                    </Label>
+                    <Input
+                      id="scheduledDate"
+                      type="date"
+                      value={formData.scheduledDate}
+                      onChange={(e) => setFormData({...formData, scheduledDate: e.target.value})}
+                      className="app-input"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Address */}
-          <div>
-            <Label htmlFor="address" className="text-sm font-medium text-service-text mb-2 block">Address</Label>
-            <Input
-              id="address"
-              type="text"
-              placeholder="Enter your pickup address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          {/* Date */}
-          <div>
-            <Label htmlFor="date" className="text-sm font-medium text-service-text mb-2 block">
-              {selectedServiceType === 'subscription' ? 'First Pickup Date' : 'Preferred Date'}
-            </Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          {/* Special Instructions */}
-          <div>
-            <Label htmlFor="instructions" className="text-sm font-medium text-service-text mb-2 block">Special Instructions</Label>
-            <Textarea
-              id="instructions"
-              placeholder="Any special instructions for pickup..."
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              className="w-full h-24 resize-none"
-            />
-          </div>
-
-          {/* Total */}
-          <div className="border-t pt-6">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-lg font-semibold text-service-text">Total</span>
-              <span className="text-2xl font-bold text-service-primary">
-                ${getPrice()}{selectedServiceType === 'subscription' ? '/month' : ''}
-              </span>
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold mb-4">Pickup Address</h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="address" className="text-sm font-medium mb-2 block">Street Address</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      placeholder="Enter your pickup address"
+                      className="app-input"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="instructions" className="text-sm font-medium mb-2 block">
+                      Special Instructions (Optional)
+                    </Label>
+                    <Textarea
+                      id="instructions"
+                      value={formData.specialInstructions}
+                      onChange={(e) => setFormData({...formData, specialInstructions: e.target.value})}
+                      placeholder="Gate code, specific location, etc."
+                      className="app-input min-h-20"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <Button 
-              onClick={handleProceedToPayment}
-              className="w-full bg-service-primary text-white hover:bg-service-accent"
-              disabled={!address || !date}
+          )}
+
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold mb-4">Confirm Booking</h3>
+                
+                <MobileCard className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Service</span>
+                    <span className="font-medium">
+                      {serviceType === 'subscription' ? 'Weekly Subscription' : 'One-Time Pickup'}
+                    </span>
+                  </div>
+                  
+                  {serviceType === 'one-time' && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Bags</span>
+                      <span className="font-medium">{formData.bagCount} bags</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Date</span>
+                    <span className="font-medium">
+                      {new Date(formData.scheduledDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Address</span>
+                    <span className="font-medium text-right">{formData.address}</span>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">Total</span>
+                      <span className="text-2xl font-bold">
+                        ${getCurrentPrice()}
+                        {serviceType === 'subscription' && <span className="text-sm font-normal">/month</span>}
+                      </span>
+                    </div>
+                  </div>
+                </MobileCard>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t bg-muted/20">
+          <div className="flex gap-3">
+            {currentStep > 1 && (
+              <MobileButton
+                variant="outline"
+                onClick={handleBack}
+                className="flex-1"
+              >
+                Back
+              </MobileButton>
+            )}
+            <MobileButton
+              variant="primary"
+              onClick={handleNext}
+              className="flex-1"
+              disabled={
+                (currentStep === 1 && !formData.scheduledDate) ||
+                (currentStep === 2 && !formData.address)
+              }
             >
-              <CreditCard className="mr-2 h-4 w-4" />
-              Proceed to Payment
-            </Button>
+              {currentStep === totalSteps ? (
+                <>
+                  Continue to Payment
+                  <CreditCard className="w-4 h-4 ml-2" />
+                </>
+              ) : (
+                <>
+                  Next
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
+            </MobileButton>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

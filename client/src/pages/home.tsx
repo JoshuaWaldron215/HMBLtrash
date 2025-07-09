@@ -1,255 +1,286 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Truck, CheckCircle, Star } from "lucide-react";
-import Navbar from "@/components/navbar";
-import BookingModal from "@/components/booking-modal";
+import { useState } from 'react';
+import { useLocation } from 'wouter';
+import { 
+  Truck, 
+  Calendar, 
+  Clock, 
+  Star, 
+  CheckCircle,
+  MapPin,
+  ArrowRight,
+  Trash2,
+  Recycle,
+  Shield,
+  Zap
+} from 'lucide-react';
+import MobileLayout, { MobileCard, MobileButton, MobileSection } from '@/components/mobile-layout';
+import { Button } from '@/components/ui/button';
+
+const serviceFeatures = [
+  {
+    icon: Truck,
+    title: "Professional Pickup",
+    description: "Reliable weekly service at your doorstep"
+  },
+  {
+    icon: Calendar,
+    title: "Flexible Scheduling",
+    description: "Book one-time or recurring pickups"
+  },
+  {
+    icon: Shield,
+    title: "Fully Insured",
+    description: "Licensed and bonded for your peace of mind"
+  },
+  {
+    icon: Zap,
+    title: "Same-Day Service",
+    description: "Emergency pickups available"
+  }
+];
+
+const pricingOptions = [
+  {
+    type: 'subscription',
+    title: 'Weekly Subscription',
+    price: '$20',
+    period: '/month',
+    popular: true,
+    features: ['Weekly pickup', 'Up to 6 bags', 'Priority scheduling', 'Cancel anytime'],
+    buttonText: 'Start Subscription'
+  },
+  {
+    type: 'one-time',
+    title: 'One-Time Pickup',
+    price: 'From $30',
+    period: '',
+    popular: false,
+    features: ['4 bags - $30', '8 bags - $45', '10 bags - $50', '25 bags - $100'],
+    buttonText: 'Book Now'
+  }
+];
+
+const testimonials = [
+  {
+    name: "Sarah M.",
+    rating: 5,
+    text: "Super reliable service! They come every week like clockwork.",
+    location: "Downtown"
+  },
+  {
+    name: "Mike R.",
+    rating: 5,
+    text: "Great for one-time cleanouts. Fair pricing and professional team.",
+    location: "Midtown"
+  }
+];
 
 export default function Home() {
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [selectedServiceType, setSelectedServiceType] = useState<'subscription' | 'one-time'>('one-time');
+  const [, setLocation] = useLocation();
+  const [selectedService, setSelectedService] = useState<'subscription' | 'one-time' | null>(null);
 
-  const openBookingModal = (serviceType: 'subscription' | 'one-time') => {
-    setSelectedServiceType(serviceType);
-    setIsBookingModalOpen(true);
+  const handleBooking = (serviceType: 'subscription' | 'one-time') => {
+    setSelectedService(serviceType);
+    setLocation('/register');
   };
 
   return (
-    <div className="min-h-screen bg-service-background">
-      <Navbar />
-      
+    <MobileLayout showBottomNav={false}>
       {/* Hero Section */}
-      <section className="bg-white py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-service-text mb-6">
-                Reliable Trash Pickup <span className="text-service-primary">Made Simple</span>
-              </h1>
-              <p className="text-lg text-service-secondary mb-8 leading-relaxed">
-                Professional residential trash removal service with flexible scheduling. Choose weekly subscriptions or one-time pickups that fit your needs.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  onClick={() => openBookingModal('one-time')}
-                  className="bg-service-primary text-white hover:bg-service-accent"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Schedule Pickup
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="border-service-primary text-service-primary hover:bg-service-primary hover:text-white"
-                >
-                  View Pricing
-                </Button>
-              </div>
+      <div className="app-gradient-bg text-white">
+        <MobileSection className="text-center py-12">
+          <div className="mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-10 rounded-full mb-4">
+              <Truck className="w-8 h-8" />
             </div>
-            <div className="relative">
-              <img 
-                src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" 
-                alt="Professional waste management truck" 
-                className="rounded-xl shadow-lg w-full h-auto" 
-              />
-              <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-lg shadow-md">
-                <div className="flex items-center space-x-2">
-                  <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                  <span className="font-semibold">4.9/5</span>
-                  <span className="text-service-secondary text-sm">Rating</span>
-                </div>
-              </div>
-            </div>
+            <h1 className="text-3xl font-bold mb-2">Acapella Trash</h1>
+            <p className="text-xl text-white text-opacity-90">powered by HMBL</p>
           </div>
-        </div>
-      </section>
+          <p className="text-lg text-white text-opacity-80 mb-8 leading-relaxed">
+            Professional residential trash pickup service for busy homeowners
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <MobileButton 
+              variant="primary" 
+              className="bg-white text-black hover:bg-white hover:bg-opacity-90"
+              onClick={() => handleBooking('subscription')}
+            >
+              Start Weekly Service
+            </MobileButton>
+            <MobileButton 
+              variant="outline"
+              className="border-white text-white hover:bg-white hover:text-black"
+              onClick={() => handleBooking('one-time')}
+            >
+              One-Time Pickup
+            </MobileButton>
+          </div>
+        </MobileSection>
+      </div>
 
-      {/* Services Section */}
-      <section id="services" className="py-16 bg-service-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-service-text mb-4">How It Works</h2>
-            <p className="text-lg text-service-secondary">Simple, reliable trash removal in three easy steps</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="bg-white shadow-sm text-center">
-              <CardContent className="p-6">
-                <div className="bg-service-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="text-service-primary h-8 w-8" />
-                </div>
-                <h3 className="text-xl font-semibold text-service-text mb-2">Schedule</h3>
-                <p className="text-service-secondary">Choose your pickup schedule - weekly subscription or one-time service</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white shadow-sm text-center">
-              <CardContent className="p-6">
-                <div className="bg-service-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Truck className="text-service-primary h-8 w-8" />
-                </div>
-                <h3 className="text-xl font-semibold text-service-text mb-2">We Collect</h3>
-                <p className="text-service-secondary">Our professional drivers arrive on time and handle your trash pickup</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white shadow-sm text-center">
-              <CardContent className="p-6">
-                <div className="bg-service-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="text-service-primary h-8 w-8" />
-                </div>
-                <h3 className="text-xl font-semibold text-service-text mb-2">Done</h3>
-                <p className="text-service-secondary">Track completion and get notifications when your pickup is finished</p>
-              </CardContent>
-            </Card>
-          </div>
+      {/* Features Section */}
+      <MobileSection>
+        <h2 className="text-2xl font-bold text-center mb-8">Why Choose Acapella?</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {serviceFeatures.map((feature, index) => (
+            <MobileCard key={index} className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-primary bg-opacity-10 rounded-full mb-4">
+                <feature.icon className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-2">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground">{feature.description}</p>
+            </MobileCard>
+          ))}
         </div>
-      </section>
+      </MobileSection>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-service-text mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-lg text-service-secondary">Choose the plan that works best for you</p>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            {/* Subscription Plan */}
-            <Card className="bg-service-primary text-white shadow-lg relative overflow-hidden">
-              <CardContent className="p-8">
-                <div className="absolute top-0 right-0 bg-service-accent px-4 py-2 text-sm font-semibold">
-                  Most Popular
+      <MobileSection className="bg-muted/30">
+        <h2 className="text-2xl font-bold text-center mb-8">Simple Pricing</h2>
+        <div className="space-y-4">
+          {pricingOptions.map((option) => (
+            <MobileCard 
+              key={option.type} 
+              className={`relative ${option.popular ? 'border-primary border-2' : ''}`}
+            >
+              {option.popular && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                    Most Popular
+                  </span>
                 </div>
-                <div className="mb-6">
-                  <h3 className="text-2xl font-bold mb-2">Weekly Subscription</h3>
-                  <p className="text-blue-100">Regular weekly pickup service</p>
-                </div>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold">$20</span>
-                  <span className="text-blue-100">/month</span>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <CheckCircle className="mr-3 h-5 w-5" />
-                    Weekly pickup service
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="mr-3 h-5 w-5" />
-                    Flexible scheduling
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="mr-3 h-5 w-5" />
-                    Priority customer support
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="mr-3 h-5 w-5" />
-                    Cancel anytime
-                  </li>
-                </ul>
-                <Button 
-                  onClick={() => openBookingModal('subscription')}
-                  className="w-full bg-white text-service-primary hover:bg-gray-100"
-                >
-                  Start Subscription
-                </Button>
-              </CardContent>
-            </Card>
-            
-            {/* One-time Service */}
-            <Card className="bg-white border-2 border-gray-200 shadow-sm">
-              <CardContent className="p-8">
-                <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-service-text mb-2">One-Time Pickup</h3>
-                  <p className="text-service-secondary">Perfect for occasional cleanouts</p>
-                </div>
-                <div className="space-y-4 mb-8">
-                  <div className="flex justify-between items-center p-4 bg-service-background rounded-lg">
-                    <span className="font-medium">Up to 4 bags</span>
-                    <span className="text-xl font-bold text-service-primary">$30</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-service-background rounded-lg">
-                    <span className="font-medium">Up to 8 bags</span>
-                    <span className="text-xl font-bold text-service-primary">$45</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-service-background rounded-lg">
-                    <span className="font-medium">Up to 10 bags</span>
-                    <span className="text-xl font-bold text-service-primary">$50</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-service-background rounded-lg">
-                    <span className="font-medium">Up to 25 bags</span>
-                    <span className="text-xl font-bold text-service-primary">$100</span>
-                  </div>
-                </div>
-                <Button 
-                  onClick={() => openBookingModal('one-time')}
-                  className="w-full bg-service-primary text-white hover:bg-service-accent"
-                >
-                  Book One-Time
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-service-text text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center mb-4">
-                <Truck className="text-service-primary h-8 w-8 mr-3" />
-                <div>
-                  <h3 className="text-xl font-bold">Acapella Trash Removal</h3>
-                  <p className="text-sm text-gray-300">powered by HMBL</p>
+              )}
+              
+              <div className="text-center mb-4">
+                <h3 className="text-xl font-semibold mb-2">{option.title}</h3>
+                <div className="flex items-baseline justify-center">
+                  <span className="text-3xl font-bold">{option.price}</span>
+                  <span className="text-muted-foreground ml-1">{option.period}</span>
                 </div>
               </div>
-              <p className="text-gray-300">Professional residential trash removal service with reliable pickup and transparent pricing.</p>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Services</h4>
-              <ul className="space-y-2 text-gray-300">
-                <li><a href="#" className="hover:text-service-primary transition-colors">Weekly Subscription</a></li>
-                <li><a href="#" className="hover:text-service-primary transition-colors">One-Time Pickup</a></li>
-                <li><a href="#" className="hover:text-service-primary transition-colors">Bulk Removal</a></li>
-                <li><a href="#" className="hover:text-service-primary transition-colors">Special Requests</a></li>
+              
+              <ul className="space-y-2 mb-6">
+                {option.features.map((feature, index) => (
+                  <li key={index} className="flex items-center text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                    {feature}
+                  </li>
+                ))}
               </ul>
+              
+              <MobileButton 
+                variant={option.popular ? 'primary' : 'outline'}
+                className="w-full"
+                onClick={() => handleBooking(option.type)}
+              >
+                {option.buttonText}
+              </MobileButton>
+            </MobileCard>
+          ))}
+        </div>
+      </MobileSection>
+
+      {/* How It Works */}
+      <MobileSection>
+        <h2 className="text-2xl font-bold text-center mb-8">How It Works</h2>
+        <div className="space-y-6">
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold">
+              1
             </div>
-            
             <div>
-              <h4 className="text-lg font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-300">
-                <li><a href="#" className="hover:text-service-primary transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-service-primary transition-colors">Contact</a></li>
-                <li><a href="#" className="hover:text-service-primary transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-service-primary transition-colors">Blog</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-300">
-                <li><a href="#" className="hover:text-service-primary transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-service-primary transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-service-primary transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-service-primary transition-colors">Report Issue</a></li>
-              </ul>
+              <h3 className="font-semibold mb-1">Book Your Service</h3>
+              <p className="text-sm text-muted-foreground">Choose subscription or one-time pickup</p>
             </div>
           </div>
           
-          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
-            <p>&copy; 2024 Acapella Trash Removal powered by HMBL. All rights reserved.</p>
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold">
+              2
+            </div>
+            <div>
+              <h3 className="font-semibold mb-1">Place Your Bags</h3>
+              <p className="text-sm text-muted-foreground">Put bags at your curb by 7 AM</p>
+            </div>
+          </div>
+          
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold">
+              3
+            </div>
+            <div>
+              <h3 className="font-semibold mb-1">We Pick Up</h3>
+              <p className="text-sm text-muted-foreground">Professional pickup by our team</p>
+            </div>
           </div>
         </div>
-      </footer>
+      </MobileSection>
 
-      <BookingModal 
-        isOpen={isBookingModalOpen} 
-        onClose={() => setIsBookingModalOpen(false)} 
-        serviceType={selectedServiceType}
-      />
-    </div>
+      {/* Testimonials */}
+      <MobileSection className="bg-muted/30">
+        <h2 className="text-2xl font-bold text-center mb-8">What Customers Say</h2>
+        <div className="space-y-4">
+          {testimonials.map((testimonial, index) => (
+            <MobileCard key={index}>
+              <div className="flex items-center mb-3">
+                <div className="w-10 h-10 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mr-3">
+                  <span className="font-semibold text-primary">{testimonial.name.charAt(0)}</span>
+                </div>
+                <div>
+                  <div className="font-semibold">{testimonial.name}</div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <MapPin className="w-3 h-3 mr-1" />
+                    {testimonial.location}
+                  </div>
+                </div>
+                <div className="ml-auto flex">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground italic">"{testimonial.text}"</p>
+            </MobileCard>
+          ))}
+        </div>
+      </MobileSection>
+
+      {/* CTA Section */}
+      <MobileSection className="text-center">
+        <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
+        <p className="text-muted-foreground mb-8">
+          Join hundreds of satisfied customers in your neighborhood
+        </p>
+        <div className="space-y-3">
+          <MobileButton 
+            variant="primary" 
+            className="w-full"
+            onClick={() => handleBooking('subscription')}
+          >
+            Start Weekly Service
+          </MobileButton>
+          <MobileButton 
+            variant="outline" 
+            className="w-full"
+            onClick={() => handleBooking('one-time')}
+          >
+            Book One-Time Pickup
+          </MobileButton>
+        </div>
+      </MobileSection>
+
+      {/* Footer */}
+      <footer className="bg-muted/20 mt-12">
+        <MobileSection className="text-center">
+          <div className="flex items-center justify-center mb-4">
+            <Truck className="w-6 h-6 mr-2" />
+            <span className="font-semibold">Acapella Trash</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Professional residential trash pickup service
+          </p>
+        </MobileSection>
+      </footer>
+    </MobileLayout>
   );
 }

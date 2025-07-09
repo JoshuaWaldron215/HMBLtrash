@@ -1,219 +1,426 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Users, Calendar, Truck, DollarSign, UserPlus } from "lucide-react";
-import Navbar from "@/components/navbar";
-import PickupCard from "@/components/pickup-card";
-import { authenticatedRequest } from "@/lib/auth";
-import { useToast } from "@/hooks/use-toast";
-import { Pickup, User } from "@shared/schema";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+  Users, 
+  Package, 
+  DollarSign, 
+  TrendingUp, 
+  Calendar,
+  MapPin,
+  Clock,
+  Filter,
+  Search,
+  MoreVertical,
+  UserPlus,
+  Truck,
+  CheckCircle,
+  AlertCircle,
+  Settings,
+  Download,
+  RefreshCw
+} from 'lucide-react';
+import MobileLayout, { 
+  MobileCard, 
+  MobileButton, 
+  MobileSection, 
+  StatusBadge 
+} from '@/components/mobile-layout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { authenticatedRequest } from '@/lib/auth';
+import type { Pickup, User, Subscription } from '@shared/schema';
 
 export default function Admin() {
-  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['/api/admin/stats'],
-    queryFn: async () => {
-      const response = await authenticatedRequest("GET", "/api/admin/stats");
-      return response.json();
-    },
+  // Fetch all data
+  const { data: pickups = [] } = useQuery({
+    queryKey: ['/api/admin/pickups'],
+    queryFn: () => authenticatedRequest('/api/admin/pickups').then(res => res.json() as Promise<Pickup[]>),
   });
 
-  const { data: pickups, isLoading: pickupsLoading } = useQuery({
-    queryKey: ['/api/pickups'],
-    queryFn: async () => {
-      const response = await authenticatedRequest("GET", "/api/pickups");
-      return response.json();
-    },
+  const { data: users = [] } = useQuery({
+    queryKey: ['/api/admin/users'],
+    queryFn: () => authenticatedRequest('/api/admin/users').then(res => res.json() as Promise<User[]>),
   });
 
-  const { data: drivers, isLoading: driversLoading } = useQuery({
-    queryKey: ['/api/admin/drivers'],
-    queryFn: async () => {
-      const response = await authenticatedRequest("GET", "/api/admin/drivers");
-      return response.json();
-    },
+  const { data: subscriptions = [] } = useQuery({
+    queryKey: ['/api/admin/subscriptions'],
+    queryFn: () => authenticatedRequest('/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
   });
 
+  // Assign pickup mutation
   const assignPickupMutation = useMutation({
-    mutationFn: async ({ pickupId, driverId }: { pickupId: number; driverId: number }) => {
-      const response = await authenticatedRequest("PATCH", `/api/pickups/${pickupId}/assign`, {
-        driverId,
-      });
-      return response.json();
-    },
+    mutationFn: ({ pickupId, driverId }: { pickupId: number; driverId: number }) => 
+      authenticatedRequest(`/api/admin/pickups/${pickupId}/assign`, {
+        method: 'POST',
+        body: JSON.stringify({ driverId }),
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/pickups'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
       toast({
-        title: "Pickup assigned",
-        description: "The pickup has been assigned to the driver.",
+        title: "Pickup Assigned",
+        description: "The pickup has been assigned to the driver successfully.",
       });
     },
-    onError: (error: any) => {
+    onError: () => {
       toast({
-        title: "Assignment failed",
-        description: error.message || "Failed to assign pickup to driver.",
+        title: "Error",
+        description: "Failed to assign pickup. Please try again.",
         variant: "destructive",
       });
     },
+  });
+
+  // Calculate metrics
+  const customers = users.filter(u => u.role === 'customer');
+  const drivers = users.filter(u => u.role === 'driver');
+  const totalRevenue = pickups.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const pendingPickups = pickups.filter(p => p.status === 'pending');
+  const completedPickups = pickups.filter(p => p.status === 'completed');
+  const activeSubscriptions = subscriptions.filter(s => s.status === 'active');
+
+  // Filter pickups
+  const filteredPickups = pickups.filter(pickup => {
+    const matchesSearch = pickup.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         pickup.id.toString().includes(searchTerm);
+    const matchesStatus = statusFilter === 'all' || pickup.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   const handleAssignPickup = (pickupId: number, driverId: number) => {
     assignPickupMutation.mutate({ pickupId, driverId });
   };
 
-  if (statsLoading || pickupsLoading || driversLoading) {
-    return (
-      <div className="min-h-screen bg-service-background">
-        <Navbar />
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-service-primary border-t-transparent rounded-full"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-service-background">
-      <Navbar />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-service-text mb-2">Admin Dashboard</h1>
-          <p className="text-service-secondary">Manage pickups, drivers, and customers</p>
+    <MobileLayout 
+      title="Admin Dashboard"
+      rightAction={
+        <Button variant="ghost" size="sm" className="p-2">
+          <Settings className="w-5 h-5" />
+        </Button>
+      }
+    >
+      {/* Metrics Overview */}
+      <MobileSection className="pt-4">
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <MobileCard className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">Total Revenue</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                  ${totalRevenue.toLocaleString()}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </MobileCard>
+
+          <MobileCard className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-600 dark:text-green-400 mb-1">Active Subscriptions</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+                  {activeSubscriptions.length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </MobileCard>
+
+          <MobileCard className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-600 dark:text-purple-400 mb-1">Total Customers</p>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                  {customers.length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </MobileCard>
+
+          <MobileCard className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-orange-600 dark:text-orange-400 mb-1">Active Drivers</p>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                  {drivers.length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                <Truck className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+          </MobileCard>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-service-secondary">Total Subscribers</p>
-                  <p className="text-2xl font-bold text-service-text">{stats?.totalSubscribers || 0}</p>
-                </div>
-                <div className="bg-service-primary/10 p-3 rounded-full">
-                  <Users className="h-6 w-6 text-service-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-service-secondary">Today's Pickups</p>
-                  <p className="text-2xl font-bold text-service-text">{stats?.todayPickups || 0}</p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-full">
-                  <Calendar className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-service-secondary">Active Drivers</p>
-                  <p className="text-2xl font-bold text-service-text">{stats?.activeDrivers || 0}</p>
-                </div>
-                <div className="bg-service-accent/10 p-3 rounded-full">
-                  <Truck className="h-6 w-6 text-service-accent" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-service-secondary">Pending Pickups</p>
-                  <p className="text-2xl font-bold text-service-text">{stats?.pendingPickups || 0}</p>
-                </div>
-                <div className="bg-yellow-100 p-3 rounded-full">
-                  <DollarSign className="h-6 w-6 text-yellow-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <MobileCard className="text-center">
+            <div className="text-xl font-bold text-primary mb-1">
+              {pendingPickups.length}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Pending Pickups
+            </div>
+          </MobileCard>
+          <MobileCard className="text-center">
+            <div className="text-xl font-bold text-green-600 mb-1">
+              {completedPickups.length}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Completed
+            </div>
+          </MobileCard>
+          <MobileCard className="text-center">
+            <div className="text-xl font-bold text-blue-600 mb-1">
+              {Math.round((completedPickups.length / Math.max(pickups.length, 1)) * 100)}%
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Success Rate
+            </div>
+          </MobileCard>
+        </div>
+      </MobileSection>
+
+      {/* Pickups Management */}
+      <MobileSection className="bg-muted/20">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Manage Pickups</h2>
+          <Button variant="ghost" size="sm" className="text-primary">
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Refresh
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Pickup Requests */}
-          <Card className="bg-white shadow-sm">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg font-semibold text-service-text">
-                  Pickup Requests
-                </CardTitle>
-                <Button variant="outline" size="sm">
-                  <UserPlus className="h-4 w-4" />
+        {/* Filters */}
+        <div className="flex gap-3 mb-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Search pickups..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="app-input"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="assigned">Assigned</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Pickups List */}
+        <div className="space-y-3">
+          {filteredPickups.slice(0, 10).map((pickup) => (
+            <MobileCard key={pickup.id}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-medium">#{pickup.id}</span>
+                    <StatusBadge status={pickup.status as any}>
+                      {pickup.status}
+                    </StatusBadge>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <MapPin className="w-3 h-3 text-muted-foreground mr-1" />
+                      <span className="truncate">{pickup.address}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Package className="w-3 h-3 mr-1" />
+                      <span>{pickup.bagCount} bags</span>
+                      <span className="mx-2">•</span>
+                      <span>{pickup.serviceType}</span>
+                      <span className="mx-2">•</span>
+                      <span>${pickup.amount}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      <span>
+                        {pickup.scheduledDate ? 
+                          new Date(pickup.scheduledDate).toLocaleDateString() : 
+                          'Date pending'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {pickup.status === 'pending' && (
+                    <Select
+                      onValueChange={(value) => handleAssignPickup(pickup.id, parseInt(value))}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Assign Driver" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {drivers.map((driver) => (
+                          <SelectItem key={driver.id} value={driver.id.toString()}>
+                            {driver.username}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Button variant="ghost" size="sm" className="p-1">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </MobileCard>
+          ))}
+        </div>
+
+        {filteredPickups.length === 0 && (
+          <div className="text-center py-8">
+            <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">No Pickups Found</h3>
+            <p className="text-sm text-muted-foreground">
+              Try adjusting your search or filters
+            </p>
+          </div>
+        )}
+      </MobileSection>
+
+      {/* Users Management */}
+      <MobileSection>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Users</h2>
+          <Button variant="ghost" size="sm" className="text-primary">
+            <UserPlus className="w-4 h-4 mr-1" />
+            Add User
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          {/* Customers Summary */}
+          <MobileCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold mb-1">Customers</h3>
+                <p className="text-sm text-muted-foreground">
+                  {customers.length} registered customers
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                  <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <Button variant="ghost" size="sm">
+                  View All
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {pickups?.length === 0 ? (
-                  <p className="text-center py-8 text-service-secondary">No pickup requests</p>
-                ) : (
-                  pickups?.map((pickup: Pickup) => (
-                    <PickupCard
-                      key={pickup.id}
-                      pickup={pickup}
-                      userRole="admin"
-                      drivers={drivers}
-                      onAssign={(driverId) => handleAssignPickup(pickup.id, driverId)}
-                    />
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </MobileCard>
 
-          {/* Driver Management */}
-          <Card className="bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-service-text">
-                Driver Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {drivers?.length === 0 ? (
-                  <p className="text-center py-8 text-service-secondary">No drivers registered</p>
-                ) : (
-                  drivers?.map((driver: User) => (
-                    <div key={driver.id} className="flex items-center justify-between p-4 bg-service-background rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                          <Users className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-service-text">{driver.username}</p>
-                          <p className="text-sm text-service-secondary">{driver.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                          Active
-                        </span>
-                        <Button variant="outline" size="sm">
-                          <Calendar className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
+          {/* Drivers Summary */}
+          <MobileCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold mb-1">Drivers</h3>
+                <p className="text-sm text-muted-foreground">
+                  {drivers.length} active drivers
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center space-x-2">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <Button variant="ghost" size="sm">
+                  View All
+                </Button>
+              </div>
+            </div>
+          </MobileCard>
         </div>
-      </div>
-    </div>
+      </MobileSection>
+
+      {/* Recent Activity */}
+      <MobileSection className="bg-muted/20">
+        <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+        <div className="space-y-3">
+          {pickups.slice(0, 5).map((pickup) => (
+            <div key={pickup.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg">
+              <div className={`w-2 h-2 rounded-full ${
+                pickup.status === 'completed' ? 'bg-green-500' : 
+                pickup.status === 'assigned' ? 'bg-blue-500' : 
+                'bg-yellow-500'
+              }`} />
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  Pickup #{pickup.id} {pickup.status === 'completed' ? 'completed' : 'updated'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {pickup.address} • {pickup.bagCount} bags
+                </p>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {pickup.scheduledDate ? 
+                  new Date(pickup.scheduledDate).toLocaleDateString() : 
+                  'Today'
+                }
+              </div>
+            </div>
+          ))}
+        </div>
+      </MobileSection>
+
+      {/* Quick Actions */}
+      <MobileSection>
+        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <MobileButton 
+            variant="outline"
+            className="flex flex-col items-center space-y-2 h-auto py-4"
+          >
+            <Download className="w-6 h-6" />
+            <span>Export Data</span>
+          </MobileButton>
+          
+          <MobileButton 
+            variant="outline"
+            className="flex flex-col items-center space-y-2 h-auto py-4"
+          >
+            <UserPlus className="w-6 h-6" />
+            <span>Add Driver</span>
+          </MobileButton>
+          
+          <MobileButton 
+            variant="outline"
+            className="flex flex-col items-center space-y-2 h-auto py-4"
+          >
+            <Calendar className="w-6 h-6" />
+            <span>Schedule Route</span>
+          </MobileButton>
+          
+          <MobileButton 
+            variant="outline"
+            className="flex flex-col items-center space-y-2 h-auto py-4"
+          >
+            <Settings className="w-6 h-6" />
+            <span>Settings</span>
+          </MobileButton>
+        </div>
+      </MobileSection>
+    </MobileLayout>
   );
 }
