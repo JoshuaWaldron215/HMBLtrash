@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, ArrowLeft } from "lucide-react";
 import { loginSchema, type LoginData } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { setStoredToken, setStoredUser } from "@/lib/auth";
@@ -59,24 +59,36 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-service-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <Trash2 className="h-8 w-8 text-service-primary mr-2" />
-            <div>
-              <h1 className="text-xl font-bold text-service-text">Acapella Trash Removal</h1>
-              <p className="text-xs text-service-secondary">powered by HMBL</p>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation('/')}
+              className="flex items-center text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+            <div className="flex items-center">
+              <Trash2 className="h-6 w-6 text-primary mr-2" />
+              <div className="text-center">
+                <h1 className="text-lg font-bold">Acapella Trash</h1>
+                <p className="text-xs text-muted-foreground">powered by HMBL</p>
+              </div>
             </div>
+            <div className="w-16"></div> {/* Spacer for centering */}
           </div>
-          <CardTitle className="text-2xl font-bold text-center text-service-text">
+          <CardTitle className="text-2xl font-bold text-center">
             Sign in to your account
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-service-text">
+              <Label htmlFor="email">
                 Email
               </Label>
               <Input
@@ -91,7 +103,7 @@ export default function Login() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-service-text">
+              <Label htmlFor="password">
                 Password
               </Label>
               <Input

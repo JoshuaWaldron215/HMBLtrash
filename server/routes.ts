@@ -76,10 +76,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       
-      // Create user
+      // Create user - all new registrations default to customer role
       const user = await storage.createUser({
         ...userData,
         password: hashedPassword,
+        role: "customer", // Admin will change roles if needed
       });
 
       // Create JWT token

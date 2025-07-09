@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, ArrowLeft } from "lucide-react";
 import { registerSchema, type RegisterData } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { setStoredToken, setStoredUser } from "@/lib/auth";
@@ -21,13 +20,9 @@ export default function Register() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      role: "customer",
-    },
   });
 
   const onSubmit = async (data: RegisterData) => {
@@ -41,17 +36,11 @@ export default function Register() {
       
       toast({
         title: "Registration successful",
-        description: "Welcome to Acapella Trash Removal!",
+        description: "Welcome to Acapella Trash Removal! You can now book pickup services.",
       });
 
-      // Redirect based on user role
-      if (result.user.role === 'admin') {
-        setLocation('/admin');
-      } else if (result.user.role === 'driver') {
-        setLocation('/driver');
-      } else {
-        setLocation('/dashboard');
-      }
+      // All new registrations go to customer dashboard
+      setLocation('/dashboard');
     } catch (error: any) {
       toast({
         title: "Registration failed",
@@ -64,24 +53,39 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-service-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <Trash2 className="h-8 w-8 text-service-primary mr-2" />
-            <div>
-              <h1 className="text-xl font-bold text-service-text">Acapella Trash Removal</h1>
-              <p className="text-xs text-service-secondary">powered by HMBL</p>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation('/')}
+              className="flex items-center text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+            <div className="flex items-center">
+              <Trash2 className="h-6 w-6 text-primary mr-2" />
+              <div className="text-center">
+                <h1 className="text-lg font-bold">Acapella Trash</h1>
+                <p className="text-xs text-muted-foreground">powered by HMBL</p>
+              </div>
             </div>
+            <div className="w-16"></div> {/* Spacer for centering */}
           </div>
-          <CardTitle className="text-2xl font-bold text-center text-service-text">
+          <CardTitle className="text-2xl font-bold text-center">
             Create your account
           </CardTitle>
+          <p className="text-center text-sm text-muted-foreground">
+            Start your trash removal service today
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-service-text">
+              <Label htmlFor="username">
                 Username
               </Label>
               <Input
@@ -96,7 +100,7 @@ export default function Register() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-service-text">
+              <Label htmlFor="email">
                 Email
               </Label>
               <Input
@@ -111,7 +115,7 @@ export default function Register() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-service-text">
+              <Label htmlFor="phone">
                 Phone (Optional)
               </Label>
               <Input
@@ -126,7 +130,7 @@ export default function Register() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address" className="text-service-text">
+              <Label htmlFor="address">
                 Address (Optional)
               </Label>
               <Input
@@ -140,26 +144,9 @@ export default function Register() {
                 <p className="text-sm text-red-500">{errors.address.message}</p>
               )}
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="role" className="text-service-text">
-                Role
-              </Label>
-              <Select defaultValue="customer" onValueChange={(value) => setValue("role", value)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select your role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="customer">Customer</SelectItem>
-                  <SelectItem value="driver">Driver</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.role && (
-                <p className="text-sm text-red-500">{errors.role.message}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-service-text">
+              <Label htmlFor="password">
                 Password
               </Label>
               <Input
@@ -174,7 +161,7 @@ export default function Register() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-service-text">
+              <Label htmlFor="confirmPassword">
                 Confirm Password
               </Label>
               <Input
@@ -190,7 +177,7 @@ export default function Register() {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-service-primary text-white hover:bg-service-accent"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -204,9 +191,9 @@ export default function Register() {
             </Button>
           </form>
           <div className="mt-4 text-center">
-            <p className="text-sm text-service-secondary">
+            <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link href="/login" className="text-service-primary hover:underline">
+              <Link href="/login" className="text-primary hover:underline">
                 Sign in
               </Link>
             </p>

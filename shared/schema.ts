@@ -79,7 +79,7 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-export const registerSchema = insertUserSchema.extend({
+export const registerSchema = insertUserSchema.omit({ role: true }).extend({
   email: z.string().email(),
   password: z.string().min(6),
   confirmPassword: z.string().min(6),
