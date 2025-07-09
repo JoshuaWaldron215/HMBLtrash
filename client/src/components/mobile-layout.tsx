@@ -60,55 +60,101 @@ export default function MobileLayout({
   ];
 
   return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="app-header">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            {showBackButton ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onBack}
-                className="p-2"
-              >
-                ←
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-2"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-            )}
-            {title && (
-              <h1 className="text-lg font-semibold">{title}</h1>
-            )}
+    <div className="min-h-screen bg-background">
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card border-r border-border px-6 pb-4">
+          <div className="flex h-16 shrink-0 items-center">
+            <div className="flex items-center space-x-3">
+              <Truck className="w-8 h-8 text-primary" />
+              <div>
+                <h2 className="font-bold text-lg">Acapella Trash</h2>
+                <p className="text-sm text-muted-foreground">powered by HMBL</p>
+              </div>
+            </div>
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-2"
-            >
-              <Bell className="w-5 h-5" />
-            </Button>
-            {rightAction}
-          </div>
+          <nav className="flex flex-1 flex-col">
+            <ul role="list" className="flex flex-1 flex-col gap-y-7">
+              <li>
+                <ul role="list" className="-mx-2 space-y-1">
+                  {navigationItems.map((item) => (
+                    <li key={item.path}>
+                      <button
+                        onClick={() => setLocation(item.path)}
+                        className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold w-full ${
+                          item.active
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        <item.icon className="h-6 w-6 shrink-0" />
+                        {item.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            </ul>
+          </nav>
         </div>
-      </header>
+      </div>
 
-      {/* Content */}
-      <main className={`flex-1 ${showBottomNav ? 'pb-20' : 'pb-4'}`}>
-        {children}
-      </main>
+      {/* Mobile header */}
+      <div className="lg:hidden">
+        <header className="app-header">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              {showBackButton ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onBack}
+                  className="p-2"
+                >
+                  ←
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-2"
+                >
+                  <Menu className="w-5 h-5" />
+                </Button>
+              )}
+              {title && (
+                <h1 className="text-lg font-semibold">{title}</h1>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2"
+              >
+                <Bell className="w-5 h-5" />
+              </Button>
+              {rightAction}
+            </div>
+          </div>
+        </header>
+      </div>
 
-      {/* Bottom Navigation */}
+      {/* Main content */}
+      <div className="lg:pl-72">
+        <div className="lg:px-8">
+          <main className={`${showBottomNav ? 'pb-20 lg:pb-8' : 'pb-4'}`}>
+            <div className="mx-auto max-w-7xl">
+              {children}
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
       {showBottomNav && (
-        <nav className="app-bottom-nav">
+        <nav className="app-bottom-nav lg:hidden">
           <div className="flex justify-around">
             {navigationItems.map((item) => (
               <button

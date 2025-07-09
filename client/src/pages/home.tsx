@@ -60,20 +60,7 @@ const pricingOptions = [
   }
 ];
 
-const testimonials = [
-  {
-    name: "Sarah M.",
-    rating: 5,
-    text: "Super reliable service! They come every week like clockwork.",
-    location: "Downtown"
-  },
-  {
-    name: "Mike R.",
-    rating: 5,
-    text: "Great for one-time cleanouts. Fair pricing and professional team.",
-    location: "Midtown"
-  }
-];
+
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -121,7 +108,7 @@ export default function Home() {
       {/* Features Section */}
       <MobileSection>
         <h2 className="text-2xl font-bold text-center mb-8">Why Choose Acapella?</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {serviceFeatures.map((feature, index) => (
             <MobileCard key={index} className="text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-primary bg-opacity-10 rounded-full mb-4">
@@ -137,7 +124,7 @@ export default function Home() {
       {/* Pricing Section */}
       <MobileSection className="bg-muted/30">
         <h2 className="text-2xl font-bold text-center mb-8">Simple Pricing</h2>
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {pricingOptions.map((option) => (
             <MobileCard 
               key={option.type} 
@@ -216,34 +203,7 @@ export default function Home() {
         </div>
       </MobileSection>
 
-      {/* Testimonials */}
-      <MobileSection className="bg-muted/30">
-        <h2 className="text-2xl font-bold text-center mb-8">What Customers Say</h2>
-        <div className="space-y-4">
-          {testimonials.map((testimonial, index) => (
-            <MobileCard key={index}>
-              <div className="flex items-center mb-3">
-                <div className="w-10 h-10 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mr-3">
-                  <span className="font-semibold text-primary">{testimonial.name.charAt(0)}</span>
-                </div>
-                <div>
-                  <div className="font-semibold">{testimonial.name}</div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    {testimonial.location}
-                  </div>
-                </div>
-                <div className="ml-auto flex">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground italic">"{testimonial.text}"</p>
-            </MobileCard>
-          ))}
-        </div>
-      </MobileSection>
+
 
       {/* CTA Section */}
       <MobileSection className="text-center">

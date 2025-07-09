@@ -4,8 +4,8 @@
 
 :root {
   /* Mobile App Color Palette */
-  --app-primary: #000000;
-  --app-primary-light: #1a1a1a;
+  --app-primary: #1e3a8a;
+  --app-primary-light: #3b82f6;
   --app-secondary: #10B981;
   --app-secondary-light: #34D399;
   --app-accent: #3B82F6;
@@ -21,7 +21,7 @@
   --app-success: #10B981;
   --app-warning: #F59E0B;
   --app-error: #EF4444;
-  --app-gradient: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+  --app-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
   --app-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   --app-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --app-radius: 12px;
@@ -123,7 +123,7 @@
 
 @layer components {
   .app-container {
-    @apply max-w-md mx-auto min-h-screen bg-background;
+    @apply max-w-md mx-auto min-h-screen bg-background lg:max-w-none;
   }
   
   .app-header {
