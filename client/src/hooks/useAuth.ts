@@ -6,10 +6,17 @@ export function useAuth() {
     queryKey: ["auth", "user"],
     queryFn: async () => {
       const token = getStoredToken();
-      if (!token) return null;
+      if (!token) {
+        console.log('No token found in storage');
+        return null;
+      }
+      
+      const storedUser = getStoredUser();
+      console.log('Retrieved stored user:', storedUser);
+      console.log('Token exists:', !!token);
       
       // Return stored user for now, in a real app you'd validate the token with the server
-      return getStoredUser();
+      return storedUser;
     },
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -20,6 +27,8 @@ export function useAuth() {
     removeStoredUser();
     window.location.href = '/';
   };
+
+  console.log('useAuth - user:', user, 'isLoading:', isLoading, 'isAuthenticated:', !!user);
 
   return {
     user,
