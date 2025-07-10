@@ -39,10 +39,13 @@ export default function Driver() {
   });
 
   // Fetch today's optimized route
-  const { data: todayRoute = [] } = useQuery({
+  const { data: routeData = { pickups: [], summary: {} } } = useQuery({
     queryKey: ['/api/driver/route'],
     queryFn: () => authenticatedRequest('/api/driver/route').then(res => res.json()),
   });
+
+  const todayRoute = Array.isArray(routeData) ? routeData : routeData.pickups || [];
+  const routeSummary = routeData.summary || {};
 
   // Complete pickup mutation
   const completePickupMutation = useMutation({
@@ -118,15 +121,15 @@ export default function Driver() {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-primary mb-1">
-              {todayRoute.length}
+              {routeSummary.totalStops || todayRoute.length}
             </div>
             <div className="text-xs text-muted-foreground">
-              Today's Route
+              Total Stops
             </div>
           </MobileCard>
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-green-600 mb-1">
-              {completedPickups.length}
+              {routeSummary.completed || completedPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Completed
@@ -134,13 +137,46 @@ export default function Driver() {
           </MobileCard>
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-orange-600 mb-1">
-              {pendingPickups.length}
+              {routeSummary.remaining || pendingPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Remaining
             </div>
           </MobileCard>
         </div>
+
+        {/* Route Summary Card */}
+        {routeSummary.totalDistance && (
+          <MobileCard className="mb-6 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-blue-900 dark:text-blue-100">Route Summary</h3>
+              <Route className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-blue-700 dark:text-blue-300">Total Distance</p>
+                <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                  {routeSummary.totalDistance} miles
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-blue-700 dark:text-blue-300">Est. Time</p>
+                <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                  {Math.floor((routeSummary.estimatedTime || 0) / 60)}h {(routeSummary.estimatedTime || 0) % 60}m
+                </p>
+              </div>
+            </div>
+            {routeSummary.googleMapsUrl && (
+              <MobileButton 
+                className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+                onClick={() => window.open(routeSummary.googleMapsUrl, '_blank')}
+              >
+                <Navigation className="w-4 h-4 mr-2" />
+                Open Full Route in Google Maps
+              </MobileButton>
+            )}
+          </MobileCard>
+        )}
 
         {/* Next Pickup Card */}
         {nextPickup ? (
@@ -231,7 +267,7 @@ export default function Driver() {
               Optimized Route ({todayRoute.length} stops)
             </h2>
             <div className="text-sm text-gray-600">
-              Est. {Math.round(todayRoute.reduce((acc: number, pickup: any) => acc + (pickup.estimatedDuration || 15), 0) / 60)}h {todayRoute.reduce((acc: number, pickup: any) => acc + (pickup.estimatedDuration || 15), 0) % 60}m
+              Est. {Math.floor((routeSummary.estimatedTime || 0) / 60)}h {(routeSummary.estimatedTime || 0) % 60}m
             </div>
           </div>
 

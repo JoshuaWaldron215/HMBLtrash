@@ -774,6 +774,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test system endpoints
+  app.post('/api/test/create-pickups', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { createTestPickupData } = await import('./testPickupData');
+      const result = await createTestPickupData();
+      
+      res.json({
+        success: true,
+        message: `Created ${result.pickups.length} test pickups`,
+        pickups: result.pickups,
+        route: result.route
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
+  app.get('/api/test/workflow', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { testPickupWorkflow } = await import('./testPickupData');
+      const summary = await testPickupWorkflow();
+      
+      res.json({
+        success: true,
+        ...summary
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
+  app.post('/api/test/complete-test', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { runCompleteTest } = await import('./testPickupData');
+      const result = await runCompleteTest();
+      
+      res.json({
+        success: true,
+        message: 'Complete test run finished',
+        ...result
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
