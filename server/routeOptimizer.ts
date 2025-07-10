@@ -193,7 +193,7 @@ class KMeansClusterer {
     
     // Create cluster objects
     const clusters: Cluster[] = [];
-    const days = ['Monday', 'Tuesday', 'Wednesday'];
+    const days = ['Daily Route']; // Single route for all pickups
     
     for (let i = 0; i < this.k; i++) {
       const clusterAddresses = addresses.filter((_, index) => assignments[index] === i);
@@ -376,15 +376,15 @@ export class RouteOptimizationService {
   private optimizedRoutes: Map<string, OptimizedRoute[]> = new Map();
 
   constructor() {
-    this.clusterer = new KMeansClusterer(3); // 3 clusters for 3 days
+    this.clusterer = new KMeansClusterer(1); // Single route for 1 driver
     this.optimizer = new RouteOptimizer();
   }
 
   /**
-   * Process a list of addresses and return optimized routes
+   * Process a list of addresses and return optimized single route
    */
   async optimizePickupRoutes(addresses: Address[] = MOCK_ADDRESSES): Promise<OptimizedRoute[]> {
-    console.log(`🚀 Starting route optimization for ${addresses.length} addresses`);
+    console.log(`🚀 Starting single-driver route optimization for ${addresses.length} addresses`);
     
     // Step 1: Add coordinates to addresses
     for (const address of addresses) {
@@ -393,25 +393,40 @@ export class RouteOptimizationService {
       }
     }
     
-    // Step 2: Cluster addresses using K-Means
-    console.log('📍 Clustering addresses by proximity...');
-    const clusters = this.clusterer.cluster(addresses);
+    // Step 2: For single driver, create one optimized route without clustering
+    console.log('🗺️  Creating single optimized route...');
     
-    // Step 3: Optimize each cluster
-    console.log('🗺️  Optimizing routes for each cluster...');
-    const optimizedRoutes: OptimizedRoute[] = [];
+    // Create single cluster with all addresses
+    const singleCluster: Cluster = {
+      id: 0,
+      day: 'Daily Route',
+      addresses: addresses,
+      centroid: this.calculateCentroid(addresses)
+    };
     
-    for (const cluster of clusters) {
-      const optimizedRoute = await this.optimizer.optimizeCluster(cluster);
-      optimizedRoutes.push(optimizedRoute);
-    }
+    const optimizedRoute = await this.optimizer.optimizeCluster(singleCluster);
+    const optimizedRoutes = [optimizedRoute];
     
-    // Step 4: Store routes in memory
-    const routeKey = new Date().toISOString().split('T')[0]; // Use today's date as key
+    // Step 3: Store routes in memory
+    const routeKey = new Date().toISOString().split('T')[0];
     this.optimizedRoutes.set(routeKey, optimizedRoutes);
     
-    console.log('✅ Route optimization complete!');
+    console.log('✅ Single-driver route optimization complete!');
+    console.log(`📍 Route covers ${addresses.length} stops in ${optimizedRoute.totalDistance} (${optimizedRoute.totalDuration})`);
+    
     return optimizedRoutes;
+  }
+
+  /**
+   * Calculate centroid of all addresses
+   */
+  private calculateCentroid(addresses: Address[]): [number, number] {
+    if (addresses.length === 0) return [0, 0];
+    
+    const totalLat = addresses.reduce((sum, addr) => sum + (addr.coordinates?.[0] || 0), 0);
+    const totalLng = addresses.reduce((sum, addr) => sum + (addr.coordinates?.[1] || 0), 0);
+    
+    return [totalLat / addresses.length, totalLng / addresses.length];
   }
 
   /**
