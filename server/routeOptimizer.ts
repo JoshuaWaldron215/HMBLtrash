@@ -193,7 +193,7 @@ class KMeansClusterer {
     
     // Create cluster objects
     const clusters: Cluster[] = [];
-    const days = ['Daily Route']; // Single route for all pickups
+    const days = ['Pickup Route']; // Single route for all pickups
     
     for (let i = 0; i < this.k; i++) {
       const clusterAddresses = addresses.filter((_, index) => assignments[index] === i);
@@ -399,7 +399,7 @@ export class RouteOptimizationService {
     // Create single cluster with all addresses
     const singleCluster: Cluster = {
       id: 0,
-      day: 'Daily Route',
+      day: 'Pickup Route',
       addresses: addresses,
       centroid: this.calculateCentroid(addresses)
     };

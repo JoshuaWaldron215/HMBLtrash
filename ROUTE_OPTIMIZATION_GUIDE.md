@@ -211,20 +211,20 @@ window.open(route.googleMapsUrl);
 
 ### Advanced Features:
 1. **Vehicle capacity constraints** (weight/volume limits)
-2. **Time window constraints** (customer preferences)
-3. **Driver skill matching** (route difficulty)
-4. **Real-time optimization** (add/remove stops dynamically)
+2. **On-demand pickup requests** (customers book anytime)
+3. **Real-time route updates** (add new requests to existing route)
+4. **Priority handling** (same-day vs next-day requests)
 
 ## 🎛️ Admin Dashboard Integration
 
-The system is ready to power the admin → driver route flow:
+The system powers the flexible pickup request flow:
 
-1. **Admin imports pickup addresses** (CSV or manual entry)
-2. **System automatically clusters** addresses by proximity
-3. **Optimized routes generated** for each day
-4. **Routes assigned to drivers** via admin dashboard
-5. **Drivers receive Google Maps navigation** links
-6. **Real-time tracking** of completion status
+1. **Customers book pickups anytime** via app/website
+2. **Admin sees pending pickup requests** in dashboard
+3. **System optimizes route** when driver is ready to start
+4. **Driver gets optimized route** with Google Maps navigation
+5. **Real-time pickup completion** tracking
+6. **Flexible scheduling** - driver works when needed
 
 ## ✅ Next Steps
 
