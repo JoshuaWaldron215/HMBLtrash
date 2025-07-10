@@ -52,19 +52,17 @@ export const getAuthHeaders = (): HeadersInit => {
 };
 
 export const authenticatedRequest = async (
-  method: string,
   url: string,
-  data?: unknown
+  options: RequestInit = {}
 ): Promise<Response> => {
   const headers = {
     ...getAuthHeaders(),
-    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...options.headers,
   };
 
   const response = await fetch(url, {
-    method,
+    ...options,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
   });
 
   if (response.status === 401) {
