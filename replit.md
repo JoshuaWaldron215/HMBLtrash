@@ -166,6 +166,23 @@ Preferred communication style: Simple, everyday language.
 - **JWT**: `JWT_SECRET` for token signing
 - **Node Environment**: `NODE_ENV` for environment-specific behavior
 
+### Collaborative Development Setup
+**For team collaboration with shared database:**
+
+1. **Database Sharing**: 
+   - Share the `DATABASE_URL` from your Replit environment with collaborators
+   - All developers work with the same live PostgreSQL database
+   - Schema changes sync automatically via `npm run db:push`
+
+2. **Environment Variables Setup**:
+   - Each collaborator needs to add the shared `DATABASE_URL` to their Replit environment
+   - Other secrets (Stripe keys, JWT secret) should also be shared for consistency
+
+3. **Schema Management**:
+   - Run `npm run db:push` after any schema changes in `shared/schema.ts`
+   - Database migrations are handled automatically by Drizzle
+   - Test data is seeded automatically on first startup
+
 ### File Structure
 ```
 ├── client/           # React frontend

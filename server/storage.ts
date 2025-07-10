@@ -12,6 +12,8 @@ import {
   type Subscription,
   type InsertSubscription
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
@@ -365,4 +367,283 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
+  constructor() {
+    // Initialize with test data
+    this.initializeTestData();
+  }
+
+  private async initializeTestData() {
+    try {
+      // Check if users already exist to avoid duplicates
+      const existingUsers = await db.select().from(users);
+      if (existingUsers.length > 0) {
+        return; // Data already exists
+      }
+
+      // Create test users with pre-hashed passwords
+      const hashedPassword = await bcrypt.hash('password123', 10);
+      
+      const testUsers = [
+        {
+          username: 'admin',
+          email: 'admin@test.com',
+          password: hashedPassword,
+          role: 'admin',
+          phone: '(555) 123-4567',
+          address: '123 Admin St, City, State 12345'
+        },
+        {
+          username: 'driver1',
+          email: 'driver@test.com', 
+          password: hashedPassword,
+          role: 'driver',
+          phone: '(555) 234-5678',
+          address: '456 Driver Ave, City, State 12345'
+        },
+        {
+          username: 'customer1',
+          email: 'customer@test.com',
+          password: hashedPassword,
+          role: 'customer',
+          phone: '(555) 345-6789',
+          address: '789 Customer Blvd, City, State 12345'
+        }
+      ];
+
+      await db.insert(users).values(testUsers);
+      console.log('✓ Test users created successfully');
+      
+      // Create sample pickups for testing
+      const samplePickups = [
+        {
+          customerId: 3, // customer1
+          address: '789 Customer Blvd, City, State 12345',
+          bagCount: 3,
+          amount: '30.00',
+          serviceType: 'one-time',
+          status: 'pending',
+          scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+          specialInstructions: 'Bags by garage door'
+        },
+        {
+          customerId: 3,
+          address: '101 Oak Street, City, State 12345',
+          bagCount: 5,
+          amount: '50.00',
+          serviceType: 'one-time',
+          status: 'assigned',
+          driverId: 2, // driver1
+          scheduledDate: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
+          specialInstructions: 'Heavy bags - yard waste'
+        },
+        {
+          customerId: 3,
+          address: '202 Pine Avenue, City, State 12345',
+          bagCount: 2,
+          amount: '25.00',
+          serviceType: 'subscription',
+          status: 'pending',
+          scheduledDate: new Date(Date.now() + 48 * 60 * 60 * 1000), // Day after tomorrow
+          specialInstructions: 'Ring doorbell when complete'
+        }
+      ];
+
+      await db.insert(pickups).values(samplePickups);
+      console.log('✓ Sample pickups created successfully');
+      
+    } catch (error) {
+      console.log('Note: Test data may already exist or database not ready yet');
+    }
+  }
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        stripeCustomerId, 
+        stripeSubscriptionId: stripeSubscriptionId || null 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserRole(userId: number, role: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, role));
+  }
+
+  // Pickup operations
+  async getPickup(id: number): Promise<Pickup | undefined> {
+    const [pickup] = await db.select().from(pickups).where(eq(pickups.id, id));
+    return pickup || undefined;
+  }
+
+  async getPickupsByCustomer(customerId: number): Promise<Pickup[]> {
+    return await db.select().from(pickups).where(eq(pickups.customerId, customerId));
+  }
+
+  async getPickupsByDriver(driverId: number): Promise<Pickup[]> {
+    return await db.select().from(pickups).where(eq(pickups.driverId, driverId));
+  }
+
+  async getPickupsByStatus(status: string): Promise<Pickup[]> {
+    return await db.select().from(pickups).where(eq(pickups.status, status));
+  }
+
+  async getPickupsByDate(date: string): Promise<Pickup[]> {
+    // Convert date string to timestamp range for the day
+    const startDate = new Date(date);
+    const endDate = new Date(date);
+    endDate.setDate(endDate.getDate() + 1);
+    
+    return await db.select().from(pickups).where(
+      and(
+        eq(pickups.scheduledDate, startDate),
+        // Add more complex date filtering if needed
+      )
+    );
+  }
+
+  async createPickup(insertPickup: InsertPickup): Promise<Pickup> {
+    const [pickup] = await db
+      .insert(pickups)
+      .values(insertPickup)
+      .returning();
+    return pickup;
+  }
+
+  async updatePickupStatus(id: number, status: string, driverId?: number): Promise<Pickup> {
+    const updateData: any = { status };
+    if (driverId !== undefined) {
+      updateData.driverId = driverId;
+    }
+    
+    const [pickup] = await db
+      .update(pickups)
+      .set(updateData)
+      .where(eq(pickups.id, id))
+      .returning();
+    return pickup;
+  }
+
+  async assignPickupToDriver(pickupId: number, driverId: number): Promise<Pickup> {
+    return this.updatePickupStatus(pickupId, 'assigned', driverId);
+  }
+
+  async completePickup(id: number): Promise<Pickup> {
+    const [pickup] = await db
+      .update(pickups)
+      .set({ 
+        status: 'completed', 
+        completedAt: new Date() 
+      })
+      .where(eq(pickups.id, id))
+      .returning();
+    return pickup;
+  }
+
+  // Route operations
+  async getRoute(id: number): Promise<Route | undefined> {
+    const [route] = await db.select().from(routes).where(eq(routes.id, id));
+    return route || undefined;
+  }
+
+  async getRoutesByDriver(driverId: number): Promise<Route[]> {
+    return await db.select().from(routes).where(eq(routes.driverId, driverId));
+  }
+
+  async getRoutesByDate(date: string): Promise<Route[]> {
+    const targetDate = new Date(date);
+    return await db.select().from(routes).where(eq(routes.date, targetDate));
+  }
+
+  async createRoute(insertRoute: InsertRoute): Promise<Route> {
+    const [route] = await db
+      .insert(routes)
+      .values(insertRoute)
+      .returning();
+    return route;
+  }
+
+  async updateRouteStatus(id: number, status: string): Promise<Route> {
+    const [route] = await db
+      .update(routes)
+      .set({ status })
+      .where(eq(routes.id, id))
+      .returning();
+    return route;
+  }
+
+  // Subscription operations
+  async getSubscription(id: number): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    return subscription || undefined;
+  }
+
+  async getSubscriptionByCustomer(customerId: number): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.customerId, customerId));
+    return subscription || undefined;
+  }
+
+  async getSubscriptionByStripeId(stripeId: string): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.stripeSubscriptionId, stripeId));
+    return subscription || undefined;
+  }
+
+  async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
+    const [subscription] = await db
+      .insert(subscriptions)
+      .values(insertSubscription)
+      .returning();
+    return subscription;
+  }
+
+  async updateSubscriptionStatus(id: number, status: string): Promise<Subscription> {
+    const [subscription] = await db
+      .update(subscriptions)
+      .set({ status })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
+  async getActiveSubscriptions(): Promise<Subscription[]> {
+    return await db.select().from(subscriptions).where(eq(subscriptions.status, 'active'));
+  }
+}
+
+export const storage = new DatabaseStorage();
