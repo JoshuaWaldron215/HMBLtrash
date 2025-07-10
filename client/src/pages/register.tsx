@@ -95,7 +95,7 @@ export default function Register() {
               <Trash2 className="h-6 w-6 text-primary mr-2" />
               <div className="text-center">
                 <h1 className="text-lg font-bold">Acapella Trash</h1>
-                <p className="text-xs text-muted-foreground">powered by HMBL</p>
+                <p className="text-xs text-muted-foreground">powered by LEMDROIDS</p>
               </div>
             </div>
             <div className="w-16"></div> {/* Spacer for centering */}

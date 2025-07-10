@@ -185,7 +185,7 @@ export default function MobileLayout({
                 <Truck className="w-8 h-8 text-primary" />
                 <div>
                   <h2 className="font-bold text-lg">Acapella Trash</h2>
-                  <p className="text-sm text-muted-foreground">powered by HMBL</p>
+                  <p className="text-sm text-muted-foreground">powered by LEMDROIDS</p>
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
@@ -237,7 +237,7 @@ export default function MobileLayout({
                 <Truck className="w-8 h-8 text-primary" />
                 <div>
                   <h2 className="font-bold text-lg">Acapella Trash</h2>
-                  <p className="text-sm text-muted-foreground">powered by HMBL</p>
+                  <p className="text-sm text-muted-foreground">powered by LEMDROIDS</p>
                 </div>
               </div>
             )}
