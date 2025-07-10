@@ -28,16 +28,23 @@ export const pickups = pgTable("pickups", {
   customerId: integer("customer_id").references(() => users.id).notNull(),
   driverId: integer("driver_id").references(() => users.id),
   address: text("address").notNull(),
+  fullAddress: text("full_address"), // Complete geocodable address
+  coordinates: text("coordinates"), // JSON string [lat, lng] from geocoding
   bagCount: integer("bag_count").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  serviceType: text("service_type").notNull(), // subscription, one-time
-  status: text("status").notNull().default("pending"), // pending, assigned, completed, cancelled
-  scheduledDate: timestamp("scheduled_date"),
+  serviceType: text("service_type").notNull(), // subscription, immediate, one-time
+  status: text("status").notNull().default("pending"), // pending, scheduled, in-progress, completed, cancelled
+  requestedDate: timestamp("requested_date").defaultNow(), // When customer made request
+  scheduledDate: timestamp("scheduled_date"), // When pickup is planned
   completedAt: timestamp("completed_at"),
   specialInstructions: text("special_instructions"),
+  // Route optimization fields
+  routeId: integer("route_id").references(() => routes.id), // Which optimized route this belongs to
+  routeOrder: integer("route_order"), // Order in the optimized route (1, 2, 3...)
+  estimatedArrival: timestamp("estimated_arrival"), // When driver should arrive
   // Additional pickup fields
   pickupWindow: text("pickup_window"), // morning, afternoon, evening
-  priority: text("priority").default("normal"), // low, normal, high, urgent
+  priority: text("priority").default("normal"), // immediate, same-day, next-day, normal
   estimatedDuration: integer("estimated_duration"), // minutes
   actualDuration: integer("actual_duration"), // minutes
   customerRating: integer("customer_rating"), // 1-5 stars
@@ -56,10 +63,18 @@ export const routes = pgTable("routes", {
   driverId: integer("driver_id").references(() => users.id).notNull(),
   date: timestamp("date").notNull(),
   pickupIds: text("pickup_ids").array(), // Array of pickup IDs in optimized order
+  optimizedOrder: jsonb("optimized_order"), // Complete route data from optimization system
   totalDistance: decimal("total_distance", { precision: 10, scale: 2 }),
   estimatedTime: integer("estimated_time"), // in minutes
+  googleMapsUrl: text("google_maps_url"), // Direct navigation link
+  startLocation: text("start_location"), // Depot address
+  endLocation: text("end_location"), // Return to depot
+  routeInstructions: jsonb("route_instructions"), // Turn-by-turn directions
   status: text("status").notNull().default("pending"), // pending, active, completed
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const subscriptions = pgTable("subscriptions", {

@@ -653,6 +653,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pickup Route Management endpoints
+  app.get('/api/admin/pending-pickups', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { pickupRouteManager } = await import('./pickupRouteManager');
+      const pending = await pickupRouteManager.getPendingPickups();
+      const byPriority = await pickupRouteManager.getPendingPickupsByPriority();
+      
+      res.json({
+        success: true,
+        pending,
+        byPriority,
+        summary: {
+          total: pending.length,
+          immediate: byPriority.immediate.length,
+          sameDay: byPriority.sameDay.length,
+          nextDay: byPriority.nextDay.length,
+          normal: byPriority.normal.length
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
+  app.post('/api/admin/create-route', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { pickupIds, driverId } = req.body;
+      const { pickupRouteManager } = await import('./pickupRouteManager');
+      
+      const route = await pickupRouteManager.createOptimizedRoute(pickupIds, driverId);
+      
+      res.json({
+        success: true,
+        message: `Route created with ${route.pickupIds?.length || 0} stops`,
+        route,
+        googleMapsUrl: route.googleMapsUrl
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
+  app.get('/api/admin/route-summary', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { pickupRouteManager } = await import('./pickupRouteManager');
+      const summary = await pickupRouteManager.getRouteSummary();
+      
+      res.json({
+        success: true,
+        ...summary
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
+  app.post('/api/admin/immediate-pickup', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { pickupId } = req.body;
+      const { pickupRouteManager } = await import('./pickupRouteManager');
+      
+      const pickup = await storage.getPickup(pickupId);
+      if (!pickup) {
+        return res.status(404).json({
+          success: false,
+          message: 'Pickup not found'
+        });
+      }
+
+      const route = await pickupRouteManager.handleImmediatePickup(pickup);
+      
+      res.json({
+        success: true,
+        message: 'Immediate pickup added to route',
+        route,
+        googleMapsUrl: route.googleMapsUrl
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
+  app.get('/api/pricing/:serviceType/:priority/:bagCount', authenticateToken, async (req, res) => {
+    try {
+      const { serviceType, priority, bagCount } = req.params;
+      const { pickupRouteManager } = await import('./pickupRouteManager');
+      
+      const price = pickupRouteManager.calculatePickupPricing(
+        serviceType, 
+        priority, 
+        parseInt(bagCount)
+      );
+      
+      res.json({
+        success: true,
+        serviceType,
+        priority,
+        bagCount: parseInt(bagCount),
+        price: `$${price.toFixed(2)}`,
+        priceInCents: Math.round(price * 100)
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
