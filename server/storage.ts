@@ -13,6 +13,8 @@ import {
   type InsertSubscription
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -365,4 +367,183 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        stripeCustomerId, 
+        stripeSubscriptionId: stripeSubscriptionId || null 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserRole(userId: number, role: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, role));
+  }
+
+  // Pickup operations
+  async getPickup(id: number): Promise<Pickup | undefined> {
+    const [pickup] = await db.select().from(pickups).where(eq(pickups.id, id));
+    return pickup || undefined;
+  }
+
+  async getPickupsByCustomer(customerId: number): Promise<Pickup[]> {
+    return await db.select().from(pickups).where(eq(pickups.customerId, customerId));
+  }
+
+  async getPickupsByDriver(driverId: number): Promise<Pickup[]> {
+    return await db.select().from(pickups).where(eq(pickups.driverId, driverId));
+  }
+
+  async getPickupsByStatus(status: string): Promise<Pickup[]> {
+    return await db.select().from(pickups).where(eq(pickups.status, status));
+  }
+
+  async getPickupsByDate(date: string): Promise<Pickup[]> {
+    const startDate = new Date(date);
+    const endDate = new Date(date);
+    endDate.setDate(endDate.getDate() + 1);
+    
+    return await db.select().from(pickups).where(
+      eq(pickups.scheduledDate, startDate)
+    );
+  }
+
+  async createPickup(insertPickup: InsertPickup): Promise<Pickup> {
+    const [pickup] = await db.insert(pickups).values(insertPickup).returning();
+    return pickup;
+  }
+
+  async updatePickupStatus(id: number, status: string, driverId?: number): Promise<Pickup> {
+    const [pickup] = await db
+      .update(pickups)
+      .set({ 
+        status, 
+        driverId: driverId || null 
+      })
+      .where(eq(pickups.id, id))
+      .returning();
+    return pickup;
+  }
+
+  async assignPickupToDriver(pickupId: number, driverId: number): Promise<Pickup> {
+    const [pickup] = await db
+      .update(pickups)
+      .set({ driverId, status: 'assigned' })
+      .where(eq(pickups.id, pickupId))
+      .returning();
+    return pickup;
+  }
+
+  async completePickup(id: number): Promise<Pickup> {
+    const [pickup] = await db
+      .update(pickups)
+      .set({ status: 'completed' })
+      .where(eq(pickups.id, id))
+      .returning();
+    return pickup;
+  }
+
+  // Route operations
+  async getRoute(id: number): Promise<Route | undefined> {
+    const [route] = await db.select().from(routes).where(eq(routes.id, id));
+    return route || undefined;
+  }
+
+  async getRoutesByDriver(driverId: number): Promise<Route[]> {
+    return await db.select().from(routes).where(eq(routes.driverId, driverId));
+  }
+
+  async getRoutesByDate(date: string): Promise<Route[]> {
+    const startDate = new Date(date);
+    const endDate = new Date(date);
+    endDate.setDate(endDate.getDate() + 1);
+    
+    return await db.select().from(routes).where(
+      eq(routes.createdAt, startDate)
+    );
+  }
+
+  async createRoute(insertRoute: InsertRoute): Promise<Route> {
+    const [route] = await db.insert(routes).values(insertRoute).returning();
+    return route;
+  }
+
+  async updateRouteStatus(id: number, status: string): Promise<Route> {
+    const [route] = await db
+      .update(routes)
+      .set({ status })
+      .where(eq(routes.id, id))
+      .returning();
+    return route;
+  }
+
+  // Subscription operations
+  async getSubscription(id: number): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    return subscription || undefined;
+  }
+
+  async getSubscriptionByCustomer(customerId: number): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.customerId, customerId));
+    return subscription || undefined;
+  }
+
+  async getSubscriptionByStripeId(stripeId: string): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.stripeSubscriptionId, stripeId));
+    return subscription || undefined;
+  }
+
+  async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
+    const [subscription] = await db.insert(subscriptions).values(insertSubscription).returning();
+    return subscription;
+  }
+
+  async updateSubscriptionStatus(id: number, status: string): Promise<Subscription> {
+    const [subscription] = await db
+      .update(subscriptions)
+      .set({ status })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
+  async getActiveSubscriptions(): Promise<Subscription[]> {
+    return await db.select().from(subscriptions).where(eq(subscriptions.status, 'active'));
+  }
+}
+
+export const storage = new DatabaseStorage();
