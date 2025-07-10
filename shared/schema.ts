@@ -80,12 +80,26 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = insertUserSchema.omit({ role: true }).extend({
-  email: z.string().email(),
-  password: z.string().min(6),
-  confirmPassword: z.string().min(6),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
+}).refine((data) => {
+  // Username validation - alphanumeric and underscores only, 3-20 characters
+  const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+  return usernameRegex.test(data.username);
+}, {
+  message: "Username must be 3-20 characters and contain only letters, numbers, and underscores",
+  path: ["username"],
+}).refine((data) => {
+  // Strong password validation
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+  return data.password.length >= 8 || strongPasswordRegex.test(data.password);
+}, {
+  message: "Password should be at least 8 characters or contain uppercase, lowercase, and numbers",
+  path: ["password"],
 });
 
 export type User = typeof users.$inferSelect;
