@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Loader2, ArrowLeft } from "lucide-react";
 import { registerSchema, type RegisterData } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { setStoredToken, setStoredUser } from "@/lib/auth";
 
 export default function Register() {
@@ -34,13 +34,19 @@ export default function Register() {
       setStoredToken(result.token);
       setStoredUser(result.user);
       
+      // Invalidate auth query to trigger immediate update
+      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+      
       toast({
         title: "Registration successful",
         description: "Welcome to Acapella Trash Removal! You can now book pickup services.",
       });
 
-      // All new registrations go to customer dashboard
-      setLocation('/dashboard');
+      // Small delay to ensure auth state updates before redirect
+      setTimeout(() => {
+        // All new registrations go to customer dashboard
+        setLocation('/dashboard');
+      }, 100);
     } catch (error: any) {
       toast({
         title: "Registration failed",
