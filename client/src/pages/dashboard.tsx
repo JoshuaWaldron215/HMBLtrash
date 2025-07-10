@@ -79,7 +79,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-primary mb-1">
               {upcomingPickups.length}
@@ -96,20 +96,12 @@ export default function Dashboard() {
               Completed
             </div>
           </MobileCard>
-          <MobileCard className="text-center lg:block">
+          <MobileCard className="text-center">
             <div className="text-2xl font-bold text-blue-600 mb-1">
               {subscription ? 'Active' : 'None'}
             </div>
             <div className="text-sm text-muted-foreground">
               Subscription
-            </div>
-          </MobileCard>
-          <MobileCard className="text-center lg:block">
-            <div className="text-2xl font-bold text-purple-600 mb-1">
-              ${pickups.reduce((sum, p) => sum + (p.amount || 0), 0)}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Total Spent
             </div>
           </MobileCard>
         </div>
