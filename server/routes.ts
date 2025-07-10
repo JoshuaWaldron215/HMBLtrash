@@ -498,6 +498,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin API endpoints that are missing
+  app.get('/api/admin/pickups', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const allPickups = await storage.getPickupsByStatus('pending');
+      const assignedPickups = await storage.getPickupsByStatus('assigned');
+      const completedPickups = await storage.getPickupsByStatus('completed');
+      
+      const pickups = [...allPickups, ...assignedPickups, ...completedPickups];
+      res.json(pickups);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/admin/subscriptions', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const subscriptions = await storage.getActiveSubscriptions();
+      res.json(subscriptions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/admin/pickups/:id/assign', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { driverId } = req.body;
+      
+      const pickup = await storage.assignPickupToDriver(parseInt(id), driverId);
+      res.json(pickup);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
