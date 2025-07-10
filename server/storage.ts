@@ -569,10 +569,16 @@ export class DatabaseStorage implements IStorage {
       .update(pickups)
       .set({ 
         status: 'completed', 
-        completedAt: new Date() 
+        completedAt: new Date(),
+        updatedAt: new Date()
       })
       .where(eq(pickups.id, id))
       .returning();
+    
+    if (!pickup) {
+      throw new Error('Pickup not found or could not be updated');
+    }
+    
     return pickup;
   }
 

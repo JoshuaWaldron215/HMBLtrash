@@ -446,11 +446,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/pickups/:id/complete", authenticateToken, requireRole('driver'), async (req, res) => {
+  app.post("/api/pickups/:id/complete", authenticateToken, requireRole('driver'), async (req, res) => {
     try {
-      const pickup = await storage.completePickup(parseInt(req.params.id));
+      const pickupId = parseInt(req.params.id);
+      console.log(`🔄 Completing pickup ${pickupId} for driver ${req.user!.id}`);
+      
+      const pickup = await storage.completePickup(pickupId);
+      console.log(`✅ Pickup ${pickupId} completed successfully, status: ${pickup.status}`);
+      
       res.json(pickup);
     } catch (error: any) {
+      console.error(`❌ Error completing pickup ${req.params.id}:`, error);
       res.status(400).json({ message: error.message });
     }
   });
