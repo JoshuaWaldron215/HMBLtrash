@@ -533,6 +533,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route Optimization endpoints
+  app.post('/api/admin/optimize-routes', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { addresses } = req.body;
+      
+      // Import route optimization service
+      const { routeOptimizationService } = await import('./routeOptimizer');
+      
+      // Use provided addresses or mock data for testing
+      const optimizedRoutes = await routeOptimizationService.optimizePickupRoutes(addresses);
+      
+      res.json({
+        success: true,
+        message: `Optimized ${optimizedRoutes.length} routes`,
+        routes: optimizedRoutes,
+        summary: {
+          totalClusters: optimizedRoutes.length,
+          days: optimizedRoutes.map(route => route.day),
+          totalStops: optimizedRoutes.reduce((sum, route) => sum + route.optimizedStops.length, 0)
+        }
+      });
+    } catch (error: any) {
+      console.error('Route optimization error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Route optimization failed',
+        error: error.message 
+      });
+    }
+  });
+
+  app.get('/api/admin/optimized-routes', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { date } = req.query;
+      const { routeOptimizationService } = await import('./routeOptimizer');
+      
+      const routes = routeOptimizationService.getOptimizedRoutes(date as string);
+      
+      if (!routes) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'No optimized routes found for the specified date' 
+        });
+      }
+      
+      res.json({
+        success: true,
+        routes,
+        date: date || new Date().toISOString().split('T')[0]
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
+  app.get('/api/admin/route/:day', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { day } = req.params;
+      const { date } = req.query;
+      const { routeOptimizationService } = await import('./routeOptimizer');
+      
+      const route = routeOptimizationService.getRouteByDay(day, date as string);
+      
+      if (!route) {
+        return res.status(404).json({ 
+          success: false,
+          message: `No route found for ${day}` 
+        });
+      }
+      
+      res.json({
+        success: true,
+        route
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
+  app.get('/api/admin/mock-addresses', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { routeOptimizationService } = await import('./routeOptimizer');
+      const mockAddresses = routeOptimizationService.getMockAddresses();
+      
+      res.json({
+        success: true,
+        addresses: mockAddresses,
+        count: mockAddresses.length
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
+  app.delete('/api/admin/clear-routes', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { routeOptimizationService } = await import('./routeOptimizer');
+      routeOptimizationService.clearRoutes();
+      
+      res.json({
+        success: true,
+        message: 'All optimized routes cleared'
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
