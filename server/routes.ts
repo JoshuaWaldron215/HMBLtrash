@@ -61,55 +61,20 @@ const requireRole = (role: string) => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Email availability check endpoint
-  app.post("/api/check-email", async (req, res) => {
-    try {
-      const { email } = req.body;
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-      
-      const existingUser = await storage.getUserByEmail(email);
-      res.json({ available: !existingUser });
-    } catch (error: any) {
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Username availability check endpoint
-  app.post("/api/check-username", async (req, res) => {
-    try {
-      const { username } = req.body;
-      if (!username) {
-        return res.status(400).json({ message: "Username is required" });
-      }
-      
-      const existingUser = await storage.getUserByUsername(username);
-      res.json({ available: !existingUser });
-    } catch (error: any) {
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
   // Auth routes
   app.post("/api/register", async (req, res) => {
     try {
       const validatedData = registerSchema.parse(req.body);
       const { confirmPassword, ...userData } = validatedData;
       
-      // Double-check if user exists (email and username)
-      const existingUserByEmail = await storage.getUserByEmail(userData.email);
-      if (existingUserByEmail) {
-        return res.status(400).json({ message: "An account with this email already exists" });
-      }
-      
-      const existingUserByUsername = await storage.getUserByUsername(userData.username);
-      if (existingUserByUsername) {
-        return res.status(400).json({ message: "This username is already taken" });
+      // Check if user exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
       }
 
-      // Hash password with higher security
-      const hashedPassword = await bcrypt.hash(userData.password, 12);
+      // Hash password
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
       
       // Create user - all new registrations default to customer role
       const user = await storage.createUser({
@@ -122,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         JWT_SECRET,
-        { expiresIn: '7d' } // Longer session for better UX
+        { expiresIn: '24h' }
       );
 
       res.json({ 
@@ -130,14 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         token 
       });
     } catch (error: any) {
-      // Detailed error handling for registration
-      if (error.name === 'ZodError') {
-        const errorMessages = error.errors.map((err: any) => `${err.path.join('.')}: ${err.message}`);
-        return res.status(400).json({ message: `Validation error: ${errorMessages.join(', ')}` });
-      }
-      
-      console.error('Registration error:', error);
-      res.status(500).json({ message: error.message || "Registration failed. Please try again." });
+      res.status(400).json({ message: error.message });
     }
   });
 
@@ -158,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         JWT_SECRET,
-        { expiresIn: '7d' } // Longer session for better UX
+        { expiresIn: '24h' }
       );
 
       res.json({ 

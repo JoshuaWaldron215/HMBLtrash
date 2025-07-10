@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Loader2, ArrowLeft } from "lucide-react";
 import { loginSchema, type LoginData } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { setStoredToken, setStoredUser } from "@/lib/auth";
 
 export default function Login() {
@@ -34,25 +34,19 @@ export default function Login() {
       setStoredToken(result.token);
       setStoredUser(result.user);
       
-      // Invalidate auth query to trigger immediate update
-      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
-      
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
 
-      // Small delay to ensure auth state updates before redirect
-      setTimeout(() => {
-        // Redirect based on user role
-        if (result.user.role === 'admin') {
-          setLocation('/admin');
-        } else if (result.user.role === 'driver') {
-          setLocation('/driver');
-        } else {
-          setLocation('/dashboard');
-        }
-      }, 100);
+      // Redirect based on user role
+      if (result.user.role === 'admin') {
+        setLocation('/admin');
+      } else if (result.user.role === 'driver') {
+        setLocation('/driver');
+      } else {
+        setLocation('/dashboard');
+      }
     } catch (error: any) {
       toast({
         title: "Login failed",
