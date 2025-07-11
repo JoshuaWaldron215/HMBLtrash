@@ -64,6 +64,42 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
+      <Route path="/admin/subscribers">
+        <ProtectedRoute allowedRoles={['admin']}>
+          <Admin />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/admin/requests">
+        <ProtectedRoute allowedRoles={['admin']}>
+          <Admin />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/admin/routes">
+        <ProtectedRoute allowedRoles={['admin']}>
+          <Admin />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/admin/drivers">
+        <ProtectedRoute allowedRoles={['admin']}>
+          <Admin />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/admin/reports">
+        <ProtectedRoute allowedRoles={['admin']}>
+          <Admin />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/admin/settings">
+        <ProtectedRoute allowedRoles={['admin']}>
+          <Admin />
+        </ProtectedRoute>
+      </Route>
+      
       {/* Protected driver routes */}
       <Route path="/driver">
         <ProtectedRoute allowedRoles={['driver']}>
