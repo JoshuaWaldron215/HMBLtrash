@@ -44,12 +44,18 @@ export default function Admin() {
     queryFn: () => authenticatedRequest('/api/admin/pickups').then(res => res.json() as Promise<Pickup[]>),
   });
 
-  const { data: usersData = [] } = useQuery({
+  const { data: usersData = { customers: [], drivers: [], admins: [] } } = useQuery({
     queryKey: ['/api/admin/users'],
-    queryFn: () => authenticatedRequest('/api/admin/users').then(res => res.json() as Promise<User[]>),
+    queryFn: () => authenticatedRequest('/api/admin/users').then(res => res.json()),
   });
 
-  const users = usersData as User[];
+  // Extract users from the response structure
+  const allUsers = [
+    ...(usersData.customers || []),
+    ...(usersData.drivers || []),
+    ...(usersData.admins || [])
+  ];
+  const users = allUsers;
 
   // Role change mutation
   const changeRoleMutation = useMutation({
