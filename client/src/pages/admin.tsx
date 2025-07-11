@@ -159,6 +159,7 @@ export default function Admin() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] });
       toast({
         title: "Demo Data Created",
         description: `Created ${data.data.customers} customers, ${data.data.subscriptions} subscriptions, and ${data.data.pickups} pickups across Philadelphia Metro Area.`,
@@ -267,7 +268,10 @@ export default function Admin() {
         <MobileCard className="text-center py-8">
           <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-semibold mb-2">No Active Subscriptions</h3>
-          <p className="text-sm text-muted-foreground">Subscribers will appear here when they sign up for $20/month service</p>
+          <p className="text-sm text-muted-foreground mb-3">Subscribers will appear here when they sign up for $20/month service</p>
+          <div className="text-xs text-muted-foreground">
+            Debug: Found {subscriptions.length} total subscriptions, {activeSubscriptions.length} active
+          </div>
         </MobileCard>
       )}
     </MobileSection>
@@ -509,12 +513,40 @@ export default function Admin() {
           <MobileCard className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{completedPickups.length}</div>
-                <div className="text-sm text-purple-600/80 dark:text-purple-400/80">Completed</div>
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{activeSubscriptions.length}</div>
+                <div className="text-sm text-purple-600/80 dark:text-purple-400/80">Subscriptions</div>
               </div>
-              <CheckCircle className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+              <Calendar className="w-8 h-8 text-purple-600 dark:text-purple-400" />
             </div>
           </MobileCard>
+        </div>
+
+        {/* Today's Route Overview */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3">Today's Route Status</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MobileCard className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-green-600 dark:text-green-400 mb-1">Subscription Route</div>
+                  <div className="text-lg font-semibold">{pickups.filter(p => p.serviceType === 'subscription' && p.status === 'assigned').length} stops</div>
+                  <div className="text-xs text-muted-foreground">Est. $60-96 revenue</div>
+                </div>
+                <Calendar className="w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+            </MobileCard>
+            
+            <MobileCard className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-orange-600 dark:text-orange-400 mb-1">Package Route</div>
+                  <div className="text-lg font-semibold">{pickups.filter(p => ['same-day', 'next-day'].includes(p.serviceType || '') && p.status === 'assigned').length} stops</div>
+                  <div className="text-xs text-muted-foreground">Est. $120-280 revenue</div>
+                </div>
+                <Package className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+              </div>
+            </MobileCard>
+          </div>
         </div>
       </MobileSection>
 
