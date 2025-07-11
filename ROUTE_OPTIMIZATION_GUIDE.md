@@ -5,11 +5,12 @@
 ### **Morning Planning (9-10 AM) - 10 minutes:**
 1. **Driver opens admin dashboard**
 2. **Reviews accumulated requests** from past 24-48 hours
-3. **Clicks "Optimize Today's Route"** - system processes:
-   - **Subscription pickups** (priority queue)
-   - **Next-day packages** (standard priority)
-   - **Same-day requests** (premium priority)
-4. **Gets optimized route** with 5-8 stops clustered by area
+3. **Creates TWO separate optimized routes**:
+   - **"Optimize Subscription Route"** (weekly customers - predictable income)
+   - **"Optimize Package Route"** (same-day + next-day premium customers)
+4. **Chooses which route to run** based on:
+   - **Subscription route**: Reliable $5/stop, 6-8 stops
+   - **Package route**: Higher profit $15-30/stop, 4-6 stops
 
 ### **Route Execution (10 AM - 3 PM) - 5 hours:**
 1. **Mobile driver dashboard** shows sequence

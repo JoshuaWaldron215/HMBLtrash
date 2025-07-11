@@ -539,7 +539,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Route Optimization endpoints
+  // Route Optimization endpoints - separated by service type
+  app.post('/api/admin/optimize-subscription-route', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const route = await pickupRouteManager.createSubscriptionRoute();
+      res.json({
+        success: true,
+        message: 'Subscription route optimized successfully',
+        route,
+        type: 'subscription'
+      });
+    } catch (error: any) {
+      console.error('Subscription route optimization error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to optimize subscription route',
+        error: error.message 
+      });
+    }
+  });
+
+  app.post('/api/admin/optimize-package-route', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const route = await pickupRouteManager.createPackageRoute();
+      res.json({
+        success: true,
+        message: 'Package route optimized successfully',
+        route,
+        type: 'package'
+      });
+    } catch (error: any) {
+      console.error('Package route optimization error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to optimize package route',
+        error: error.message 
+      });
+    }
+  });
+
+  // Legacy route optimization endpoint (for backward compatibility)
   app.post('/api/admin/optimize-routes', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
       const { addresses } = req.body;

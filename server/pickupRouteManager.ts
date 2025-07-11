@@ -17,21 +17,19 @@ export class PickupRouteManager {
   }
 
   /**
-   * Get pending pickups by priority for immediate scheduling
+   * Get pending pickups separated by service type for optimal routing
    */
-  async getPendingPickupsByPriority(): Promise<{
-    immediate: Pickup[];
+  async getPendingPickupsByType(): Promise<{
+    subscriptions: Pickup[];
     sameDay: Pickup[];
     nextDay: Pickup[];
-    normal: Pickup[];
   }> {
     const pending = await this.getPendingPickups();
     
     return {
-      immediate: pending.filter(p => p.priority === 'immediate'),
-      sameDay: pending.filter(p => p.priority === 'same-day'),
-      nextDay: pending.filter(p => p.priority === 'next-day'),
-      normal: pending.filter(p => p.priority === 'normal')
+      subscriptions: pending.filter(p => p.serviceType === 'subscription'),
+      sameDay: pending.filter(p => p.serviceType === 'same-day'),
+      nextDay: pending.filter(p => p.serviceType === 'next-day')
     };
   }
 
@@ -49,7 +47,90 @@ export class PickupRouteManager {
   }
 
   /**
-   * Create optimized route from pending pickups
+   * Create optimized route for subscription customers (weekly basis)
+   */
+  async createSubscriptionRoute(driverId: number = 2): Promise<Route> {
+    const { subscriptions } = await this.getPendingPickupsByType();
+    
+    if (subscriptions.length === 0) {
+      throw new Error('No subscription pickups pending');
+    }
+
+    // Convert to addresses for optimization
+    const addresses = this.pickupsToAddresses(subscriptions);
+    
+    // Optimize route using geographic clustering
+    const optimizedRoutes = await routeOptimizationService.optimizePickupRoutes(addresses);
+    const optimizedRoute = optimizedRoutes[0]; // Single route for subscription batch
+    
+    // Create route record
+    const routeData = {
+      driverId,
+      date: new Date(),
+      pickupIds: subscriptions.map(p => p.id.toString()),
+      optimizedOrder: optimizedRoute,
+      totalDistance: parseFloat(optimizedRoute.totalDistance.replace(/[^\d.]/g, '')),
+      estimatedTime: parseInt(optimizedRoute.totalDuration.replace(/[^\d]/g, '')),
+      googleMapsUrl: optimizedRoute.googleMapsUrl,
+      startLocation: optimizedRoute.startPoint.fullAddress,
+      endLocation: optimizedRoute.endPoint.fullAddress,
+      routeInstructions: optimizedRoute.directions,
+      status: 'pending' as const
+    };
+
+    const route = await storage.createRoute(routeData);
+    
+    // Assign pickups to route
+    await this.assignPickupsToRoute(subscriptions, route, optimizedRoute);
+    
+    return route;
+  }
+
+  /**
+   * Create optimized route for package customers (premium/standard)
+   */
+  async createPackageRoute(driverId: number = 2): Promise<Route> {
+    const { sameDay, nextDay } = await this.getPendingPickupsByType();
+    
+    // Prioritize same-day (premium) over next-day (standard)
+    const packagePickups = [...sameDay, ...nextDay];
+    
+    if (packagePickups.length === 0) {
+      throw new Error('No package pickups pending');
+    }
+
+    // Convert to addresses for optimization
+    const addresses = this.pickupsToAddresses(packagePickups);
+    
+    // Optimize route using geographic clustering
+    const optimizedRoutes = await routeOptimizationService.optimizePickupRoutes(addresses);
+    const optimizedRoute = optimizedRoutes[0]; // Single route for package batch
+    
+    // Create route record
+    const routeData = {
+      driverId,
+      date: new Date(),
+      pickupIds: packagePickups.map(p => p.id.toString()),
+      optimizedOrder: optimizedRoute,
+      totalDistance: parseFloat(optimizedRoute.totalDistance.replace(/[^\d.]/g, '')),
+      estimatedTime: parseInt(optimizedRoute.totalDuration.replace(/[^\d]/g, '')),
+      googleMapsUrl: optimizedRoute.googleMapsUrl,
+      startLocation: optimizedRoute.startPoint.fullAddress,
+      endLocation: optimizedRoute.endPoint.fullAddress,
+      routeInstructions: optimizedRoute.directions,
+      status: 'pending' as const
+    };
+
+    const route = await storage.createRoute(routeData);
+    
+    // Assign pickups to route
+    await this.assignPickupsToRoute(packagePickups, route, optimizedRoute);
+    
+    return route;
+  }
+
+  /**
+   * Create optimized route from pending pickups (legacy method)
    */
   async createOptimizedRoute(pickupIds?: number[], driverId: number = 2): Promise<Route> {
     // Get pickups to route
@@ -162,28 +243,49 @@ export class PickupRouteManager {
   }
 
   /**
-   * Get route summary for admin dashboard
+   * Get route summary for admin dashboard with separated service types
    */
   async getRouteSummary(): Promise<{
-    pendingPickups: number;
-    immediateRequests: number;
+    subscriptionPickups: number;
+    sameDayPickups: number;
+    nextDayPickups: number;
     todaysRoute?: Route;
-    estimatedRevenue: number;
+    estimatedRevenue: {
+      subscriptions: number;
+      sameDay: number;
+      nextDay: number;
+      total: number;
+    };
   }> {
-    const pending = await this.getPendingPickups();
-    const byPriority = await this.getPendingPickupsByPriority();
+    const { subscriptions, sameDay, nextDay } = await this.getPendingPickupsByType();
     const todaysRoute = await this.getTodaysRoute(2); // Default driver ID
 
-    const estimatedRevenue = pending.reduce((sum, pickup) => {
+    const subscriptionRevenue = subscriptions.reduce((sum, pickup) => {
+      const amount = parseFloat(pickup.amount || '0');
+      return sum + amount;
+    }, 0);
+
+    const sameDayRevenue = sameDay.reduce((sum, pickup) => {
+      const amount = parseFloat(pickup.amount || '0');
+      return sum + amount;
+    }, 0);
+
+    const nextDayRevenue = nextDay.reduce((sum, pickup) => {
       const amount = parseFloat(pickup.amount || '0');
       return sum + amount;
     }, 0);
 
     return {
-      pendingPickups: pending.length,
-      immediateRequests: byPriority.immediate.length,
+      subscriptionPickups: subscriptions.length,
+      sameDayPickups: sameDay.length,
+      nextDayPickups: nextDay.length,
       todaysRoute: todaysRoute || undefined,
-      estimatedRevenue
+      estimatedRevenue: {
+        subscriptions: subscriptionRevenue,
+        sameDay: sameDayRevenue,
+        nextDay: nextDayRevenue,
+        total: subscriptionRevenue + sameDayRevenue + nextDayRevenue
+      }
     };
   }
 
