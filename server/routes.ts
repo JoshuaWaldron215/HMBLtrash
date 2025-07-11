@@ -542,10 +542,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Route Optimization endpoints - separated by service type
   app.post('/api/admin/optimize-subscription-route', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
+      const { pickupRouteManager } = await import('./pickupRouteManager');
+      
+      // Check if there are any subscription pickups first
+      const subscriptionPickups = await storage.getPickupsByStatus('pending');
+      const subscriptions = subscriptionPickups.filter(p => p.serviceType === 'subscription');
+      
+      if (subscriptions.length === 0) {
+        return res.json({
+          success: true,
+          message: 'No subscription pickups available for optimization',
+          route: null,
+          type: 'subscription'
+        });
+      }
+      
       const route = await pickupRouteManager.createSubscriptionRoute();
       res.json({
         success: true,
-        message: 'Subscription route optimized successfully',
+        message: `Subscription route optimized with ${subscriptions.length} stops`,
         route,
         type: 'subscription'
       });
@@ -561,10 +576,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/admin/optimize-package-route', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
+      const { pickupRouteManager } = await import('./pickupRouteManager');
+      
+      // Check if there are any package pickups first
+      const allPickups = await storage.getPickupsByStatus('pending');
+      const packagePickups = allPickups.filter(p => p.serviceType === 'same-day' || p.serviceType === 'next-day');
+      
+      if (packagePickups.length === 0) {
+        return res.json({
+          success: true,
+          message: 'No package pickups available for optimization',
+          route: null,
+          type: 'package'
+        });
+      }
+      
       const route = await pickupRouteManager.createPackageRoute();
       res.json({
         success: true,
-        message: 'Package route optimized successfully',
+        message: `Package route optimized with ${packagePickups.length} stops`,
         route,
         type: 'package'
       });

@@ -178,12 +178,11 @@ export default function Admin() {
   const completedPickups = pickups.filter(p => p.status === 'completed');
   const activeSubscriptions = subscriptions.filter(s => s.status === 'active');
 
-  // Filter pickups
-  const filteredPickups = pickups.filter(pickup => {
-    const matchesSearch = pickup.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         pickup.id.toString().includes(searchTerm);
-    const matchesStatus = statusFilter === 'all' || pickup.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // Filter pickups for one-time requests
+  const oneTimePickups = pickups.filter(p => p.serviceType !== 'subscription');
+  const filteredPickups = oneTimePickups.filter(pickup => {
+    const matchesServiceType = statusFilter === 'all' || pickup.serviceType === statusFilter;
+    return matchesServiceType;
   });
 
   const handleAssignPickup = (pickupId: number, driverId: number) => {
@@ -394,110 +393,178 @@ export default function Admin() {
         </div>
       </MobileSection>
 
-      {/* Pickups Management */}
+      {/* Subscribers Section */}
       <MobileSection className="bg-muted/20">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Manage Pickups</h2>
+          <h2 className="text-xl font-semibold">Active Subscribers</h2>
           <Button variant="ghost" size="sm" className="text-primary">
             <RefreshCw className="w-4 h-4 mr-1" />
             Refresh
           </Button>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-3 mb-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search pickups..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="app-input"
-            />
+        {activeSubscriptions.length > 0 ? (
+          <div className="space-y-3">
+            {activeSubscriptions.map((subscription) => {
+              const customer = users.find(u => u.id === subscription.customerId);
+              return (
+                <MobileCard key={subscription.id}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">{customer?.username || 'Unknown'}</span>
+                        <StatusBadge status="completed">
+                          Active
+                        </StatusBadge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        ${subscription.pricePerMonth}/month • {subscription.frequency} pickup
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {customer?.address || 'No address'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-green-600">
+                        $20/month
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {subscription.bagCountLimit} bags
+                      </div>
+                    </div>
+                  </div>
+                </MobileCard>
+              );
+            })}
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="assigned">Assigned</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Pickups List */}
-        <div className="space-y-3">
-          {filteredPickups.slice(0, 10).map((pickup) => (
-            <MobileCard key={pickup.id}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium">#{pickup.id}</span>
-                    <StatusBadge status={pickup.status as any}>
-                      {pickup.status}
-                    </StatusBadge>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm">
-                      <MapPin className="w-3 h-3 text-muted-foreground mr-1" />
-                      <span className="truncate">{pickup.address}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Package className="w-3 h-3 mr-1" />
-                      <span>{pickup.bagCount} bags</span>
-                      <span className="mx-2">•</span>
-                      <span>{pickup.serviceType}</span>
-                      <span className="mx-2">•</span>
-                      <span>${pickup.amount}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      <span>
-                        {pickup.scheduledDate ? 
-                          new Date(pickup.scheduledDate).toLocaleDateString() : 
-                          'Date pending'
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {pickup.status === 'pending' && (
-                    <Select
-                      onValueChange={(value) => handleAssignPickup(pickup.id, parseInt(value))}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Assign Driver" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {drivers.map((driver) => (
-                          <SelectItem key={driver.id} value={driver.id.toString()}>
-                            {driver.username}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <Button variant="ghost" size="sm" className="p-1">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </MobileCard>
-          ))}
-        </div>
-
-        {filteredPickups.length === 0 && (
-          <div className="text-center py-8">
-            <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">No Pickups Found</h3>
+        ) : (
+          <MobileCard className="text-center py-8">
+            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">No Active Subscriptions</h3>
             <p className="text-sm text-muted-foreground">
-              Try adjusting your search or filters
+              Subscribers will appear here when they sign up for $20/month service
             </p>
-          </div>
+          </MobileCard>
         )}
+      </MobileSection>
+
+      {/* One-Time Requests Section */}
+      <MobileSection className="bg-muted/20">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">One-Time Requests</h2>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" className="text-orange-600">
+              Same-Day ({pendingPickups.filter(p => p.serviceType === 'same-day').length})
+            </Button>
+            <Button variant="ghost" size="sm" className="text-blue-600">
+              Next-Day ({pendingPickups.filter(p => p.serviceType === 'next-day').length})
+            </Button>
+          </div>
+        </div>
+
+        {/* Service Type Filters */}
+        <div className="flex gap-2 mb-4">
+          <Button 
+            variant={statusFilter === 'same-day' ? 'default' : 'outline'} 
+            size="sm"
+            onClick={() => setStatusFilter('same-day')}
+            className="flex-1"
+          >
+            Same-Day ($25-35)
+          </Button>
+          <Button 
+            variant={statusFilter === 'next-day' ? 'default' : 'outline'} 
+            size="sm"
+            onClick={() => setStatusFilter('next-day')}
+            className="flex-1"
+          >
+            Next-Day ($10-15)
+          </Button>
+          <Button 
+            variant={statusFilter === 'all' ? 'default' : 'outline'} 
+            size="sm"
+            onClick={() => setStatusFilter('all')}
+            className="flex-1"
+          >
+            All
+          </Button>
+        </div>
+
+        {/* One-Time Pickups List */}
+        <div className="space-y-3">
+          {filteredPickups.length > 0 ? (
+            filteredPickups.slice(0, 10).map((pickup) => {
+              const customer = users.find(u => u.id === pickup.customerId);
+              const isUrgent = pickup.serviceType === 'same-day';
+              
+              return (
+                <MobileCard key={pickup.id} className={isUrgent ? 'border-orange-200 bg-orange-50 dark:bg-orange-900/10' : ''}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-medium">#{pickup.id}</span>
+                        <StatusBadge status={pickup.status as any}>
+                          {pickup.status}
+                        </StatusBadge>
+                        {isUrgent && (
+                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                            URGENT
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center text-sm">
+                          <MapPin className="w-3 h-3 text-muted-foreground mr-1" />
+                          <span className="truncate">{pickup.address}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Package className="w-3 h-3 mr-1" />
+                          <span>{pickup.bagCount} bags • {customer?.username || 'Unknown'}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {pickup.serviceType === 'same-day' ? 'Same-day service' : 'Next-day service'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-sm font-medium ${isUrgent ? 'text-orange-600' : 'text-blue-600'}`}>
+                        ${pickup.amount}
+                      </span>
+                      <div className="text-xs text-muted-foreground">
+                        {pickup.serviceType === 'same-day' ? '$25-35' : '$10-15'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {pickup.status === 'pending' && (
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground pt-3 border-t">
+                      <span>Assign to:</span>
+                      {drivers.map((driver) => (
+                        <Button
+                          key={driver.id}
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAssignPickup(pickup.id, driver.id)}
+                          className="text-xs px-2 py-1 h-6"
+                        >
+                          {driver.username}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </MobileCard>
+              );
+            })
+          ) : (
+            <MobileCard className="text-center py-8">
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-semibold mb-2">No One-Time Requests</h3>
+              <p className="text-sm text-muted-foreground">
+                {statusFilter === 'all' ? 'Package requests will appear here' : `No ${statusFilter} requests pending`}
+              </p>
+            </MobileCard>
+          )}
+        </div>
       </MobileSection>
 
       {/* Users Management */}
@@ -509,114 +576,73 @@ export default function Admin() {
             Add User
           </Button>
         </div>
-
+        
         <div className="space-y-3">
-          {/* Customers Summary */}
-          <MobileCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold mb-1">Customers</h3>
-                <p className="text-sm text-muted-foreground">
-                  {customers.length} registered customers
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-                  <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          {users.slice(0, 5).map((user) => (
+            <MobileCard key={user.id}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-medium">{user.username.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div>
+                    <div className="font-medium">{user.username}</div>
+                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                  </div>
                 </div>
-                <Button variant="ghost" size="sm">
-                  View All
-                </Button>
-              </div>
-            </div>
-          </MobileCard>
-
-          {/* Drivers Summary */}
-          <MobileCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold mb-1">Drivers</h3>
-                <p className="text-sm text-muted-foreground">
-                  {drivers.length} active drivers
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-                  <Truck className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={user.role === 'admin' ? 'completed' : user.role === 'driver' ? 'assigned' : 'pending'}>
+                    {user.role}
+                  </StatusBadge>
+                  <Select
+                    value={user.role}
+                    onValueChange={(newRole) => changeRoleMutation.mutate({ userId: user.id, role: newRole })}
+                  >
+                    <SelectTrigger className="w-24 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="customer">Customer</SelectItem>
+                      <SelectItem value="driver">Driver</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button variant="ghost" size="sm">
-                  View All
-                </Button>
               </div>
-            </div>
-          </MobileCard>
-        </div>
-      </MobileSection>
-
-      {/* Recent Activity */}
-      <MobileSection className="bg-muted/20">
-        <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-        <div className="space-y-3">
-          {pickups.slice(0, 5).map((pickup) => (
-            <div key={pickup.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg">
-              <div className={`w-2 h-2 rounded-full ${
-                pickup.status === 'completed' ? 'bg-green-500' : 
-                pickup.status === 'assigned' ? 'bg-blue-500' : 
-                'bg-yellow-500'
-              }`} />
-              <div className="flex-1">
-                <p className="text-sm font-medium">
-                  Pickup #{pickup.id} {pickup.status === 'completed' ? 'completed' : 'updated'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {pickup.address} • {pickup.bagCount} bags
-                </p>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {pickup.scheduledDate ? 
-                  new Date(pickup.scheduledDate).toLocaleDateString() : 
-                  'Today'
-                }
-              </div>
-            </div>
+            </MobileCard>
           ))}
         </div>
       </MobileSection>
 
-      {/* Quick Actions */}
+      {/* Route Optimization */}
       <MobileSection>
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Route Optimization</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4">
+          <MobileButton
+            onClick={() => optimizeRouteMutation.mutate('subscription')}
+            disabled={optimizeRouteMutation.isPending}
+            className="bg-green-600 text-white"
           >
-            <Download className="w-6 h-6" />
-            <span>Export Data</span>
+            {optimizeRouteMutation.isPending ? 'Optimizing...' : 'Optimize Subscription Route'}
           </MobileButton>
           
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
+          <MobileButton
+            onClick={() => optimizeRouteMutation.mutate('package')}
+            disabled={optimizeRouteMutation.isPending}
+            className="bg-blue-600 text-white"
           >
-            <UserPlus className="w-6 h-6" />
-            <span>Add Driver</span>
+            {optimizeRouteMutation.isPending ? 'Optimizing...' : 'Optimize Package Route'}
           </MobileButton>
           
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
+          <MobileButton
+            onClick={handleCreateDemoData}
+            disabled={createDemoMutation.isPending}
+            className="bg-purple-600 text-white"
           >
-            <Calendar className="w-6 h-6" />
-            <span>Schedule Route</span>
-          </MobileButton>
-          
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-          >
-            <Settings className="w-6 h-6" />
-            <span>Settings</span>
+            {createDemoMutation.isPending ? 'Creating...' : 'Create Demo Data'}
           </MobileButton>
         </div>
       </MobileSection>
