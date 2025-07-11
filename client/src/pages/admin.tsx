@@ -74,6 +74,68 @@ export default function Admin() {
     },
   });
 
+  // Route optimization mutation
+  const optimizeRouteMutation = useMutation({
+    mutationFn: async (routeType: 'subscription' | 'package') => {
+      const endpoint = routeType === 'subscription' 
+        ? '/api/admin/optimize-subscription-route' 
+        : '/api/admin/optimize-package-route';
+      
+      const response = await authenticatedRequest(endpoint, {
+        method: 'POST',
+      });
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+      toast({
+        title: "Route Optimized",
+        description: `${data.type === 'subscription' ? 'Subscription' : 'Package'} route has been optimized successfully.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Optimization Failed",
+        description: error.message || "Failed to optimize route. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleOptimizeRoute = (routeType: 'subscription' | 'package') => {
+    optimizeRouteMutation.mutate(routeType);
+  };
+
+  // Demo data creation mutation
+  const createDemoMutation = useMutation({
+    mutationFn: async () => {
+      const response = await authenticatedRequest('/api/admin/create-demo-data', {
+        method: 'POST',
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({
+        title: "Demo Data Created",
+        description: `Created ${data.data.customers} customers, ${data.data.subscriptions} subscriptions, and ${data.data.pickups} pickups across Philadelphia Metro Area.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Demo Creation Failed",
+        description: error.message || "Failed to create demo data. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateDemoData = () => {
+    createDemoMutation.mutate();
+  };
+
   const { data: subscriptions = [] } = useQuery({
     queryKey: ['/api/admin/subscriptions'],
     queryFn: () => authenticatedRequest('/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
@@ -217,6 +279,112 @@ export default function Admin() {
               Success Rate
             </div>
           </MobileCard>
+        </div>
+      </MobileSection>
+
+      {/* Route Optimization Section */}
+      <MobileSection className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Route Optimization</h2>
+          <div className="text-sm text-muted-foreground">
+            Philadelphia Metro Area
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Subscription Route */}
+          <MobileCard className="bg-white dark:bg-gray-800">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Calendar className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="font-semibold mb-2">Subscription Route</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Weekly customers • Predictable income • $5-8/stop
+              </p>
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-sm">
+                  <span>Pending Subscriptions:</span>
+                  <span className="font-medium">12</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Est. Revenue:</span>
+                  <span className="font-medium text-green-600">$60-96</span>
+                </div>
+              </div>
+              <Button 
+                className="w-full bg-green-600 hover:bg-green-700"
+                onClick={() => handleOptimizeRoute('subscription')}
+                disabled={optimizeRouteMutation.isPending}
+              >
+                {optimizeRouteMutation.isPending ? 'Optimizing...' : 'Optimize Subscription Route'}
+              </Button>
+            </div>
+          </MobileCard>
+
+          {/* Package Route */}
+          <MobileCard className="bg-white dark:bg-gray-800">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Package className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="font-semibold mb-2">Package Route</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Same-day + Next-day • Premium pricing • $15-35/stop
+              </p>
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-sm">
+                  <span>Pending Packages:</span>
+                  <span className="font-medium">8</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Est. Revenue:</span>
+                  <span className="font-medium text-orange-600">$120-280</span>
+                </div>
+              </div>
+              <Button 
+                className="w-full bg-orange-600 hover:bg-orange-700"
+                onClick={() => handleOptimizeRoute('package')}
+                disabled={optimizeRouteMutation.isPending}
+              >
+                {optimizeRouteMutation.isPending ? 'Optimizing...' : 'Optimize Package Route'}
+              </Button>
+            </div>
+          </MobileCard>
+        </div>
+
+        {/* Route Comparison */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+          <h4 className="font-semibold mb-3">Today's Route Options</h4>
+          <div className="text-sm text-muted-foreground">
+            Choose which route to run based on your schedule and income goals:
+          </div>
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span>• Subscription Route: Reliable, relationship-building</span>
+              <span className="text-green-600 font-medium">6-8 stops</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span>• Package Route: Higher profit, time-sensitive</span>
+              <span className="text-orange-600 font-medium">4-6 stops</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Demo Data Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mt-4">
+          <h4 className="font-semibold mb-3">Demo & Testing</h4>
+          <div className="text-sm text-muted-foreground mb-3">
+            Create sample Philadelphia Metro Area customers and pickup requests for testing
+          </div>
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => handleCreateDemoData()}
+            disabled={createDemoMutation.isPending}
+          >
+            {createDemoMutation.isPending ? 'Creating...' : 'Create Demo Data'}
+          </Button>
         </div>
       </MobileSection>
 

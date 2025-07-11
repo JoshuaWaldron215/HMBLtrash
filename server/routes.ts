@@ -819,6 +819,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Demo data endpoints
+  app.post('/api/admin/create-demo-data', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { createDemoData } = await import('./createDemoData');
+      await createDemoData();
+      
+      res.json({
+        success: true,
+        message: 'Demo data created successfully',
+        data: {
+          customers: 8,
+          subscriptions: 4,
+          pickups: 8,
+          areas: ['Center City', 'South Philly', 'Delaware County', 'Montgomery County', 'Fishtown', 'Bucks County', 'South Jersey', 'Chester County']
+        }
+      });
+    } catch (error: any) {
+      console.error('Demo data creation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create demo data',
+        error: error.message
+      });
+    }
+  });
+
   // Test system endpoints
   app.post('/api/test/create-pickups', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
