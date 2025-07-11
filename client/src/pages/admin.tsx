@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Settings,
   Download,
-  RefreshCw
+  RefreshCw,
+  Navigation
 } from 'lucide-react';
 import MobileLayout, { 
   MobileCard, 
@@ -394,31 +395,145 @@ export default function Admin() {
         <h2 className="text-xl font-semibold">Route Optimization</h2>
       </div>
       
-      <div className="grid grid-cols-1 gap-4">
-        <MobileButton
-          onClick={() => optimizeRouteMutation.mutate('subscription')}
-          disabled={optimizeRouteMutation.isPending}
-          className="bg-green-600 text-white"
-        >
-          {optimizeRouteMutation.isPending ? 'Optimizing...' : 'Optimize Subscription Route'}
-        </MobileButton>
+      {/* Route Optimization Controls */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <MobileCard className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
+          <div className="text-center">
+            <Calendar className="w-8 h-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
+            <h3 className="font-semibold mb-2">Subscription Route</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Optimize weekly customers for reliable income
+            </p>
+            <Button 
+              className="w-full bg-green-600 hover:bg-green-700"
+              onClick={() => optimizeRouteMutation.mutate('subscription')}
+              disabled={optimizeRouteMutation.isPending}
+            >
+              {optimizeRouteMutation.isPending ? 'Optimizing...' : 'Optimize Subscription Route'}
+            </Button>
+          </div>
+        </MobileCard>
         
-        <MobileButton
-          onClick={() => optimizeRouteMutation.mutate('package')}
-          disabled={optimizeRouteMutation.isPending}
-          className="bg-blue-600 text-white"
-        >
-          {optimizeRouteMutation.isPending ? 'Optimizing...' : 'Optimize Package Route'}
-        </MobileButton>
-        
-        <MobileButton
-          onClick={handleCreateDemoData}
-          disabled={createDemoMutation.isPending}
-          className="bg-purple-600 text-white"
-        >
-          {createDemoMutation.isPending ? 'Creating...' : 'Create Demo Data'}
-        </MobileButton>
+        <MobileCard className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20">
+          <div className="text-center">
+            <Package className="w-8 h-8 text-orange-600 dark:text-orange-400 mx-auto mb-2" />
+            <h3 className="font-semibold mb-2">Package Route</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Optimize same-day and next-day requests
+            </p>
+            <Button 
+              className="w-full bg-orange-600 hover:bg-orange-700"
+              onClick={() => optimizeRouteMutation.mutate('package')}
+              disabled={optimizeRouteMutation.isPending}
+            >
+              {optimizeRouteMutation.isPending ? 'Optimizing...' : 'Optimize Package Route'}
+            </Button>
+          </div>
+        </MobileCard>
       </div>
+
+      {/* Current Route Display */}
+      {pickups.filter(p => p.status === 'assigned').length > 0 && (
+        <MobileCard className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Current Optimized Route</h3>
+            <Button variant="ghost" size="sm" className="text-blue-600">
+              <Navigation className="w-4 h-4 mr-1" />
+              Open in Maps
+            </Button>
+          </div>
+          
+          <div className="space-y-3">
+            {pickups
+              .filter(p => p.status === 'assigned')
+              .sort((a, b) => (a.routeOrder || 0) - (b.routeOrder || 0))
+              .map((pickup, index) => {
+                const customer = users.find(u => u.id === pickup.customerId);
+                
+                return (
+                  <div key={pickup.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-xs font-medium text-blue-600 dark:text-blue-400">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-sm mb-1">
+                        {customer?.username || 'Unknown Customer'}
+                      </div>
+                      <div className="text-sm text-muted-foreground mb-1">
+                        <MapPin className="w-3 h-3 inline mr-1" />
+                        {pickup.address}
+                      </div>
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="text-muted-foreground">{pickup.bagCount} bags</span>
+                        <span className="font-medium text-green-600">${pickup.amount}</span>
+                        <StatusBadge status={pickup.serviceType === 'subscription' ? 'completed' : 'assigned'}>
+                          {pickup.serviceType === 'subscription' ? 'Subscription' : 
+                           pickup.serviceType === 'same-day' ? 'Same-Day' : 'Next-Day'}
+                        </StatusBadge>
+                      </div>
+                      {pickup.instructions && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          Note: {pickup.instructions}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground">
+                        ETA: {pickup.estimatedArrival || '~30min'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            }
+          </div>
+          
+          {/* Route Summary */}
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-lg font-semibold text-blue-600">
+                  {pickups.filter(p => p.status === 'assigned').length}
+                </div>
+                <div className="text-xs text-muted-foreground">Total Stops</div>
+              </div>
+              <div>
+                <div className="text-lg font-semibold text-green-600">
+                  ${pickups.filter(p => p.status === 'assigned').reduce((sum, p) => sum + (p.amount || 0), 0)}
+                </div>
+                <div className="text-xs text-muted-foreground">Route Revenue</div>
+              </div>
+              <div>
+                <div className="text-lg font-semibold text-orange-600">
+                  ~{Math.round(pickups.filter(p => p.status === 'assigned').length * 0.5)}h
+                </div>
+                <div className="text-xs text-muted-foreground">Est. Duration</div>
+              </div>
+            </div>
+          </div>
+        </MobileCard>
+      )}
+
+      {/* Demo Data Section */}
+      <MobileCard className="bg-purple-50 dark:bg-purple-900/20">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+            <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          </div>
+          <h3 className="font-semibold mb-2">Demo & Testing</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Create sample Philadelphia Metro Area customers and pickup requests
+          </p>
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={handleCreateDemoData}
+            disabled={createDemoMutation.isPending}
+          >
+            {createDemoMutation.isPending ? 'Creating...' : 'Create Demo Data'}
+          </Button>
+        </div>
+      </MobileCard>
     </MobileSection>
   );
 
@@ -524,7 +639,7 @@ export default function Admin() {
         {/* Today's Route Overview */}
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-3">Today's Route Status</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <MobileCard className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
               <div className="flex items-center justify-between">
                 <div>
@@ -547,6 +662,92 @@ export default function Admin() {
               </div>
             </MobileCard>
           </div>
+
+          {/* Today's Route Details */}
+          {pickups.filter(p => p.status === 'assigned').length > 0 && (
+            <MobileCard className="bg-white dark:bg-gray-800">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold">Today's Route Details</h4>
+                <Button variant="ghost" size="sm" className="text-blue-600">
+                  <MapPin className="w-4 h-4 mr-1" />
+                  View on Map
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {pickups
+                  .filter(p => p.status === 'assigned')
+                  .sort((a, b) => (a.routeOrder || 0) - (b.routeOrder || 0))
+                  .map((pickup, index) => {
+                    const customer = users.find(u => u.id === pickup.customerId);
+                    const driver = users.find(u => u.id === pickup.driverId);
+                    
+                    return (
+                      <div key={pickup.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-xs font-medium text-blue-600 dark:text-blue-400">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-sm">{customer?.username || 'Unknown Customer'}</span>
+                            <StatusBadge status={pickup.serviceType === 'subscription' ? 'completed' : 'assigned'}>
+                              {pickup.serviceType === 'subscription' ? 'Subscription' : 
+                               pickup.serviceType === 'same-day' ? 'Same-Day' : 'Next-Day'}
+                            </StatusBadge>
+                          </div>
+                          <div className="text-sm text-muted-foreground mb-1">
+                            <MapPin className="w-3 h-3 inline mr-1" />
+                            {pickup.address}
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span>{pickup.bagCount} bags</span>
+                            <span className="font-medium text-green-600">${pickup.amount}</span>
+                            {pickup.estimatedArrival && (
+                              <span>ETA: {pickup.estimatedArrival}</span>
+                            )}
+                          </div>
+                          {pickup.instructions && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              Note: {pickup.instructions}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-muted-foreground">
+                            Driver: {driver?.username || 'Unassigned'}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                }
+              </div>
+              
+              {/* Route Summary */}
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-lg font-semibold text-blue-600">
+                      {pickups.filter(p => p.status === 'assigned').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Total Stops</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-green-600">
+                      ${pickups.filter(p => p.status === 'assigned').reduce((sum, p) => sum + (p.amount || 0), 0)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Route Revenue</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-orange-600">
+                      ~2.5h
+                    </div>
+                    <div className="text-xs text-muted-foreground">Est. Duration</div>
+                  </div>
+                </div>
+              </div>
+            </MobileCard>
+          )}
         </div>
       </MobileSection>
 
