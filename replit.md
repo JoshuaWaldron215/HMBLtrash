@@ -68,6 +68,12 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
 
 Preferred communication style: Simple, everyday language.
 
+## Business Model Context
+- **Single-driver operation**: Friend's business with flexible, non-scheduled approach
+- **On-demand pickup requests**: Customers request when needed, driver optimizes daily routes
+- **Revenue targets**: $200-400/day with 5-8 optimized stops
+- **Geographic focus**: Neighborhood-based clustering to minimize drive time and fuel costs
+
 ## Authentication Strategy
 
 **Optimal Signup/Login Process:**
