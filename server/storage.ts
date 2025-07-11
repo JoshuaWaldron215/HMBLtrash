@@ -1,3 +1,6 @@
+This code fixes merge conflicts in `client/src/lib/auth.ts` and `server/storage.ts` files by resolving them properly, keeping the more comprehensive versions of functions and implementations.
+```
+```replit_final_file
 import { 
   users, 
   pickups, 
@@ -25,7 +28,7 @@ export interface IStorage {
   updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User>;
   updateUserRole(userId: number, role: string): Promise<User>;
   getUsersByRole(role: string): Promise<User[]>;
-  
+
   // Pickup operations
   getPickup(id: number): Promise<Pickup | undefined>;
   getPickupsByCustomer(customerId: number): Promise<Pickup[]>;
@@ -36,14 +39,14 @@ export interface IStorage {
   updatePickupStatus(id: number, status: string, driverId?: number): Promise<Pickup>;
   assignPickupToDriver(pickupId: number, driverId: number): Promise<Pickup>;
   completePickup(id: number): Promise<Pickup>;
-  
+
   // Route operations
   getRoute(id: number): Promise<Route | undefined>;
   getRoutesByDriver(driverId: number): Promise<Route[]>;
   getRoutesByDate(date: string): Promise<Route[]>;
   createRoute(route: InsertRoute): Promise<Route>;
   updateRouteStatus(id: number, status: string): Promise<Route>;
-  
+
   // Subscription operations
   getSubscription(id: number): Promise<Subscription | undefined>;
   getSubscriptionByCustomer(customerId: number): Promise<Subscription | undefined>;
@@ -72,7 +75,7 @@ export class MemStorage implements IStorage {
     this.pickupIdCounter = 1;
     this.routeIdCounter = 1;
     this.subscriptionIdCounter = 1;
-    
+
     // Create test users for different roles
     this.createTestUsers();
   }
@@ -80,7 +83,7 @@ export class MemStorage implements IStorage {
   private createTestUsers() {
     // Create test users with pre-hashed passwords (sync)
     const hashedPassword = bcrypt.hashSync('password123', 10);
-    
+
     // Test admin user
     const adminUser: User = {
       id: this.userIdCounter++,
@@ -125,7 +128,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.users.set(customerUser.id, customerUser);
-    
+
     // Add sample pickups for testing route optimization
     const today = new Date();
     const addresses = [
@@ -136,7 +139,7 @@ export class MemStorage implements IStorage {
       "654 Maple Dr, Springfield, IL 62705",
       "987 Cedar Ln, Springfield, IL 62706"
     ];
-    
+
     addresses.forEach((address, index) => {
       this.createPickup({
         customerId: customerUser.id,
@@ -149,7 +152,7 @@ export class MemStorage implements IStorage {
         specialInstructions: index === 0 ? "Gate code: 1234" : index === 1 ? "Bins on side of house" : undefined
       });
     });
-    
+
     // Assign all pickups to the driver after creation
     Array.from(this.pickups.values()).forEach(pickup => {
       if (pickup.status === "assigned") {
@@ -190,7 +193,7 @@ export class MemStorage implements IStorage {
   async updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User> {
     const user = this.users.get(userId);
     if (!user) throw new Error('User not found');
-    
+
     const updatedUser = { 
       ...user, 
       stripeCustomerId, 
@@ -205,13 +208,13 @@ export class MemStorage implements IStorage {
     if (!user) {
       throw new Error('User not found');
     }
-    
+
     const updatedUser = {
       ...user,
       role,
       updatedAt: new Date()
     };
-    
+
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
@@ -262,7 +265,7 @@ export class MemStorage implements IStorage {
   async updatePickupStatus(id: number, status: string, driverId?: number): Promise<Pickup> {
     const pickup = this.pickups.get(id);
     if (!pickup) throw new Error('Pickup not found');
-    
+
     const updatedPickup = { 
       ...pickup, 
       status, 
@@ -279,7 +282,7 @@ export class MemStorage implements IStorage {
   async completePickup(id: number): Promise<Pickup> {
     const pickup = this.pickups.get(id);
     if (!pickup) throw new Error('Pickup not found');
-    
+
     const updatedPickup = { 
       ...pickup, 
       status: 'completed', 
@@ -322,7 +325,7 @@ export class MemStorage implements IStorage {
   async updateRouteStatus(id: number, status: string): Promise<Route> {
     const route = this.routes.get(id);
     if (!route) throw new Error('Route not found');
-    
+
     const updatedRoute = { ...route, status };
     this.routes.set(id, updatedRoute);
     return updatedRoute;
@@ -356,7 +359,7 @@ export class MemStorage implements IStorage {
   async updateSubscriptionStatus(id: number, status: string): Promise<Subscription> {
     const subscription = this.subscriptions.get(id);
     if (!subscription) throw new Error('Subscription not found');
-    
+
     const updatedSubscription = { ...subscription, status };
     this.subscriptions.set(id, updatedSubscription);
     return updatedSubscription;
@@ -384,7 +387,7 @@ export class DatabaseStorage implements IStorage {
 
       // Create test users with pre-hashed passwords
       const hashedPassword = await bcrypt.hash('password123', 10);
-      
+
       const testUsers = [
         {
           username: 'admin',
@@ -414,7 +417,7 @@ export class DatabaseStorage implements IStorage {
 
       await db.insert(users).values(testUsers);
       console.log('✓ Test users created successfully');
-      
+
       // Create sample pickups for testing
       const samplePickups = [
         {
@@ -452,7 +455,7 @@ export class DatabaseStorage implements IStorage {
 
       await db.insert(pickups).values(samplePickups);
       console.log('✓ Sample pickups created successfully');
-      
+
     } catch (error) {
       console.log('Note: Test data may already exist or database not ready yet');
     }
@@ -525,16 +528,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPickupsByDate(date: string): Promise<Pickup[]> {
-    // Convert date string to timestamp range for the day
     const startDate = new Date(date);
     const endDate = new Date(date);
     endDate.setDate(endDate.getDate() + 1);
-    
+
     return await db.select().from(pickups).where(
-      and(
-        eq(pickups.scheduledDate, startDate),
-        // Add more complex date filtering if needed
-      )
+      eq(pickups.scheduledDate, startDate)
     );
   }
 
@@ -551,7 +550,7 @@ export class DatabaseStorage implements IStorage {
     if (driverId !== undefined) {
       updateData.driverId = driverId;
     }
-    
+
     const [pickup] = await db
       .update(pickups)
       .set(updateData)
@@ -569,16 +568,15 @@ export class DatabaseStorage implements IStorage {
       .update(pickups)
       .set({ 
         status: 'completed', 
-        completedAt: new Date(),
-        updatedAt: new Date()
+        completedAt: new Date()
       })
       .where(eq(pickups.id, id))
       .returning();
-    
+
     if (!pickup) {
       throw new Error('Pickup not found or could not be updated');
     }
-    
+
     return pickup;
   }
 
