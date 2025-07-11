@@ -33,15 +33,17 @@ export default function Driver() {
   const queryClient = useQueryClient();
 
   // Fetch driver pickups
-  const { data: pickups = [] } = useQuery({
+  const { data: pickups = [], isLoading: pickupsLoading, error: pickupsError } = useQuery({
     queryKey: ['/api/pickups'],
     queryFn: () => authenticatedRequest('/api/pickups').then(res => res.json() as Promise<Pickup[]>),
+    retry: false,
   });
 
   // Fetch today's optimized route
-  const { data: routeData = { pickups: [], summary: {} } } = useQuery({
+  const { data: routeData = { pickups: [], summary: {} }, isLoading: routeLoading, error: routeError } = useQuery({
     queryKey: ['/api/driver/route'],
     queryFn: () => authenticatedRequest('/api/driver/route').then(res => res.json()),
+    retry: false,
   });
 
   const todayRoute = Array.isArray(routeData) ? routeData : routeData.pickups || [];
@@ -68,8 +70,37 @@ export default function Driver() {
     },
   });
 
-  const pendingPickups = pickups.filter(p => p.status === 'assigned');
-  const completedPickups = pickups.filter(p => p.status === 'completed');
+  // Use todayRoute instead of undefined pickups variable
+  const pendingPickups = Array.isArray(todayRoute) ? todayRoute.filter(p => p.status === 'assigned') : [];
+  const completedPickups = Array.isArray(todayRoute) ? todayRoute.filter(p => p.status === 'completed') : [];
+  
+  // Show loading state
+  if (pickupsLoading || routeLoading) {
+    return (
+      <MobileLayout title="Driver Dashboard">
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  // Show error state for authentication issues
+  if (pickupsError || routeError) {
+    return (
+      <MobileLayout title="Driver Dashboard">
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold mb-2">Authentication Required</h2>
+            <p className="text-gray-600 mb-4">Please log in again to access your driver dashboard.</p>
+            <Button onClick={() => window.location.href = '/login'}>
+              Go to Login
+            </Button>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
   const nextPickup = pendingPickups[0];
 
   const handleCompletePickup = (pickupId: number) => {
