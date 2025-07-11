@@ -1,6 +1,4 @@
-This code fixes merge conflicts in `client/src/lib/auth.ts` and `server/storage.ts` files by resolving them properly, keeping the more comprehensive versions of functions and implementations.
-```
-```replit_final_file
+
 import { 
   users, 
   pickups, 
