@@ -9,6 +9,9 @@ import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
+import PickupHistory from "@/pages/pickup-history";
+import Billing from "@/pages/billing";
+import Settings from "@/pages/settings";
 import Admin from "@/pages/admin";
 import Driver from "@/pages/driver";
 import DriverMap from "@/pages/driver-map";
@@ -54,6 +57,24 @@ function Router() {
       <Route path="/subscribe">
         <ProtectedRoute allowedRoles={['customer']}>
           <Subscribe />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/pickup-history">
+        <ProtectedRoute allowedRoles={['customer']}>
+          <PickupHistory />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/billing">
+        <ProtectedRoute allowedRoles={['customer']}>
+          <Billing />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/settings">
+        <ProtectedRoute allowedRoles={['customer']}>
+          <Settings />
         </ProtectedRoute>
       </Route>
       

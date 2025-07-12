@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { 
   Calendar, 
   Clock, 
@@ -13,7 +14,10 @@ import {
   CreditCard,
   Settings,
   Bell,
-  User
+  User,
+  History,
+  DollarSign,
+  ArrowRight
 } from 'lucide-react';
 import MobileLayout, { 
   MobileCard, 
@@ -32,6 +36,7 @@ export default function Dashboard() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedServiceType, setSelectedServiceType] = useState<'subscription' | 'one-time'>('one-time');
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   // Fetch user data
   const { data: user } = useQuery({
@@ -53,11 +58,11 @@ export default function Dashboard() {
 
   const upcomingPickups = pickups.filter(p => p.status === 'pending' || p.status === 'assigned');
   const completedPickups = pickups.filter(p => p.status === 'completed');
-  const nextPickup = upcomingPickups[0];
+  const hasActiveSubscription = subscription && subscription.status === 'active';
 
   const handleBooking = (type: 'subscription' | 'one-time') => {
     // Check if user already has an active subscription
-    if (type === 'subscription' && subscription && subscription.status === 'active') {
+    if (type === 'subscription' && hasActiveSubscription) {
       toast({
         title: "Subscription Already Active",
         description: "You already have an active weekly subscription. Manage your existing subscription instead.",
@@ -74,7 +79,7 @@ export default function Dashboard() {
     <MobileLayout 
       title="Dashboard" 
       rightAction={
-        <Button variant="ghost" size="sm" className="p-2">
+        <Button variant="ghost" size="sm" className="p-2" onClick={() => setLocation('/settings')}>
           <User className="w-5 h-5" />
         </Button>
       }
@@ -110,7 +115,7 @@ export default function Dashboard() {
           </MobileCard>
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-blue-600 mb-1">
-              {subscription ? 'Active' : 'None'}
+              {hasActiveSubscription ? 'Active' : 'None'}
             </div>
             <div className="text-sm text-muted-foreground">
               Subscription
@@ -118,209 +123,170 @@ export default function Dashboard() {
           </MobileCard>
         </div>
 
-        {/* Next Pickup Card */}
-        {nextPickup ? (
-          <MobileCard className="mb-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-lg mb-1">Next Pickup</h3>
-                <p className="text-sm text-muted-foreground">
-                  {nextPickup.scheduledDate ? 
-                    new Date(nextPickup.scheduledDate).toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    }) : 
-                    'Date pending'
-                  }
-                </p>
-              </div>
-              <StatusBadge status={nextPickup.status as any}>
-                {nextPickup.status === 'pending' && 'Scheduled'}
-                {nextPickup.status === 'assigned' && 'En Route'}
-                {nextPickup.status === 'completed' && 'Completed'}
-              </StatusBadge>
+        {/* Subscription Status Card */}
+        <MobileCard className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-lg">Subscription Status</h3>
             </div>
-            
+            {hasActiveSubscription && (
+              <StatusBadge status="active">Active</StatusBadge>
+            )}
+          </div>
+          
+          {hasActiveSubscription ? (
             <div className="space-y-3">
-              <div className="flex items-center text-sm">
-                <MapPin className="w-4 h-4 text-muted-foreground mr-2" />
-                <span>{nextPickup.address}</span>
+              <p className="text-sm text-muted-foreground">
+                Weekly pickup service - $20/month
+              </p>
+              <p className="text-sm font-medium">
+                Next pickup: {subscription?.nextPickupDate ? 
+                  new Date(subscription.nextPickupDate).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  }) : 'Scheduling...'
+                }
+              </p>
+              <div className="flex space-x-2">
+                <MobileButton 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setLocation('/billing')}
+                >
+                  Manage Subscription
+                </MobileButton>
+                <MobileButton 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setLocation('/pickup-history')}
+                >
+                  View History
+                </MobileButton>
               </div>
-              <div className="flex items-center text-sm">
-                <Package className="w-4 h-4 text-muted-foreground mr-2" />
-                <span>{nextPickup.bagCount} bags • {nextPickup.serviceType}</span>
-              </div>
-              {nextPickup.specialInstructions && (
-                <div className="flex items-start text-sm">
-                  <AlertCircle className="w-4 h-4 text-muted-foreground mr-2 mt-0.5" />
-                  <span className="text-muted-foreground">{nextPickup.specialInstructions}</span>
-                </div>
-              )}
             </div>
-          </MobileCard>
-        ) : (
-          <MobileCard className="text-center mb-6">
-            <div className="py-8">
-              <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">No Upcoming Pickups</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Schedule your next pickup to get started
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                No active subscription. Start a weekly pickup service for convenient trash collection.
               </p>
               <MobileButton 
-                variant="outline" 
-                size="sm"
-                onClick={() => handleBooking('one-time')}
-              >
-                Book Now
-              </MobileButton>
-            </div>
-          </MobileCard>
-        )}
-
-        {/* Subscription Status */}
-        {subscription ? (
-          <MobileCard className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold">Weekly Subscription</h3>
-                <p className="text-sm text-muted-foreground">
-                  Next pickup: {subscription.nextPickupDate ? 
-                    new Date(subscription.nextPickupDate).toLocaleDateString() : 
-                    'Pending'
-                  }
-                </p>
-              </div>
-              <StatusBadge status={subscription.status === 'active' ? 'completed' : 'pending'}>
-                {subscription.status}
-              </StatusBadge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">$20/month</span>
-              <Button variant="ghost" size="sm" className="text-primary">
-                Manage
-              </Button>
-            </div>
-          </MobileCard>
-        ) : (
-          <MobileCard className="text-center mb-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
-            <div className="py-6">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="font-semibold mb-2">Upgrade to Weekly Service</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Save time with automatic weekly pickups
-              </p>
-              <MobileButton 
-                variant="success" 
-                size="sm"
+                variant="primary" 
+                size="sm" 
                 onClick={() => handleBooking('subscription')}
               >
-                Start Subscription - $20/month
+                Start Subscription
               </MobileButton>
             </div>
-          </MobileCard>
-        )}
-      </MobileSection>
+          )}
+        </MobileCard>
 
-      {/* Recent Pickups */}
-      <MobileSection className="bg-muted/20">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">Recent Pickups</h2>
-          <Button variant="ghost" size="sm" className="text-primary">
-            View All
-          </Button>
-        </div>
-
-        {pickups.length > 0 ? (
-          <div className="space-y-3">
-            {pickups.slice(0, 3).map((pickup) => (
-              <MobileCard key={pickup.id} className="app-list-item">
-                <div className="flex items-center space-x-3 flex-1">
-                  <div className="w-10 h-10 bg-primary bg-opacity-10 rounded-full flex items-center justify-center">
-                    <Package className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        {pickup.bagCount} bags • {pickup.serviceType}
-                      </span>
-                      <StatusBadge status={pickup.status as any}>
-                        {pickup.status}
-                      </StatusBadge>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground mt-1">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      <span>
-                        {pickup.scheduledDate ? 
-                          new Date(pickup.scheduledDate).toLocaleDateString() : 
-                          'Date pending'
-                        }
-                      </span>
-                      <span className="mx-2">•</span>
-                      <span>${pickup.amount}</span>
-                    </div>
-                  </div>
-                </div>
-              </MobileCard>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">No Pickups Yet</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Book your first pickup to get started
-            </p>
+        {/* Quick Actions */}
+        <MobileCard className="mb-6">
+          <h3 className="font-semibold text-lg mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-3">
             <MobileButton 
-              variant="outline"
+              variant="outline" 
+              className="flex-col h-20"
+              onClick={() => setLocation('/pickup-history')}
+            >
+              <History className="w-6 h-6 mb-2" />
+              <span className="text-sm">Pickup History</span>
+            </MobileButton>
+            <MobileButton 
+              variant="outline" 
+              className="flex-col h-20"
+              onClick={() => setLocation('/billing')}
+            >
+              <CreditCard className="w-6 h-6 mb-2" />
+              <span className="text-sm">Billing</span>
+            </MobileButton>
+            <MobileButton 
+              variant="outline" 
+              className="flex-col h-20"
+              onClick={() => setLocation('/settings')}
+            >
+              <Settings className="w-6 h-6 mb-2" />
+              <span className="text-sm">Settings</span>
+            </MobileButton>
+            <MobileButton 
+              variant="outline" 
+              className="flex-col h-20"
               onClick={() => handleBooking('one-time')}
             >
-              Book First Pickup
+              <Plus className="w-6 h-6 mb-2" />
+              <span className="text-sm">Book Pickup</span>
             </MobileButton>
           </div>
-        )}
-      </MobileSection>
+        </MobileCard>
 
-      {/* Quick Actions */}
-      <MobileSection>
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-            onClick={() => handleBooking('one-time')}
-          >
-            <Plus className="w-6 h-6" />
-            <span>Book Pickup</span>
-          </MobileButton>
+        {/* One-time Pickup Card */}
+        <MobileCard className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <Package className="w-5 h-5 text-orange-500" />
+              <h3 className="font-semibold text-lg">One-time Pickup</h3>
+            </div>
+          </div>
           
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-            onClick={() => handleBooking('subscription')}
-          >
-            <Calendar className="w-6 h-6" />
-            <span>Subscribe</span>
-          </MobileButton>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Need a single pickup? Book a one-time service for extra bags or special occasions.
+            </p>
+            <MobileButton 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleBooking('one-time')}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Book One-time Pickup
+            </MobileButton>
+          </div>
+        </MobileCard>
+
+        {/* Recent Activity */}
+        <MobileCard>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Recent Activity</h3>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setLocation('/pickup-history')}
+            >
+              View All
+            </Button>
+          </div>
           
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-          >
-            <CreditCard className="w-6 h-6" />
-            <span>Billing</span>
-          </MobileButton>
-          
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-          >
-            <Settings className="w-6 h-6" />
-            <span>Settings</span>
-          </MobileButton>
-        </div>
+          {completedPickups.length > 0 ? (
+            <div className="space-y-3">
+              {completedPickups.slice(0, 3).map((pickup) => (
+                <div key={pickup.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-medium">{pickup.bagCount} bags collected</p>
+                      <p className="text-sm text-muted-foreground">
+                        {pickup.scheduledDate ? new Date(pickup.scheduledDate).toLocaleDateString() : 'Date pending'}
+                      </p>
+                    </div>
+                  </div>
+                  <StatusBadge status="completed">
+                    Completed
+                  </StatusBadge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No recent activity</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Book your first pickup to get started!
+              </p>
+            </div>
+          )}
+        </MobileCard>
       </MobileSection>
 
       {/* Floating Action Button */}
@@ -329,7 +295,7 @@ export default function Dashboard() {
       </FloatingActionButton>
 
       {/* Booking Modal */}
-      <BookingModal 
+      <BookingModal
         isOpen={showBookingModal}
         onClose={() => setShowBookingModal(false)}
         serviceType={selectedServiceType}

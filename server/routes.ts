@@ -143,6 +143,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update current user profile
+  app.patch('/api/me', authenticateToken, async (req, res) => {
+    try {
+      const { username, email } = req.body;
+      const userId = req.user!.id;
+      
+      // Check if email is already taken by another user
+      if (email) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ message: 'Email already in use' });
+        }
+      }
+      
+      // Check if username is already taken by another user
+      if (username) {
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ message: 'Username already in use' });
+        }
+      }
+      
+      // Update user
+      const updatedUser = await storage.updateUser(userId, { username, email });
+      
+      res.json({ 
+        id: updatedUser.id, 
+        email: updatedUser.email, 
+        username: updatedUser.username, 
+        role: updatedUser.role 
+      });
+    } catch (error: any) {
+      console.error('Error updating user profile:', error);
+      res.status(500).json({ message: 'Error updating user profile' });
+    }
+  });
+
   // Admin-only routes for user management
   app.get('/api/admin/users', authenticateToken, requireRole('admin'), async (req, res) => {
     try {

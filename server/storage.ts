@@ -22,6 +22,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(userId: number, userData: Partial<User>): Promise<User>;
   updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User>;
   updateUserRole(userId: number, role: string): Promise<User>;
   getUsersByRole(role: string): Promise<User[]>;
@@ -137,6 +138,21 @@ export class MemStorage implements IStorage {
     };
     this.users.set(user.id, user);
     return user;
+  }
+
+  async updateUser(userId: number, userData: Partial<User>): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error(`User with id ${userId} not found`);
+    }
+    
+    const updatedUser: User = { 
+      ...user, 
+      ...userData,
+      updatedAt: new Date()
+    };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
 
   async updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User> {
@@ -338,6 +354,18 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async updateUser(userId: number, userData: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        ...userData,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
     return user;
   }
 
