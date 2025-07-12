@@ -15,6 +15,8 @@ import {
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -370,93 +372,26 @@ export class MemStorage implements IStorage {
 // Database storage implementation
 export class DatabaseStorage implements IStorage {
   constructor() {
-    // Initialize with test data
     this.initializeTestData();
   }
 
   private async initializeTestData() {
     try {
-      // Check if users already exist to avoid duplicates
       const existingUsers = await db.select().from(users);
-      if (existingUsers.length > 0) {
-        return; // Data already exists
-      }
+      if (existingUsers.length > 0) return;
 
-      // Create test users with pre-hashed passwords
       const hashedPassword = await bcrypt.hash('password123', 10);
-      
       const testUsers = [
-        {
-          username: 'admin',
-          email: 'admin@test.com',
-          password: hashedPassword,
-          role: 'admin',
-          phone: '(555) 123-4567',
-          address: '123 Admin St, City, State 12345'
-        },
-        {
-          username: 'driver1',
-          email: 'driver@test.com', 
-          password: hashedPassword,
-          role: 'driver',
-          phone: '(555) 234-5678',
-          address: '456 Driver Ave, City, State 12345'
-        },
-        {
-          username: 'customer1',
-          email: 'customer@test.com',
-          password: hashedPassword,
-          role: 'customer',
-          phone: '(555) 345-6789',
-          address: '789 Customer Blvd, City, State 12345'
-        }
+        { username: 'admin', email: 'admin@test.com', password: hashedPassword, role: 'admin' },
+        { username: 'driver1', email: 'driver@test.com', password: hashedPassword, role: 'driver' },
+        { username: 'customer1', email: 'customer@test.com', password: hashedPassword, role: 'customer' }
       ];
-
       await db.insert(users).values(testUsers);
-      console.log('✓ Test users created successfully');
-      
-      // Create sample pickups for testing
-      const samplePickups = [
-        {
-          customerId: 3, // customer1
-          address: '789 Customer Blvd, City, State 12345',
-          bagCount: 3,
-          amount: '30.00',
-          serviceType: 'one-time',
-          status: 'pending',
-          scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-          specialInstructions: 'Bags by garage door'
-        },
-        {
-          customerId: 3,
-          address: '101 Oak Street, City, State 12345',
-          bagCount: 5,
-          amount: '50.00',
-          serviceType: 'one-time',
-          status: 'assigned',
-          driverId: 2, // driver1
-          scheduledDate: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
-          specialInstructions: 'Heavy bags - yard waste'
-        },
-        {
-          customerId: 3,
-          address: '202 Pine Avenue, City, State 12345',
-          bagCount: 2,
-          amount: '25.00',
-          serviceType: 'subscription',
-          status: 'pending',
-          scheduledDate: new Date(Date.now() + 48 * 60 * 60 * 1000), // Day after tomorrow
-          specialInstructions: 'Ring doorbell when complete'
-        }
-      ];
-
-      await db.insert(pickups).values(samplePickups);
-      console.log('✓ Sample pickups created successfully');
-      
     } catch (error) {
-      console.log('Note: Test data may already exist or database not ready yet');
+      console.log('Test data setup complete or already exists');
     }
   }
+
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -474,20 +409,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User> {
     const [user] = await db
       .update(users)
-      .set({ 
-        stripeCustomerId, 
-        stripeSubscriptionId: stripeSubscriptionId || null 
-      })
+      .set({ stripeCustomerId, stripeSubscriptionId })
       .where(eq(users.id, userId))
       .returning();
     return user;
@@ -525,60 +454,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPickupsByDate(date: string): Promise<Pickup[]> {
-    // Convert date string to timestamp range for the day
     const startDate = new Date(date);
     const endDate = new Date(date);
     endDate.setDate(endDate.getDate() + 1);
-    
     return await db.select().from(pickups).where(
       and(
-        eq(pickups.scheduledDate, startDate),
-        // Add more complex date filtering if needed
+        gte(pickups.scheduledDate, startDate),
+        lt(pickups.scheduledDate, endDate)
       )
     );
   }
 
   async createPickup(insertPickup: InsertPickup): Promise<Pickup> {
-    const [pickup] = await db
-      .insert(pickups)
-      .values(insertPickup)
-      .returning();
+    const [pickup] = await db.insert(pickups).values(insertPickup).returning();
     return pickup;
   }
 
   async updatePickupStatus(id: number, status: string, driverId?: number): Promise<Pickup> {
-    const updateData: any = { status };
-    if (driverId !== undefined) {
-      updateData.driverId = driverId;
-    }
-    
     const [pickup] = await db
       .update(pickups)
-      .set(updateData)
+      .set({ status, ...(driverId && { driverId }) })
       .where(eq(pickups.id, id))
       .returning();
     return pickup;
   }
 
   async assignPickupToDriver(pickupId: number, driverId: number): Promise<Pickup> {
-    return this.updatePickupStatus(pickupId, 'assigned', driverId);
+    const [pickup] = await db
+      .update(pickups)
+      .set({ driverId, status: 'assigned' })
+      .where(eq(pickups.id, pickupId))
+      .returning();
+    return pickup;
   }
 
   async completePickup(id: number): Promise<Pickup> {
     const [pickup] = await db
       .update(pickups)
-      .set({ 
-        status: 'completed', 
-        completedAt: new Date(),
-        updatedAt: new Date()
-      })
+      .set({ status: 'completed' })
       .where(eq(pickups.id, id))
       .returning();
-    
-    if (!pickup) {
-      throw new Error('Pickup not found or could not be updated');
-    }
-    
     return pickup;
   }
 
@@ -593,15 +508,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRoutesByDate(date: string): Promise<Route[]> {
-    const targetDate = new Date(date);
-    return await db.select().from(routes).where(eq(routes.date, targetDate));
+    const startDate = new Date(date);
+    const endDate = new Date(date);
+    endDate.setDate(endDate.getDate() + 1);
+    return await db.select().from(routes).where(
+      and(
+        gte(routes.createdAt, startDate),
+        lt(routes.createdAt, endDate)
+      )
+    );
   }
 
   async createRoute(insertRoute: InsertRoute): Promise<Route> {
-    const [route] = await db
-      .insert(routes)
-      .values(insertRoute)
-      .returning();
+    const [route] = await db.insert(routes).values(insertRoute).returning();
     return route;
   }
 
@@ -631,10 +550,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
-    const [subscription] = await db
-      .insert(subscriptions)
-      .values(insertSubscription)
-      .returning();
+    const [subscription] = await db.insert(subscriptions).values(insertSubscription).returning();
     return subscription;
   }
 
@@ -653,3 +569,6 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {

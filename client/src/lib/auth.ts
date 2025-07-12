@@ -54,12 +54,12 @@ export const getAuthHeaders = (): HeadersInit => {
 
 export const authenticatedRequest = async (
   url: string,
-  options?: RequestInit
+  options: RequestInit = {}
 ): Promise<Response> => {
   const headers = {
     ...getAuthHeaders(),
     ...(options?.body ? { "Content-Type": "application/json" } : {}),
-    ...options?.headers,
+    ...options.headers,
   };
 
   const response = await fetch(url, {

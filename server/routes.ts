@@ -492,13 +492,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Driver routes
   app.get("/api/driver/route", authenticateToken, requireRole('driver'), async (req, res) => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      // Get all assigned pickups for the driver (not just today's)
       const pickups = await storage.getPickupsByDriver(req.user!.id);
-      const todayPickups = pickups.filter(pickup => 
-        pickup.scheduledDate && pickup.scheduledDate.toISOString().split('T')[0] === today
-      );
+      const assignedPickups = pickups.filter(pickup => pickup.status === 'assigned');
       
-      res.json(todayPickups);
+      res.json(assignedPickups);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }

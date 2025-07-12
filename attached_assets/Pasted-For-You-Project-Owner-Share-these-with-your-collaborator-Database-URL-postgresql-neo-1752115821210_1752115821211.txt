@@ -1,0 +1,47 @@
+For You (Project Owner):
+Share these with your collaborator:
+    •    Database URL: postgresql://neondb_owner:npg_KUMLY5fNdR7h@ep-mute-art-aeue0krl.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require
+    •    JWT Secret: acapella_trash_jwt_secret_key_2025
+
+
+
+📋 For Your Collaborator:
+They need to:
+    1    Clone your GitHub repository to their Replit
+    2    Run npm install
+    3    Add these to their Replit Secrets tab:
+    •    DATABASE_URL = [the URL above]
+    •    JWT_SECRET = acapella_trash_jwt_secret_key_2025
+    4    Run npm run dev
+🧪 Test Accounts (Both Can Use):
+    •    Admin: admin@test.com / password123
+    •    Driver: driver@test.com / password123
+    •    Customer: customer@test.com / password123
+🔄 When Making Database Changes:
+    1    Edit shared/schema.ts
+    2    Run npm run db:push
+    3    Commit to GitHub
+    4    Tell your collaborator to pull and run npm run db:push
+Both developers will now share the same live data - when one person creates a pickup, the other sees it immediately
+For You (Project Owner):
+Share these with your collaborator:
+    •    Database URL: postgresql://neondb_owner:npg_KUMLY5fNdR7h@ep-mute-art-aeue0krl.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require
+    •    JWT Secret: acapella_trash_jwt_secret_key_2025
+📋 For Your Collaborator:
+They need to:
+    1    Clone your GitHub repository to their Replit
+    2    Run npm install
+    3    Add these to their Replit Secrets tab:
+    •    DATABASE_URL = [the URL above]
+    •    JWT_SECRET = acapella_trash_jwt_secret_key_2025
+    4    Run npm run dev
+🧪 Test Accounts (Both Can Use):
+    •    Admin: admin@test.com / password123
+    •    Driver: driver@test.com / password123
+    •    Customer: customer@test.com / password123
+🔄 When Making Database Changes:
+    1    Edit shared/schema.ts
+    2    Run npm run db:push
+    3    Commit to GitHub
+    4    Tell your collaborator to pull and run npm run db:push
+Both developers will now share the same live data - when one person creates a pickup, the other sees it immediately
