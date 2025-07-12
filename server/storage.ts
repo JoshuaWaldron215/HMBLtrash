@@ -13,10 +13,8 @@ import {
   type InsertSubscription
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lt } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -74,93 +72,49 @@ export class MemStorage implements IStorage {
     this.pickupIdCounter = 1;
     this.routeIdCounter = 1;
     this.subscriptionIdCounter = 1;
-    
-    // Create test users for different roles
     this.createTestUsers();
   }
 
   private createTestUsers() {
-    // Create test users with pre-hashed passwords (sync)
-    const hashedPassword = bcrypt.hashSync('password123', 10);
-    
-    // Test admin user
+    // Create test users
     const adminUser: User = {
       id: this.userIdCounter++,
       username: 'admin',
       email: 'admin@test.com',
-      password: hashedPassword,
+      password: '$2a$10$hashed', // hashed version of 'password123'
       role: 'admin',
-      phone: null,
-      address: null,
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
       createdAt: new Date(),
+      stripeCustomerId: null,
+      stripeSubscriptionId: null
     };
-    this.users.set(adminUser.id, adminUser);
 
-    // Test driver user
     const driverUser: User = {
       id: this.userIdCounter++,
-      username: 'driver',
+      username: 'driver1',
       email: 'driver@test.com',
-      password: hashedPassword,
+      password: '$2a$10$hashed',
       role: 'driver',
-      phone: null,
-      address: null,
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
       createdAt: new Date(),
+      stripeCustomerId: null,
+      stripeSubscriptionId: null
     };
-    this.users.set(driverUser.id, driverUser);
 
-    // Test customer user
     const customerUser: User = {
       id: this.userIdCounter++,
-      username: 'customer',
+      username: 'customer1',
       email: 'customer@test.com',
-      password: hashedPassword,
+      password: '$2a$10$hashed',
       role: 'customer',
-      phone: null,
-      address: null,
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
       createdAt: new Date(),
+      stripeCustomerId: null,
+      stripeSubscriptionId: null
     };
+
+    this.users.set(adminUser.id, adminUser);
+    this.users.set(driverUser.id, driverUser);
     this.users.set(customerUser.id, customerUser);
-    
-    // Add sample pickups for testing route optimization
-    const today = new Date();
-    const addresses = [
-      "123 Main St, Springfield, IL 62701",
-      "456 Oak Ave, Springfield, IL 62702", 
-      "789 Pine Rd, Springfield, IL 62703",
-      "321 Elm St, Springfield, IL 62704",
-      "654 Maple Dr, Springfield, IL 62705",
-      "987 Cedar Ln, Springfield, IL 62706"
-    ];
-    
-    addresses.forEach((address, index) => {
-      this.createPickup({
-        customerId: customerUser.id,
-        address: address,
-        bagCount: Math.floor(Math.random() * 5) + 1, // 1-5 bags
-        amount: "30.00",
-        serviceType: index % 2 === 0 ? "subscription" : "one-time",
-        status: "assigned",
-        scheduledDate: new Date(today.getTime() + (index * 60 * 60 * 1000)), // Spread throughout day
-        specialInstructions: index === 0 ? "Gate code: 1234" : index === 1 ? "Bins on side of house" : undefined
-      });
-    });
-    
-    // Assign all pickups to the driver after creation
-    Array.from(this.pickups.values()).forEach(pickup => {
-      if (pickup.status === "assigned") {
-        pickup.driverId = driverUser.id;
-      }
-    });
   }
 
-  // User operations
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -174,18 +128,14 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const ugser: User = { 
+    const user: User = { 
       ...insertUser, 
-      id,
+      id: this.userIdCounter++, 
       createdAt: new Date(),
       stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      address: insertUser.address || null,
-      phone: insertUser.phone || null,
-      role: insertUser.role || "customer"
+      stripeSubscriptionId: null
     };
-    this.users.set(id, user);
+    this.users.set(user.id, user);
     return user;
   }
 
@@ -193,27 +143,16 @@ export class MemStorage implements IStorage {
     const user = this.users.get(userId);
     if (!user) throw new Error('User not found');
     
-    const updatedUser = { 
-      ...user, 
-      stripeCustomerId, 
-      stripeSubscriptionId: stripeSubscriptionId || user.stripeSubscriptionId 
-    };
+    const updatedUser = { ...user, stripeCustomerId, stripeSubscriptionId: stripeSubscriptionId || null };
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
 
   async updateUserRole(userId: number, role: string): Promise<User> {
     const user = this.users.get(userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
+    if (!user) throw new Error('User not found');
     
-    const updatedUser = {
-      ...user,
-      role,
-      updatedAt: new Date()
-    };
-    
+    const updatedUser = { ...user, role };
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
@@ -222,7 +161,6 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).filter(user => user.role === role);
   }
 
-  // Pickup operations
   async getPickup(id: number): Promise<Pickup | undefined> {
     return this.pickups.get(id);
   }
@@ -240,24 +178,22 @@ export class MemStorage implements IStorage {
   }
 
   async getPickupsByDate(date: string): Promise<Pickup[]> {
-    return Array.from(this.pickups.values()).filter(pickup => 
-      pickup.scheduledDate && pickup.scheduledDate.toISOString().split('T')[0] === date
-    );
+    const targetDate = new Date(date);
+    return Array.from(this.pickups.values()).filter(pickup => {
+      if (!pickup.scheduledDate) return false;
+      const pickupDate = new Date(pickup.scheduledDate);
+      return pickupDate.toDateString() === targetDate.toDateString();
+    });
   }
 
   async createPickup(insertPickup: InsertPickup): Promise<Pickup> {
-    const id = this.pickupIdCounter++;
     const pickup: Pickup = { 
       ...insertPickup, 
-      id,
-      driverId: null,
-      completedAt: null,
+      id: this.pickupIdCounter++, 
       createdAt: new Date(),
-      status: insertPickup.status || "pending",
-      scheduledDate: insertPickup.scheduledDate || null,
-      specialInstructions: insertPickup.specialInstructions || null
+      driverId: insertPickup.driverId || null
     };
-    this.pickups.set(id, pickup);
+    this.pickups.set(pickup.id, pickup);
     return pickup;
   }
 
@@ -265,33 +201,29 @@ export class MemStorage implements IStorage {
     const pickup = this.pickups.get(id);
     if (!pickup) throw new Error('Pickup not found');
     
-    const updatedPickup = { 
-      ...pickup, 
-      status, 
-      driverId: driverId || pickup.driverId 
-    };
+    const updatedPickup = { ...pickup, status, ...(driverId && { driverId }) };
     this.pickups.set(id, updatedPickup);
     return updatedPickup;
   }
 
   async assignPickupToDriver(pickupId: number, driverId: number): Promise<Pickup> {
-    return this.updatePickupStatus(pickupId, 'assigned', driverId);
+    const pickup = this.pickups.get(pickupId);
+    if (!pickup) throw new Error('Pickup not found');
+    
+    const updatedPickup = { ...pickup, driverId, status: 'assigned' };
+    this.pickups.set(pickupId, updatedPickup);
+    return updatedPickup;
   }
 
   async completePickup(id: number): Promise<Pickup> {
     const pickup = this.pickups.get(id);
     if (!pickup) throw new Error('Pickup not found');
     
-    const updatedPickup = { 
-      ...pickup, 
-      status: 'completed', 
-      completedAt: new Date() 
-    };
+    const updatedPickup = { ...pickup, status: 'completed' };
     this.pickups.set(id, updatedPickup);
     return updatedPickup;
   }
 
-  // Route operations
   async getRoute(id: number): Promise<Route | undefined> {
     return this.routes.get(id);
   }
@@ -301,23 +233,20 @@ export class MemStorage implements IStorage {
   }
 
   async getRoutesByDate(date: string): Promise<Route[]> {
-    return Array.from(this.routes.values()).filter(route => 
-      route.date.toISOString().split('T')[0] === date
-    );
+    const targetDate = new Date(date);
+    return Array.from(this.routes.values()).filter(route => {
+      const routeDate = new Date(route.createdAt);
+      return routeDate.toDateString() === targetDate.toDateString();
+    });
   }
 
   async createRoute(insertRoute: InsertRoute): Promise<Route> {
-    const id = this.routeIdCounter++;
     const route: Route = { 
       ...insertRoute, 
-      id,
-      createdAt: new Date(),
-      status: insertRoute.status || "pending",
-      pickupIds: insertRoute.pickupIds || null,
-      totalDistance: insertRoute.totalDistance || null,
-      estimatedTime: insertRoute.estimatedTime || null
+      id: this.routeIdCounter++, 
+      createdAt: new Date()
     };
-    this.routes.set(id, route);
+    this.routes.set(route.id, route);
     return route;
   }
 
@@ -330,7 +259,6 @@ export class MemStorage implements IStorage {
     return updatedRoute;
   }
 
-  // Subscription operations
   async getSubscription(id: number): Promise<Subscription | undefined> {
     return this.subscriptions.get(id);
   }
@@ -569,6 +497,3 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
-
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
