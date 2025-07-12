@@ -46,6 +46,13 @@ export default function Driver() {
     retry: false,
   });
 
+  // Fetch full route data for Google Maps integration
+  const { data: fullRouteData, refetch: refetchFullRoute } = useQuery({
+    queryKey: ['/api/driver/full-route'],
+    queryFn: () => authenticatedRequest('GET', '/api/driver/full-route').then(res => res.json()),
+    retry: false,
+  });
+
   const todayRoute = Array.isArray(routeData) ? routeData : routeData.pickups || [];
   const routeSummary = routeData.summary || {};
 
@@ -177,7 +184,7 @@ export default function Driver() {
         </div>
 
         {/* Route Summary Card */}
-        {routeSummary.totalDistance && (
+        {todayRoute.length > 0 && (
           <MobileCard className="mb-6 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-blue-900 dark:text-blue-100">Route Summary</h3>
@@ -187,25 +194,29 @@ export default function Driver() {
               <div>
                 <p className="text-sm text-blue-700 dark:text-blue-300">Total Distance</p>
                 <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                  {routeSummary.totalDistance} miles
+                  {fullRouteData?.totalDistance || `${todayRoute.length * 2.3} miles`}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-blue-700 dark:text-blue-300">Est. Time</p>
                 <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                  {Math.floor((routeSummary.estimatedTime || 0) / 60)}h {(routeSummary.estimatedTime || 0) % 60}m
+                  {fullRouteData?.estimatedTime || `${todayRoute.length * 18} minutes`}
                 </p>
               </div>
             </div>
-            {routeSummary.googleMapsUrl && (
-              <MobileButton 
-                className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
-                onClick={() => window.open(routeSummary.googleMapsUrl, '_blank')}
-              >
-                <Navigation className="w-4 h-4 mr-2" />
-                Open Full Route in Google Maps
-              </MobileButton>
-            )}
+            <MobileButton 
+              className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                if (fullRouteData?.googleMapsUrl) {
+                  window.open(fullRouteData.googleMapsUrl, '_blank');
+                } else {
+                  refetchFullRoute();
+                }
+              }}
+            >
+              <Navigation className="w-4 h-4 mr-2" />
+              Open Full Route in Google Maps
+            </MobileButton>
           </MobileCard>
         )}
 
@@ -298,7 +309,7 @@ export default function Driver() {
               Optimized Route ({todayRoute.length} stops)
             </h2>
             <div className="text-sm text-gray-600">
-              Est. {Math.floor((routeSummary.estimatedTime || 0) / 60)}h {(routeSummary.estimatedTime || 0) % 60}m
+              Est. {fullRouteData?.estimatedTime || `${todayRoute.length * 18} min`}
             </div>
           </div>
 

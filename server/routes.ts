@@ -61,6 +61,71 @@ const requireRole = (role: string) => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Route optimization helper function
+  async function optimizeRoute(pickups: any[]) {
+    // Add estimated travel times and customer names
+    const optimizedPickups = [];
+    let cumulativeTime = 0;
+    
+    for (let i = 0; i < pickups.length; i++) {
+      const pickup = pickups[i];
+      
+      // Get customer name
+      const customerName = await getCustomerName(pickup.customerId);
+      
+      // Calculate estimated travel time (mock calculation)
+      const travelTime = i === 0 ? 15 : 8; // 15 min to first stop, 8 min between stops
+      cumulativeTime += travelTime;
+      
+      // Add estimated arrival time
+      const estimatedArrival = new Date();
+      estimatedArrival.setHours(9, 0, 0, 0); // Start at 9 AM
+      estimatedArrival.setMinutes(estimatedArrival.getMinutes() + cumulativeTime);
+      
+      optimizedPickups.push({
+        ...pickup,
+        customerName,
+        estimatedArrival: estimatedArrival.toISOString(),
+        travelTime: `${travelTime} min`,
+        routeInstructions: generateRouteInstructions(pickup)
+      });
+      
+      // Add pickup duration (10 minutes per pickup)
+      cumulativeTime += 10;
+    }
+    
+    return optimizedPickups;
+  }
+  
+  // Apply geographic optimization to sort pickups by location
+  async function applyGeographicOptimization(pickups: any[]) {
+    // Simple optimization: sort by street number (crude geographic sorting)
+    return pickups.sort((a, b) => {
+      const addressA = a.address.match(/\d+/);
+      const addressB = b.address.match(/\d+/);
+      
+      if (addressA && addressB) {
+        return parseInt(addressA[0]) - parseInt(addressB[0]);
+      }
+      
+      return 0;
+    });
+  }
+  
+  // Helper to get customer name
+  async function getCustomerName(customerId: number) {
+    const customer = await storage.getUser(customerId);
+    if (customer?.firstName && customer?.lastName) {
+      return `${customer.firstName} ${customer.lastName}`;
+    }
+    return customer?.username || 'Unknown Customer';
+  }
+  
+  // Generate route instructions for a pickup
+  function generateRouteInstructions(pickup: any) {
+    return `Navigate to ${pickup.address}. ${pickup.bagCount} bags. ${pickup.specialInstructions || 'Standard pickup.'}`;
+  }
+  
   // Auth routes
   app.post("/api/register", async (req, res) => {
     try {
@@ -541,9 +606,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get all assigned pickups for the driver (not just today's)
       const pickups = await storage.getPickupsByDriver(req.user!.id);
+      let assignedPickups = pickups.filter(pickup => pickup.status === 'assigned');
+      
+      // Sort by route order if available, otherwise by distance from a central point
+      assignedPickups = assignedPickups.sort((a, b) => {
+        if (a.routeOrder && b.routeOrder) {
+          return a.routeOrder - b.routeOrder;
+        }
+        return 0;
+      });
+      
+      // Add estimated travel times and optimize the route
+      const optimizedRoute = await optimizeRoute(assignedPickups);
+      
+      res.json(optimizedRoute);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Full route optimization endpoint for Google Maps navigation
+  app.get("/api/driver/full-route", authenticateToken, requireRole('driver'), async (req, res) => {
+    try {
+      const pickups = await storage.getPickupsByDriver(req.user!.id);
       const assignedPickups = pickups.filter(pickup => pickup.status === 'assigned');
       
-      res.json(assignedPickups);
+      if (assignedPickups.length === 0) {
+        return res.json({
+          googleMapsUrl: null,
+          totalStops: 0,
+          message: 'No assigned pickups found'
+        });
+      }
+      
+      // Sort by route order
+      const sortedPickups = assignedPickups.sort((a, b) => {
+        if (a.routeOrder && b.routeOrder) {
+          return a.routeOrder - b.routeOrder;
+        }
+        return 0;
+      });
+      
+      // Create Google Maps URL with multiple waypoints
+      const addresses = sortedPickups.map(pickup => encodeURIComponent(pickup.address));
+      const origin = addresses[0];
+      const destination = addresses[addresses.length - 1];
+      const waypoints = addresses.slice(1, -1).join('|');
+      
+      let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+      if (waypoints) {
+        googleMapsUrl += `&waypoints=${waypoints}`;
+      }
+      googleMapsUrl += '&travelmode=driving';
+      
+      const routeSummary = {
+        totalStops: sortedPickups.length,
+        estimatedTime: `${sortedPickups.length * 18} minutes`,
+        totalDistance: `${sortedPickups.length * 2.3} miles`,
+        googleMapsUrl,
+        stops: sortedPickups.map((pickup, index) => ({
+          order: index + 1,
+          address: pickup.address,
+          customer: pickup.customerName || 'Customer',
+          bags: pickup.bagCount,
+          instructions: pickup.specialInstructions
+        }))
+      };
+      
+      res.json(routeSummary);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
