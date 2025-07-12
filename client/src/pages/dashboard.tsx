@@ -25,11 +25,13 @@ import MobileLayout, {
 import BookingModal from '@/components/booking-modal';
 import { authenticatedRequest } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import type { Pickup, Subscription, User as UserType } from '@shared/schema';
 
 export default function Dashboard() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedServiceType, setSelectedServiceType] = useState<'subscription' | 'one-time'>('one-time');
+  const { toast } = useToast();
 
   // Fetch user data
   const { data: user } = useQuery({
@@ -54,6 +56,16 @@ export default function Dashboard() {
   const nextPickup = upcomingPickups[0];
 
   const handleBooking = (type: 'subscription' | 'one-time') => {
+    // Check if user already has an active subscription
+    if (type === 'subscription' && subscription && subscription.status === 'active') {
+      toast({
+        title: "Subscription Already Active",
+        description: "You already have an active weekly subscription. Manage your existing subscription instead.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedServiceType(type);
     setShowBookingModal(true);
   };

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { Calendar, Clock, MapPin, Package, CreditCard, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { authenticatedRequest } from '@/lib/auth';
 import { MobileButton, MobileCard, MobileInput } from '@/components/mobile-layout';
+import type { Subscription } from '@shared/schema';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -36,6 +38,13 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
     specialInstructions: ''
   });
 
+  // Fetch subscription to check if user already has one
+  const { data: subscription } = useQuery({
+    queryKey: ['/api/subscription'],
+    queryFn: () => authenticatedRequest('GET', '/api/subscription').then(res => res.json() as Promise<Subscription>),
+    enabled: serviceType === 'subscription' && isOpen,
+  });
+
   const totalSteps = 3;
 
   if (!isOpen) return null;
@@ -56,6 +65,17 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
 
   const handleSubmit = async () => {
     try {
+      // Check if user already has an active subscription
+      if (serviceType === 'subscription' && subscription && subscription.status === 'active') {
+        toast({
+          title: "Subscription Already Active",
+          description: "You already have an active weekly subscription. Please manage your existing subscription instead.",
+          variant: "destructive",
+        });
+        onClose();
+        return;
+      }
+
       const amount = serviceType === 'subscription' ? 20 : 
         bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
 

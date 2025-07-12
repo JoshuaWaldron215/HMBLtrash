@@ -102,6 +102,18 @@ export default function Subscribe() {
         setClientSecret(data.clientSecret);
       })
       .catch((error) => {
+        // Handle the case where user already has an active subscription
+        if (error.message.includes("already has an active subscription")) {
+          toast({
+            title: "Subscription Already Active",
+            description: "You already have an active weekly subscription. Redirecting to dashboard...",
+            variant: "destructive",
+          });
+          localStorage.removeItem('bookingData');
+          setTimeout(() => setLocation('/dashboard'), 2000);
+          return;
+        }
+        
         toast({
           title: "Subscription setup failed",
           description: error.message,
