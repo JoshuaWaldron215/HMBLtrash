@@ -35,23 +35,15 @@ export default function Driver() {
   // Fetch driver pickups
   const { data: pickups = [], isLoading: pickupsLoading, error: pickupsError } = useQuery({
     queryKey: ['/api/pickups'],
-<<<<<<< HEAD
-    queryFn: () => authenticatedRequest('/api/pickups').then(res => res.json() as Promise<Pickup[]>),
-    retry: false,
-=======
     queryFn: () => authenticatedRequest('GET', '/api/pickups').then(res => res.json() as Promise<Pickup[]>),
->>>>>>> c50a39e (Improve error handling and streamline data fetching across the platform)
+    retry: false,
   });
 
   // Fetch today's optimized route
   const { data: routeData = { pickups: [], summary: {} }, isLoading: routeLoading, error: routeError } = useQuery({
     queryKey: ['/api/driver/route'],
-<<<<<<< HEAD
-    queryFn: () => authenticatedRequest('/api/driver/route').then(res => res.json()),
-    retry: false,
-=======
     queryFn: () => authenticatedRequest('GET', '/api/driver/route').then(res => res.json()),
->>>>>>> c50a39e (Improve error handling and streamline data fetching across the platform)
+    retry: false,
   });
 
   const todayRoute = Array.isArray(routeData) ? routeData : routeData.pickups || [];
