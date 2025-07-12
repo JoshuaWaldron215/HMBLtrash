@@ -498,6 +498,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Subscription endpoint
+  app.get("/api/subscription", authenticateToken, async (req, res) => {
+    try {
+      const subscription = await storage.getSubscriptionByCustomer(req.user!.id);
+      res.json(subscription || null);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Admin routes
   app.get("/api/admin/stats", authenticateToken, requireRole('admin'), async (req, res) => {
     try {

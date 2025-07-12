@@ -59,28 +59,22 @@ export default function MobileLayout({
           active: location === '/dashboard'
         },
         { 
-          icon: Calendar, 
-          label: 'Next Pickup', 
-          path: '/dashboard/next-pickup',
-          active: location === '/dashboard/next-pickup'
-        },
-        { 
           icon: History, 
           label: 'Pickup History', 
-          path: '/dashboard/history',
-          active: location === '/dashboard/history'
+          path: '/pickup-history',
+          active: location === '/pickup-history'
         },
         { 
           icon: CreditCard, 
           label: 'Billing', 
-          path: '/dashboard/billing',
-          active: location === '/dashboard/billing'
+          path: '/billing',
+          active: location === '/billing'
         },
         { 
           icon: Settings, 
           label: 'Settings', 
-          path: '/dashboard/settings',
-          active: location === '/dashboard/settings'
+          path: '/settings',
+          active: location === '/settings'
         }
       ];
     }
