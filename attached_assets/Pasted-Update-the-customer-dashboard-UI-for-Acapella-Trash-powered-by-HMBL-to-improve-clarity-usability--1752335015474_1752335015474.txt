@@ -1,0 +1,66 @@
+Update the customer dashboard UI for "Acapella Trash powered by HMBL" to improve clarity, usability, and visual polish. Here are the updates to make:
+
+---
+
+1. 🧹 GENERAL UI IMPROVEMENTS
+- Add spacing between dashboard cards for better visual separation
+- Use icons (FontAwesome or Heroicons) inside or next to "Pickup History", "Billing", "Settings", and "Book Pickup" for better navigation clarity
+- Change “customer2” to display the full name from the user profile if available
+- Add a trash truck emoji or icon next to "Acapella Trash" in the sidebar logo (optional)
+
+---
+
+2. 🗓 UPCOMING PICKUP CARD
+- If a pickup is scheduled, show:
+  - Pickup Date
+  - Bag count
+  - Pickup address
+  - Status: Scheduled, Completed, Missed
+- If no pickup: keep “Book Now” button, but show a friendly message:
+  > “No pickups scheduled — we’ll be out as soon as you need us!”
+
+---
+
+3. 💳 BILLING SECTION
+- Remove “Add Payment Method” button (already handled by Stripe Checkout)
+- Remove “Manage” button unless it's linked to the Stripe Customer Portal
+- Consider adding: "Last Payment Date" and "Next Billing Date" under Active Subscription
+- Add support link:  
+  > “Need help? Email [support@acapellatrash.com](mailto:support@acapellatrash.com)”
+
+---
+
+4. 🕓 PICKUP HISTORY PAGE
+- Add “Total Pickups: 8” at the top right
+- Add filters (optional): All, Subscription, One-Time, Scheduled, Completed
+- Add color-coded tags or icons:
+  - Green check: Completed
+  - Blue dot: Scheduled
+  - Red X: Missed (future feature)
+- Add “Repeat This Pickup” button on completed pickups
+
+---
+
+5. ⚙️ SETTINGS PAGE
+- Add “Edit Profile” button to allow name/email updates
+- Use grouped toggle styles for “Push Notifications” and “Email Notifications”
+- Move “Sign Out” button to top right nav OR style it as a red outlined button for visibility
+
+---
+
+6. 📱 MOBILE EXPERIENCE
+- Ensure responsiveness:
+  - Stack Quick Actions vertically on mobile
+  - Turn tabs into dropdown menus (optional)
+  - Increase button tap area on mobile (min height: 44px)
+
+---
+
+7. ✨ OPTIONAL FUTURE FEATURES TO STUB IN:
+- Add “Referral Code” in Settings → disabled or “coming soon”
+- Add “Pickup Instructions” field (textarea) to next pickup or booking page
+- Add profile picture upload in Settings (non-functional for now)
+
+---
+
+Keep all styling consistent using Tailwind CSS. Prioritize simplicity, white space, clean icons, and mobile-first design.

@@ -107,9 +107,20 @@ export default function Settings() {
       title="Settings"
       showBackButton={true}
       onBack={() => setLocation('/dashboard')}
+      rightAction={
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={logout}
+          className="text-red-600 border-red-200 hover:bg-red-50"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Sign Out
+        </Button>
+      }
     >
       <MobileSection className="pt-4">
-        <div className="mb-6">
+        <div className="mb-8">
           <h1 className="text-2xl font-bold mb-2">Settings</h1>
           <p className="text-muted-foreground">
             Manage your account and preferences
@@ -260,6 +271,36 @@ export default function Settings() {
               className="w-full justify-start"
               onClick={() => {
                 // TODO: Implement data export
+                toast({
+                  title: "Coming Soon",
+                  description: "Data export feature will be available soon.",
+                });
+              }}
+            >
+              <User className="w-4 h-4 mr-3" />
+              Export My Data
+            </MobileButton>
+
+            <MobileButton
+              variant="outline"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => {
+                // TODO: Implement referral code
+                toast({
+                  title: "Coming Soon",
+                  description: "Referral program will be available soon.",
+                });
+              }}
+            >
+              <User className="w-4 h-4 mr-3" />
+              Referral Code
+            </MobileButton>
+
+            <MobileButton
+              variant="outline"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => {
+                // TODO: Implement profile picture upload
                 toast({
                   title: "Coming Soon",
                   description: "Data export feature will be available soon.",

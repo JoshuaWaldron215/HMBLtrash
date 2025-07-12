@@ -7,19 +7,28 @@ import {
   CheckCircle,
   AlertCircle,
   DollarSign,
-  ArrowLeft
+  ArrowLeft,
+  Filter,
+  RotateCcw,
+  X
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import MobileLayout, { 
   MobileCard, 
   MobileSection, 
-  StatusBadge 
+  StatusBadge,
+  MobileButton 
 } from '@/components/mobile-layout';
 import { authenticatedRequest } from '@/lib/auth';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import type { Pickup } from '@shared/schema';
 
 export default function PickupHistory() {
   const [, setLocation] = useLocation();
+  const [activeFilter, setActiveFilter] = useState<'all' | 'subscription' | 'one-time' | 'completed' | 'scheduled'>('all');
+  const { toast } = useToast();
 
   // Fetch pickups
   const { data: pickups = [], isLoading } = useQuery({
@@ -27,13 +36,37 @@ export default function PickupHistory() {
     queryFn: () => authenticatedRequest('GET', '/api/pickups').then(res => res.json() as Promise<Pickup[]>),
   });
 
+  // Filter pickups based on active filter
+  const filteredPickups = pickups.filter(pickup => {
+    switch (activeFilter) {
+      case 'subscription':
+        return pickup.serviceType === 'subscription';
+      case 'one-time':
+        return pickup.serviceType === 'one-time';
+      case 'completed':
+        return pickup.status === 'completed';
+      case 'scheduled':
+        return pickup.status === 'assigned' || pickup.status === 'pending';
+      default:
+        return true;
+    }
+  });
+
   // Sort pickups by date (most recent first)
-  const sortedPickups = pickups
+  const sortedPickups = filteredPickups
     .sort((a, b) => {
       const dateA = a.scheduledDate ? new Date(a.scheduledDate).getTime() : 0;
       const dateB = b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0;
       return dateB - dateA;
     });
+
+  const filters = [
+    { key: 'all', label: 'All' },
+    { key: 'subscription', label: 'Subscription' },
+    { key: 'one-time', label: 'One-Time' },
+    { key: 'completed', label: 'Completed' },
+    { key: 'scheduled', label: 'Scheduled' }
+  ];
 
   const formatDate = (date: string | Date | null) => {
     if (!date) return 'Date pending';
@@ -67,9 +100,24 @@ export default function PickupHistory() {
       <MobileSection className="pt-4">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Pickup History</h1>
-          <div className="text-sm text-muted-foreground">
-            {pickups.length} total pickups
+          <div className="text-sm font-medium bg-primary/10 text-primary px-2 py-1 rounded">
+            Total Pickups: {pickups.length}
           </div>
+        </div>
+
+        {/* Filter Buttons */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {filters.map((filter) => (
+            <Button
+              key={filter.key}
+              variant={activeFilter === filter.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter(filter.key as any)}
+              className="text-xs"
+            >
+              {filter.label}
+            </Button>
+          ))}
         </div>
 
         {isLoading ? (
@@ -123,6 +171,25 @@ export default function PickupHistory() {
                       <span>
                         Completed on {new Date(pickup.completedAt).toLocaleDateString()}
                       </span>
+                    </div>
+                  )}
+                  
+                  {pickup.status === 'completed' && (
+                    <div className="mt-3 pt-3 border-t">
+                      <MobileButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          toast({
+                            title: "Repeat Pickup",
+                            description: "This feature will be available soon! For now, please use the Book Pickup option.",
+                          });
+                        }}
+                        className="w-full"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Repeat This Pickup
+                      </MobileButton>
                     </div>
                   )}
                 </div>

@@ -183,12 +183,12 @@ export default function Dashboard() {
         </MobileCard>
 
         {/* Quick Actions */}
-        <MobileCard className="mb-6">
+        <MobileCard className="mb-8">
           <h3 className="font-semibold text-lg mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <MobileButton 
               variant="outline" 
-              className="flex-col h-20"
+              className="flex-col h-24 min-h-[44px]"
               onClick={() => setLocation('/pickup-history')}
             >
               <History className="w-6 h-6 mb-2" />
@@ -196,7 +196,7 @@ export default function Dashboard() {
             </MobileButton>
             <MobileButton 
               variant="outline" 
-              className="flex-col h-20"
+              className="flex-col h-24 min-h-[44px]"
               onClick={() => setLocation('/billing')}
             >
               <CreditCard className="w-6 h-6 mb-2" />
@@ -204,7 +204,7 @@ export default function Dashboard() {
             </MobileButton>
             <MobileButton 
               variant="outline" 
-              className="flex-col h-20"
+              className="flex-col h-24 min-h-[44px]"
               onClick={() => setLocation('/settings')}
             >
               <Settings className="w-6 h-6 mb-2" />
@@ -212,7 +212,7 @@ export default function Dashboard() {
             </MobileButton>
             <MobileButton 
               variant="outline" 
-              className="flex-col h-20"
+              className="flex-col h-24 min-h-[44px]"
               onClick={() => handleBooking('one-time')}
             >
               <Plus className="w-6 h-6 mb-2" />
@@ -221,28 +221,60 @@ export default function Dashboard() {
           </div>
         </MobileCard>
 
-        {/* One-time Pickup Card */}
-        <MobileCard className="mb-6">
+        {/* Upcoming Pickup Card */}
+        <MobileCard className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
-              <Package className="w-5 h-5 text-orange-500" />
-              <h3 className="font-semibold text-lg">One-time Pickup</h3>
+              <Calendar className="w-5 h-5 text-blue-500" />
+              <h3 className="font-semibold text-lg">Upcoming Pickup</h3>
             </div>
           </div>
           
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Need a single pickup? Book a one-time service for extra bags or special occasions.
-            </p>
-            <MobileButton 
-              variant="outline" 
-              size="sm" 
-              onClick={() => handleBooking('one-time')}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Book One-time Pickup
-            </MobileButton>
-          </div>
+          {upcomingPickups.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingPickups.slice(0, 1).map((pickup) => (
+                <div key={pickup.id} className="p-3 bg-blue-50 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="font-medium">
+                        {pickup.scheduledDate ? 
+                          new Date(pickup.scheduledDate).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          }) : 'Date pending'
+                        }
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {pickup.bagCount} bags • {pickup.serviceType}
+                      </p>
+                    </div>
+                    <StatusBadge status={pickup.status}>
+                      {pickup.status === 'assigned' ? 'Scheduled' : pickup.status}
+                    </StatusBadge>
+                  </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4 mr-1" />
+                    {pickup.address}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground mb-2">
+                No pickups scheduled — we'll be out as soon as you need us!
+              </p>
+              <MobileButton 
+                variant="primary" 
+                size="sm" 
+                onClick={() => handleBooking('one-time')}
+              >
+                Book Now
+              </MobileButton>
+            </div>
+          )}
         </MobileCard>
 
         {/* Recent Activity */}
