@@ -43,7 +43,10 @@ export default function Billing() {
   });
 
   const completedPickups = pickups.filter(p => p.status === 'completed' && p.amount);
-  const totalSpent = completedPickups.reduce((sum, pickup) => sum + (pickup.amount || 0), 0);
+  const totalSpent = completedPickups.reduce((sum, pickup) => {
+    const amount = typeof pickup.amount === 'string' ? parseFloat(pickup.amount) : pickup.amount;
+    return sum + (amount || 0);
+  }, 0);
 
   const paymentMethods = [
     {

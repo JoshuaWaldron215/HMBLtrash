@@ -1,4 +1,3 @@
-
 import { apiRequest } from "@/lib/queryClient";
 
 export interface User {
@@ -57,14 +56,18 @@ export const authenticatedRequest = async (
   url: string,
   data?: unknown
 ): Promise<Response> => {
+  const token = getStoredToken();
+  
+  if (!token) {
+    console.error('No authentication token found');
+    logout();
+    window.location.href = '/login';
+    throw new Error('No authentication token');
+  }
+
   const headers = {
     'Content-Type': 'application/json',
-    ...getAuthHeaders(),
-<<<<<<< HEAD
-    ...(options?.body ? { "Content-Type": "application/json" } : {}),
-    ...options.headers,
-=======
->>>>>>> c50a39e (Improve error handling and streamline data fetching across the platform)
+    'Authorization': `Bearer ${token}`,
   };
 
   const response = await fetch(url, {
@@ -74,8 +77,10 @@ export const authenticatedRequest = async (
   });
 
   if (response.status === 401 || response.status === 403) {
+    console.error('Authentication failed, redirecting to login');
     logout();
     window.location.href = '/login';
+    throw new Error('Authentication failed');
   }
 
   if (!response.ok) {
