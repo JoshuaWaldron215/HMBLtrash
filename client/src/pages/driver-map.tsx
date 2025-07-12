@@ -27,7 +27,7 @@ export default function DriverMap() {
   // Fetch today's optimized route
   const { data: todayRoute = [] } = useQuery({
     queryKey: ['/api/driver/route'],
-    queryFn: () => authenticatedRequest('/api/driver/route').then(res => res.json()),
+    queryFn: () => authenticatedRequest('GET', '/api/driver/route').then(res => res.json()),
   });
 
   const currentStop = todayRoute[currentStopIndex];

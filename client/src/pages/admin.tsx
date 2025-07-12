@@ -77,12 +77,12 @@ export default function Admin() {
   // Fetch all data
   const { data: pickups = [] } = useQuery({
     queryKey: ['/api/admin/pickups'],
-    queryFn: () => authenticatedRequest('/api/admin/pickups').then(res => res.json() as Promise<Pickup[]>),
+    queryFn: () => authenticatedRequest('GET', '/api/admin/pickups').then(res => res.json() as Promise<Pickup[]>),
   });
 
   const { data: usersData = { customers: [], drivers: [], admins: [] } } = useQuery({
     queryKey: ['/api/admin/users'],
-    queryFn: () => authenticatedRequest('/api/admin/users').then(res => res.json()),
+    queryFn: () => authenticatedRequest('GET', '/api/admin/users').then(res => res.json()),
   });
 
   // Extract users from the response structure
@@ -96,10 +96,7 @@ export default function Admin() {
   // Role change mutation
   const changeRoleMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: number; role: string }) => 
-      authenticatedRequest(`/api/admin/users/${userId}/role`, {
-        method: 'PATCH',
-        body: JSON.stringify({ role }),
-      }),
+      authenticatedRequest('PATCH', `/api/admin/users/${userId}/role`, { role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({
@@ -181,16 +178,13 @@ export default function Admin() {
 
   const { data: subscriptions = [] } = useQuery({
     queryKey: ['/api/admin/subscriptions'],
-    queryFn: () => authenticatedRequest('/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
+    queryFn: () => authenticatedRequest('GET', '/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
   });
 
   // Assign pickup mutation
   const assignPickupMutation = useMutation({
     mutationFn: ({ pickupId, driverId }: { pickupId: number; driverId: number }) => 
-      authenticatedRequest(`/api/admin/pickups/${pickupId}/assign`, {
-        method: 'POST',
-        body: JSON.stringify({ driverId }),
-      }),
+      authenticatedRequest('POST', `/api/admin/pickups/${pickupId}/assign`, { driverId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
       toast({

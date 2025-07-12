@@ -34,19 +34,19 @@ export default function Dashboard() {
   // Fetch user data
   const { data: user } = useQuery({
     queryKey: ['/api/me'],
-    queryFn: () => authenticatedRequest('/api/me').then(res => res.json() as Promise<UserType>),
+    queryFn: () => authenticatedRequest('GET', '/api/me').then(res => res.json() as Promise<UserType>),
   });
 
   // Fetch pickups
   const { data: pickups = [] } = useQuery({
     queryKey: ['/api/pickups'],
-    queryFn: () => authenticatedRequest('/api/pickups').then(res => res.json() as Promise<Pickup[]>),
+    queryFn: () => authenticatedRequest('GET', '/api/pickups').then(res => res.json() as Promise<Pickup[]>),
   });
 
   // Fetch subscription
   const { data: subscription } = useQuery({
     queryKey: ['/api/subscription'],
-    queryFn: () => authenticatedRequest('/api/subscription').then(res => res.json() as Promise<Subscription>),
+    queryFn: () => authenticatedRequest('GET', '/api/subscription').then(res => res.json() as Promise<Subscription>),
   });
 
   const upcomingPickups = pickups.filter(p => p.status === 'pending' || p.status === 'assigned');

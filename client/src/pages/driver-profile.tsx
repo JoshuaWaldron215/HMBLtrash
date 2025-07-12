@@ -35,7 +35,7 @@ export default function DriverProfile() {
   // Fetch driver stats
   const { data: stats = {} } = useQuery({
     queryKey: ['/api/driver/stats'],
-    queryFn: () => authenticatedRequest('/api/driver/stats').then(res => res.json()),
+    queryFn: () => authenticatedRequest('GET', '/api/driver/stats').then(res => res.json()),
   });
 
   const handleLogout = () => {

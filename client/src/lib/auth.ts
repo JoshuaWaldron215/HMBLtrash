@@ -53,23 +53,43 @@ export const getAuthHeaders = (): HeadersInit => {
 };
 
 export const authenticatedRequest = async (
+  method: string,
   url: string,
-  options: RequestInit = {}
+  data?: unknown
 ): Promise<Response> => {
   const headers = {
+    'Content-Type': 'application/json',
     ...getAuthHeaders(),
+<<<<<<< HEAD
     ...(options?.body ? { "Content-Type": "application/json" } : {}),
     ...options.headers,
+=======
+>>>>>>> c50a39e (Improve error handling and streamline data fetching across the platform)
   };
 
   const response = await fetch(url, {
-    ...options,
+    method,
     headers,
+    body: data ? JSON.stringify(data) : undefined,
   });
 
   if (response.status === 401 || response.status === 403) {
     logout();
     window.location.href = '/login';
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMessage = errorText;
+    
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorText;
+    } catch {
+      // If it's not JSON, use the raw text
+    }
+    
+    throw new Error(errorMessage);
   }
 
   return response;

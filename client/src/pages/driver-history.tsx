@@ -24,7 +24,7 @@ export default function DriverHistory() {
   // Fetch driver pickup history
   const { data: pickups = [] } = useQuery({
     queryKey: ['/api/pickups'],
-    queryFn: () => authenticatedRequest('/api/pickups').then(res => res.json() as Promise<Pickup[]>),
+    queryFn: () => authenticatedRequest('GET', '/api/pickups').then(res => res.json() as Promise<Pickup[]>),
   });
 
   const completedPickups = pickups.filter(p => p.status === 'completed');

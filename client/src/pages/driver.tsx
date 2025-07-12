@@ -35,15 +35,23 @@ export default function Driver() {
   // Fetch driver pickups
   const { data: pickups = [], isLoading: pickupsLoading, error: pickupsError } = useQuery({
     queryKey: ['/api/pickups'],
+<<<<<<< HEAD
     queryFn: () => authenticatedRequest('/api/pickups').then(res => res.json() as Promise<Pickup[]>),
     retry: false,
+=======
+    queryFn: () => authenticatedRequest('GET', '/api/pickups').then(res => res.json() as Promise<Pickup[]>),
+>>>>>>> c50a39e (Improve error handling and streamline data fetching across the platform)
   });
 
   // Fetch today's optimized route
   const { data: routeData = { pickups: [], summary: {} }, isLoading: routeLoading, error: routeError } = useQuery({
     queryKey: ['/api/driver/route'],
+<<<<<<< HEAD
     queryFn: () => authenticatedRequest('/api/driver/route').then(res => res.json()),
     retry: false,
+=======
+    queryFn: () => authenticatedRequest('GET', '/api/driver/route').then(res => res.json()),
+>>>>>>> c50a39e (Improve error handling and streamline data fetching across the platform)
   });
 
   const todayRoute = Array.isArray(routeData) ? routeData : routeData.pickups || [];
@@ -52,7 +60,7 @@ export default function Driver() {
   // Complete pickup mutation
   const completePickupMutation = useMutation({
     mutationFn: (pickupId: number) => 
-      authenticatedRequest(`/api/pickups/${pickupId}/complete`, { method: 'POST' }),
+      authenticatedRequest('POST', `/api/pickups/${pickupId}/complete`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/pickups'] });
       queryClient.invalidateQueries({ queryKey: ['/api/driver/route'] });
