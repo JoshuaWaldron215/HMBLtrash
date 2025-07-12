@@ -203,10 +203,10 @@ export default function Billing() {
             <p className="text-sm text-muted-foreground">
               Questions? Email{' '}
               <a 
-                href="mailto:support@acapellatrash.com" 
+                href="mailto:acapellatrashhmbl@gmail.com" 
                 className="text-primary hover:underline"
               >
-                support@acapellatrash.com
+                acapellatrashhmbl@gmail.com
               </a>
             </p>
           </div>
