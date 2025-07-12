@@ -662,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const routeSummary = {
         totalStops: sortedPickups.length,
         estimatedTime: `${sortedPickups.length * 18} minutes`,
-        totalDistance: `${sortedPickups.length * 2.3} miles`,
+        totalDistance: `${(sortedPickups.length * 2.3).toFixed(2)} miles`,
         googleMapsUrl,
         stops: sortedPickups.map((pickup, index) => ({
           order: index + 1,

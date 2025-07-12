@@ -29,6 +29,7 @@ import type { Pickup, User } from '@shared/schema';
 
 export default function Driver() {
   const [isOnline, setIsOnline] = useState(true);
+  const [startingAddress, setStartingAddress] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -194,7 +195,7 @@ export default function Driver() {
               <div>
                 <p className="text-sm text-blue-700 dark:text-blue-300">Total Distance</p>
                 <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                  {fullRouteData?.totalDistance || `${todayRoute.length * 2.3} miles`}
+                  {fullRouteData?.totalDistance || `${(todayRoute.length * 2.3).toFixed(2)} miles`}
                 </p>
               </div>
               <div>
@@ -204,19 +205,52 @@ export default function Driver() {
                 </p>
               </div>
             </div>
-            <MobileButton 
-              className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
-              onClick={() => {
-                if (fullRouteData?.googleMapsUrl) {
-                  window.open(fullRouteData.googleMapsUrl, '_blank');
-                } else {
-                  refetchFullRoute();
-                }
-              }}
-            >
-              <Navigation className="w-4 h-4 mr-2" />
-              Open Full Route in Google Maps
-            </MobileButton>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label htmlFor="startingAddress" className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                  Starting Address (Optional)
+                </label>
+                <input
+                  id="startingAddress"
+                  type="text"
+                  value={startingAddress}
+                  onChange={(e) => setStartingAddress(e.target.value)}
+                  placeholder="Enter your starting location..."
+                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+              <MobileButton 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  if (todayRoute.length > 0) {
+                    // Create custom Google Maps URL with starting address
+                    const addresses = todayRoute.map((pickup: any) => encodeURIComponent(pickup.address));
+                    const destination = addresses[addresses.length - 1];
+                    const waypoints = addresses.slice(0, -1).join('|');
+                    const origin = startingAddress ? encodeURIComponent(startingAddress) : addresses[0];
+                    
+                    let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+                    if (waypoints && startingAddress) {
+                      googleMapsUrl += `&waypoints=${waypoints}`;
+                    } else if (waypoints) {
+                      googleMapsUrl += `&waypoints=${waypoints.split('|').slice(1).join('|')}`;
+                    }
+                    googleMapsUrl += '&travelmode=driving';
+                    
+                    window.open(googleMapsUrl, '_blank');
+                  } else {
+                    toast({
+                      title: "No Route Available",
+                      description: "No assigned pickups found to create a route.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                <Navigation className="w-4 h-4 mr-2" />
+                Open Full Route in Google Maps
+              </MobileButton>
+            </div>
           </MobileCard>
         )}
 
@@ -420,7 +454,7 @@ export default function Driver() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="text-blue-700 dark:text-blue-400 font-medium">Total Distance</div>
-                    <div className="text-blue-600 dark:text-blue-300">{(todayRoute.reduce((acc: number, pickup: any) => acc + (pickup.distanceFromPrevious || 0), 0) + 2).toFixed(1)} miles</div>
+                    <div className="text-blue-600 dark:text-blue-300">{(todayRoute.reduce((acc: number, pickup: any) => acc + (pickup.distanceFromPrevious || 0), 0) + 2).toFixed(2)} miles</div>
                   </div>
                   <div>
                     <div className="text-blue-700 dark:text-blue-400 font-medium">Drive Time</div>
