@@ -5,8 +5,6 @@ import {
   Smartphone, 
   Banknote, 
   CheckCircle,
-  Plus,
-  Settings,
   DollarSign,
   Calendar
 } from 'lucide-react';
@@ -89,15 +87,7 @@ export default function Billing() {
         {/* Billing Summary */}
         <MobileCard className="mb-6">
           <h3 className="font-semibold text-lg mb-4">Billing Summary</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 mb-1">
-                ${totalSpent.toFixed(2)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Total Spent
-              </div>
-            </div>
+          <div className="flex justify-center">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600 mb-1">
                 {completedPickups.length}
@@ -123,12 +113,8 @@ export default function Billing() {
 
         {/* Payment Methods */}
         <MobileCard className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4">
             <h3 className="font-semibold text-lg">Payment Methods</h3>
-            <Button variant="ghost" size="sm">
-              <Settings className="w-4 h-4 mr-2" />
-              Manage
-            </Button>
           </div>
 
           <div className="space-y-3">
@@ -164,16 +150,7 @@ export default function Billing() {
             })}
           </div>
 
-          <MobileButton 
-            variant="outline" 
-            className="w-full mt-4"
-            onClick={() => {
-              // TODO: Implement add payment method
-            }}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Payment Method
-          </MobileButton>
+
         </MobileCard>
 
         {/* Recent Transactions */}
@@ -220,6 +197,19 @@ export default function Billing() {
               <p className="text-muted-foreground">No transactions yet</p>
             </div>
           )}
+          
+          {/* Support Contact */}
+          <div className="mt-6 pt-4 border-t text-center">
+            <p className="text-sm text-muted-foreground">
+              Questions? Email{' '}
+              <a 
+                href="mailto:support@acapellatrash.com" 
+                className="text-primary hover:underline"
+              >
+                support@acapellatrash.com
+              </a>
+            </p>
+          </div>
         </MobileCard>
       </MobileSection>
     </MobileLayout>
