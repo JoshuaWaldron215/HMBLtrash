@@ -23,7 +23,7 @@ export default function Navbar() {
             <Trash2 className="text-service-primary text-2xl mr-3" />
             <div>
               <h1 className="text-xl font-bold text-service-text">Acapella Trash Removal</h1>
-              <p className="text-xs text-service-secondary -mt-1">powered by LEMDROIDS</p>
+              <p className="text-xs text-service-secondary -mt-1">powered by HMBL</p>
             </div>
           </Link>
           

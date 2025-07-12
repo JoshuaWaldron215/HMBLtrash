@@ -120,7 +120,7 @@ export default function Home() {
               <Truck className="w-8 h-8 text-primary" />
               <div>
                 <h1 className="font-bold text-lg">Acapella Trash</h1>
-                <p className="text-sm text-muted-foreground">powered by LEMDROIDS</p>
+                <p className="text-sm text-muted-foreground">powered by HMBL</p>
               </div>
             </div>
             
@@ -145,7 +145,7 @@ export default function Home() {
               <Truck className="w-8 h-8" />
             </div>
             <h1 className="text-3xl font-bold mb-2">Acapella Trash</h1>
-            <p className="text-xl text-white text-opacity-90">powered by LEMDROIDS</p>
+            <p className="text-xl text-white text-opacity-90">powered by HMBL</p>
           </div>
           <p className="text-lg text-white text-opacity-80 mb-8 leading-relaxed">
             Where Anything Is Possible and No Job is Too Big or Small We Will Get it Done  

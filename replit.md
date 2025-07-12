@@ -7,6 +7,7 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
 ## Recent Changes (July 2025)
 - ✓ Successfully migrated from Replit Agent to standard Replit environment
 - ✓ Updated branding from "powered by HMBL" to "powered by LEMDROIDS" across all components
+- ✓ Updated branding back to "powered by HMBL" across all components per user request
 - ✓ Migrated from in-memory storage to PostgreSQL database
 - ✓ Created DatabaseStorage class implementing all IStorage interface methods
 - ✓ Added database connection setup with Neon PostgreSQL
