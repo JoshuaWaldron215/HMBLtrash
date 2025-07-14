@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -164,6 +164,12 @@ export default function TestPaymentModal({
               </div>
             )}
           </DialogTitle>
+          <DialogDescription>
+            {testMode 
+              ? "Complete your payment using test card numbers. No real charges will be made."
+              : "Complete your payment to finalize your booking."
+            }
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
