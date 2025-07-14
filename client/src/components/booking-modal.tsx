@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { authenticatedRequest } from '@/lib/auth';
 import { MobileButton, MobileCard, MobileInput } from '@/components/mobile-layout';
+import TestPaymentModal from '@/components/test-payment-modal';
 import type { Subscription } from '@shared/schema';
 
 interface BookingModalProps {
@@ -30,6 +31,13 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentData, setPaymentData] = useState<{
+    clientSecret: string;
+    amount: number;
+    testMode?: boolean;
+    testCards?: any;
+  } | null>(null);
   const [formData, setFormData] = useState({
     serviceType,
     bagCount: 4,
@@ -79,25 +87,34 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
       const amount = serviceType === 'subscription' ? 20 : 
         bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
 
-      // Store booking data for checkout
+      // Create payment intent
+      const endpoint = serviceType === 'subscription' ? '/api/create-subscription' : '/api/create-payment-intent';
+      const response = await authenticatedRequest('POST', endpoint, 
+        serviceType === 'subscription' ? {} : { amount }
+      );
+      
+      const result = await response.json();
+      
+      // Store booking data for after payment
       localStorage.setItem('bookingData', JSON.stringify({
         ...formData,
         amount,
         serviceType
       }));
 
-      // Navigate to checkout
-      if (serviceType === 'subscription') {
-        setLocation('/subscribe');
-      } else {
-        setLocation('/checkout');
-      }
-
-      onClose();
-    } catch (error) {
+      // Show payment modal
+      setPaymentData({
+        clientSecret: result.clientSecret,
+        amount,
+        testMode: result.testMode,
+        testCards: result.testCards
+      });
+      setShowPaymentModal(true);
+      
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to create booking. Please try again.",
+        description: error.message || "Failed to create booking. Please try again.",
         variant: "destructive"
       });
     }
@@ -106,6 +123,46 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
   const getCurrentPrice = () => {
     if (serviceType === 'subscription') return 20;
     return bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
+  };
+
+  const handlePaymentSuccess = async () => {
+    try {
+      // Create the pickup/subscription after successful payment
+      const bookingData = JSON.parse(localStorage.getItem('bookingData') || '{}');
+      
+      if (serviceType === 'one-time') {
+        // Create pickup
+        await authenticatedRequest('POST', '/api/pickups', {
+          ...bookingData,
+          status: 'pending'
+        });
+        
+        toast({
+          title: "Pickup Booked!",
+          description: "Your pickup has been scheduled successfully.",
+        });
+      } else {
+        // Subscription was already created during payment
+        toast({
+          title: "Subscription Active!",
+          description: "Your weekly subscription is now active.",
+        });
+      }
+      
+      // Clean up
+      localStorage.removeItem('bookingData');
+      setShowPaymentModal(false);
+      onClose();
+      
+      // Refresh the page to show updated data
+      window.location.reload();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "There was an issue finalizing your booking.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -319,6 +376,20 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
           </div>
         </div>
       </div>
+      
+      {/* Test Payment Modal */}
+      {showPaymentModal && paymentData && (
+        <TestPaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={handlePaymentSuccess}
+          clientSecret={paymentData.clientSecret}
+          amount={paymentData.amount}
+          serviceType={serviceType}
+          testMode={paymentData.testMode}
+          testCards={paymentData.testCards}
+        />
+      )}
     </div>
   );
 }

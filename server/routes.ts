@@ -20,6 +20,187 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
+// Test payment simulation system
+class TestPaymentSimulator {
+  // Simulate different test card scenarios
+  static getTestCardResponse(cardNumber: string) {
+    const testCards = {
+      '4242424242424242': { success: true, status: 'succeeded', message: 'Payment successful' },
+      '4000000000000002': { success: false, status: 'declined', message: 'Card declined' },
+      '4000000000000119': { success: false, status: 'processing_error', message: 'Processing error' },
+      '4000000000000341': { success: false, status: 'cvc_check_failed', message: 'CVC check failed' },
+      '4000000000000036': { success: false, status: 'expired_card', message: 'Card expired' },
+      '4000000000000010': { success: false, status: 'insufficient_funds', message: 'Insufficient funds' },
+      '4000000000000069': { success: false, status: 'card_velocity_exceeded', message: 'Card velocity exceeded' },
+      '4000000000000127': { success: false, status: 'incorrect_cvc', message: 'Incorrect CVC' },
+      '4000000000000101': { success: false, status: 'incorrect_number', message: 'Incorrect card number' },
+      '4000000000000259': { success: false, status: 'incorrect_zip', message: 'Incorrect ZIP code' },
+      '4000000000000267': { success: false, status: 'card_not_supported', message: 'Card not supported' },
+      '4000000000000275': { success: false, status: 'generic_decline', message: 'Generic decline' },
+      '4000000000000309': { success: false, status: 'lost_card', message: 'Card reported lost' },
+      '4000000000000317': { success: false, status: 'stolen_card', message: 'Card reported stolen' },
+      '4000000000000325': { success: false, status: 'try_again_later', message: 'Try again later' },
+      '4000000000000333': { success: false, status: 'online_or_offline_pin_required', message: 'PIN required' },
+      '4000000000000341': { success: false, status: 'incorrect_pin', message: 'Incorrect PIN' },
+      '4000000000000358': { success: false, status: 'testmode_decline', message: 'Test mode decline' },
+      '4000000000000366': { success: false, status: 'pickup_card', message: 'Pickup card' },
+      '4000000000000374': { success: false, status: 'restricted_card', message: 'Restricted card' },
+      '4000000000000382': { success: false, status: 'security_violation', message: 'Security violation' },
+      '4000000000000390': { success: false, status: 'service_not_allowed', message: 'Service not allowed' },
+      '4000000000000408': { success: false, status: 'stop_payment_order', message: 'Stop payment order' },
+      '4000000000000416': { success: false, status: 'transaction_not_allowed', message: 'Transaction not allowed' },
+      '4000000000000424': { success: false, status: 'currency_not_supported', message: 'Currency not supported' },
+      '4000000000000432': { success: false, status: 'duplicate_transaction', message: 'Duplicate transaction' },
+      '4000000000000440': { success: false, status: 'fraudulent', message: 'Fraudulent transaction' },
+      '4000000000000457': { success: false, status: 'merchant_blacklist', message: 'Merchant blacklisted' },
+      '4000000000000465': { success: false, status: 'pickup_card_special_conditions', message: 'Pickup card (special conditions)' },
+      '4000000000000473': { success: false, status: 'revocation_of_all_authorizations', message: 'All authorizations revoked' },
+      '4000000000000481': { success: false, status: 'revocation_of_authorization', message: 'Authorization revoked' },
+      '4000000000000499': { success: false, status: 'security_violation', message: 'Security violation' },
+      '4000000000000507': { success: false, status: 'withdraw_amount_limit_exceeded', message: 'Withdrawal limit exceeded' },
+      '4000000000000515': { success: false, status: 'pin_try_exceeded', message: 'PIN tries exceeded' },
+      '4000000000000523': { success: false, status: 'no_action_taken', message: 'No action taken' },
+      '4000000000000531': { success: false, status: 'new_account_information_available', message: 'New account info available' },
+      '4000000000000549': { success: false, status: 'contact_card_issuer', message: 'Contact card issuer' },
+      '4000000000000556': { success: false, status: 'card_velocity_exceeded', message: 'Card velocity exceeded' },
+      '4000000000000564': { success: false, status: 'allowable_pin_tries_exceeded', message: 'PIN tries exceeded' },
+      '4000000000000572': { success: false, status: 'no_checking_account', message: 'No checking account' },
+      '4000000000000580': { success: false, status: 'no_savings_account', message: 'No savings account' },
+      '4000000000000598': { success: false, status: 'expired_card', message: 'Card expired' },
+      '4000000000000606': { success: false, status: 'incorrect_pin', message: 'Incorrect PIN' },
+      '4000000000000614': { success: false, status: 'no_credit_account', message: 'No credit account' },
+      '4000000000000622': { success: false, status: 'no_universal_account', message: 'No universal account' },
+      '4000000000000630': { success: false, status: 'function_not_supported', message: 'Function not supported' },
+      '4000000000000648': { success: false, status: 'lost_card', message: 'Card reported lost' },
+      '4000000000000655': { success: false, status: 'stolen_card', message: 'Card reported stolen' },
+      '4000000000000663': { success: false, status: 'insufficient_funds', message: 'Insufficient funds' },
+      '4000000000000671': { success: false, status: 'suspected_fraud', message: 'Suspected fraud' },
+      '4000000000000689': { success: false, status: 'restricted_card', message: 'Restricted card' },
+      '4000000000000697': { success: false, status: 'call_issuer', message: 'Call card issuer' },
+      '4000000000000705': { success: false, status: 'pickup_card', message: 'Pickup card' },
+      '4000000000000713': { success: false, status: 'refer_to_card_issuer', message: 'Refer to card issuer' },
+      '4000000000000721': { success: false, status: 'invalid_merchant', message: 'Invalid merchant' },
+      '4000000000000739': { success: false, status: 'transaction_not_allowed', message: 'Transaction not allowed' },
+      '4000000000000747': { success: false, status: 'suspected_fraud', message: 'Suspected fraud' },
+      '4000000000000754': { success: false, status: 'revocation_of_authorization', message: 'Authorization revoked' },
+      '4000000000000762': { success: false, status: 'no_action_taken', message: 'No action taken' },
+      '4000000000000770': { success: false, status: 'cutoff_is_in_process', message: 'Cutoff in process' },
+      '4000000000000788': { success: false, status: 'cryptographic_error', message: 'Cryptographic error' },
+      '4000000000000796': { success: false, status: 'system_error', message: 'System error' },
+      '4000000000000804': { success: false, status: 'exceeds_withdrawal_amount_limit', message: 'Exceeds withdrawal limit' },
+      '4000000000000812': { success: false, status: 'restricted_card', message: 'Restricted card' },
+      '4000000000000820': { success: false, status: 'security_violation', message: 'Security violation' },
+      '4000000000000838': { success: false, status: 'allowable_pin_tries_exceeded', message: 'PIN tries exceeded' },
+      '4000000000000846': { success: false, status: 'invalid_amount', message: 'Invalid amount' },
+      '4000000000000853': { success: false, status: 'no_such_issuer', message: 'No such issuer' },
+      '4000000000000861': { success: false, status: 'timeout', message: 'Transaction timeout' },
+      '4000000000000879': { success: false, status: 'original_amount_incorrect', message: 'Original amount incorrect' },
+      '4000000000000887': { success: false, status: 'already_reversed', message: 'Already reversed' },
+      '4000000000000895': { success: false, status: 'unable_to_locate_record', message: 'Unable to locate record' },
+      '4000000000000903': { success: false, status: 'duplicate_transaction', message: 'Duplicate transaction' },
+      '4000000000000911': { success: false, status: 'file_is_temporarily_unavailable', message: 'File temporarily unavailable' },
+      '4000000000000929': { success: false, status: 'cut_off_is_in_process', message: 'Cutoff in process' },
+      '4000000000000937': { success: false, status: 'issuer_or_switch_is_inoperative', message: 'Issuer inoperative' },
+      '4000000000000945': { success: false, status: 'financial_institution_or_intermediate_network_facility_cannot_be_found', message: 'Financial institution not found' },
+      '4000000000000952': { success: false, status: 'routing_error', message: 'Routing error' },
+      '4000000000000960': { success: false, status: 'violation_law', message: 'Violation of law' },
+      '4000000000000978': { success: false, status: 'response_received_too_late', message: 'Response received too late' },
+      '4000000000000986': { success: false, status: 'cashback_amount_not_available', message: 'Cashback amount not available' },
+      '4000000000000994': { success: false, status: 'requested_function_not_supported', message: 'Function not supported' },
+      '5555555555554444': { success: true, status: 'succeeded', message: 'Mastercard payment successful' },
+      '378282246310005': { success: true, status: 'succeeded', message: 'Amex payment successful' },
+      '6011111111111117': { success: true, status: 'succeeded', message: 'Discover payment successful' },
+      '30569309025904': { success: true, status: 'succeeded', message: 'Diners Club payment successful' },
+      '3566002020360505': { success: true, status: 'succeeded', message: 'JCB payment successful' },
+      '6200000000000005': { success: true, status: 'succeeded', message: 'UnionPay payment successful' },
+    };
+
+    return testCards[cardNumber] || { success: true, status: 'succeeded', message: 'Payment successful' };
+  }
+
+  // Simulate Stripe customer creation
+  static async createTestCustomer(email: string, name: string) {
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network delay
+    return {
+      id: `cus_test_${Date.now()}`,
+      email,
+      name,
+      created: Math.floor(Date.now() / 1000),
+      livemode: false,
+      object: 'customer'
+    };
+  }
+
+  // Simulate Stripe subscription creation
+  static async createTestSubscription(customerId: string) {
+    await new Promise(resolve => setTimeout(resolve, 150)); // Simulate network delay
+    return {
+      id: `sub_test_${Date.now()}`,
+      customer: customerId,
+      status: 'active',
+      current_period_start: Math.floor(Date.now() / 1000),
+      current_period_end: Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000),
+      created: Math.floor(Date.now() / 1000),
+      object: 'subscription',
+      items: {
+        data: [{
+          id: `si_test_${Date.now()}`,
+          price: {
+            id: `price_test_${Date.now()}`,
+            unit_amount: 2000,
+            currency: 'usd',
+            recurring: { interval: 'month' },
+            product: 'prod_test_weekly_trash'
+          }
+        }]
+      },
+      latest_invoice: {
+        payment_intent: {
+          client_secret: `pi_test_${Date.now()}_secret_test`,
+          status: 'succeeded'
+        }
+      }
+    };
+  }
+
+  // Simulate Stripe payment intent creation
+  static async createTestPaymentIntent(amount: number, currency: string = 'usd') {
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network delay
+    return {
+      id: `pi_test_${Date.now()}`,
+      amount,
+      currency,
+      status: 'requires_payment_method',
+      client_secret: `pi_test_${Date.now()}_secret_test`,
+      created: Math.floor(Date.now() / 1000),
+      object: 'payment_intent'
+    };
+  }
+
+  // Simulate payment confirmation
+  static async confirmTestPayment(paymentIntentId: string, paymentMethodId: string) {
+    await new Promise(resolve => setTimeout(resolve, 200)); // Simulate network delay
+    
+    // Extract card number from payment method ID for test scenarios
+    const cardNumber = paymentMethodId.replace('pm_test_', '').replace('_visa', '').replace('_mastercard', '').replace('_amex', '');
+    const testResult = this.getTestCardResponse(cardNumber);
+    
+    return {
+      id: paymentIntentId,
+      status: testResult.success ? 'succeeded' : 'failed',
+      amount: 2000,
+      currency: 'usd',
+      created: Math.floor(Date.now() / 1000),
+      object: 'payment_intent',
+      last_payment_error: testResult.success ? null : {
+        code: testResult.status,
+        message: testResult.message,
+        type: 'card_error'
+      }
+    };
+  }
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 // Extend Express Request type to include user
@@ -345,8 +526,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { amount } = req.body;
       
       if (!stripe) {
-        // Mock response for development
-        res.json({ clientSecret: "pi_mock_client_secret" });
+        // Enhanced test payment simulation for development
+        const testPaymentIntent = await TestPaymentSimulator.createTestPaymentIntent(
+          Math.round(amount * 100), // Convert to cents
+          'usd'
+        );
+        
+        res.json({ 
+          clientSecret: testPaymentIntent.client_secret,
+          testMode: true,
+          testCards: {
+            successful: "4242424242424242",
+            declined: "4000000000000002",
+            expired: "4000000000000036",
+            insufficientFunds: "4000000000000010",
+            cvcFailed: "4000000000000127",
+            processingError: "4000000000000119",
+            fraudulent: "4000000000000440"
+          }
+        });
         return;
       }
       
@@ -357,6 +555,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error: any) {
       res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Test payment confirmation endpoint
+  app.post('/api/confirm-test-payment', authenticateToken, async (req, res) => {
+    try {
+      const { paymentIntentId, paymentMethodId } = req.body;
+      
+      if (!stripe) {
+        // Simulate payment confirmation with test cards
+        const testResult = await TestPaymentSimulator.confirmTestPayment(paymentIntentId, paymentMethodId);
+        
+        res.json({
+          paymentIntent: testResult,
+          testMode: true,
+          success: testResult.status === 'succeeded'
+        });
+        return;
+      }
+      
+      // Real Stripe implementation would go here
+      res.status(400).json({ message: "Live Stripe not configured" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error confirming payment: " + error.message });
     }
   });
 
@@ -374,17 +596,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!stripe) {
-        // Mock response for development
+        // Enhanced test payment simulation for development
+        const userName = user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.username;
+        
+        const testCustomer = await TestPaymentSimulator.createTestCustomer(user.email, userName);
+        const testSubscription = await TestPaymentSimulator.createTestSubscription(testCustomer.id);
+        
+        // Create subscription in database
         const mockSubscription = await storage.createSubscription({
           customerId: user.id,
-          stripeSubscriptionId: "sub_mock_subscription_id",
+          stripeSubscriptionId: testSubscription.id,
           status: 'active',
           nextPickupDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next week
         });
         
+        // Update user with test Stripe info
+        await storage.updateUserStripeInfo(user.id, testCustomer.id, testSubscription.id);
+        
         res.json({
           subscriptionId: mockSubscription.stripeSubscriptionId,
-          clientSecret: "pi_mock_subscription_client_secret",
+          clientSecret: testSubscription.latest_invoice.payment_intent.client_secret,
+          testMode: true,
+          testCards: {
+            successful: "4242424242424242",
+            declined: "4000000000000002",
+            expired: "4000000000000036",
+            insufficientFunds: "4000000000000010",
+            cvcFailed: "4000000000000127"
+          }
         });
         return;
       }
