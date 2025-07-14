@@ -489,9 +489,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const admins = await storage.getUsersByRole('admin');
       
       res.json({
-        customers: customers.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role })),
-        drivers: drivers.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role })),
-        admins: admins.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role }))
+        customers: customers.map(u => ({ 
+          id: u.id, 
+          email: u.email, 
+          username: u.username, 
+          role: u.role,
+          address: u.address,
+          phone: u.phone,
+          firstName: u.firstName,
+          lastName: u.lastName
+        })),
+        drivers: drivers.map(u => ({ 
+          id: u.id, 
+          email: u.email, 
+          username: u.username, 
+          role: u.role,
+          address: u.address,
+          phone: u.phone,
+          firstName: u.firstName,
+          lastName: u.lastName
+        })),
+        admins: admins.map(u => ({ 
+          id: u.id, 
+          email: u.email, 
+          username: u.username, 
+          role: u.role,
+          address: u.address,
+          phone: u.phone,
+          firstName: u.firstName,
+          lastName: u.lastName
+        }))
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
