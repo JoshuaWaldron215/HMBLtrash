@@ -804,10 +804,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pickup routes
   app.post("/api/pickups", authenticateToken, async (req, res) => {
     try {
-      const validatedData = insertPickupSchema.parse({
+      // Convert scheduledDate string to Date object before validation
+      const requestData = {
         ...req.body,
         customerId: req.user!.id,
-      });
+        scheduledDate: req.body.scheduledDate ? new Date(req.body.scheduledDate) : undefined,
+      };
+      
+      const validatedData = insertPickupSchema.parse(requestData);
 
       const pickup = await storage.createPickup(validatedData);
       res.json(pickup);

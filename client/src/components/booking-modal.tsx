@@ -131,13 +131,13 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
       const bookingData = JSON.parse(localStorage.getItem('bookingData') || '{}');
       
       if (serviceType === 'one-time') {
-        // Create pickup with proper data type conversion
+        // Create pickup - server handles data type conversion
         await authenticatedRequest('POST', '/api/pickups', {
           address: bookingData.address,
           bagCount: bookingData.bagCount,
           amount: bookingData.amount.toString(), // Convert to string for decimal field
           serviceType: bookingData.serviceType,
-          scheduledDate: new Date(bookingData.scheduledDate), // Convert to Date object
+          scheduledDate: bookingData.scheduledDate, // Server will convert string to Date
           specialInstructions: bookingData.specialInstructions || null,
           status: 'pending'
         });
