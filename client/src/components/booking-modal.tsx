@@ -137,7 +137,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
           bagCount: bookingData.bagCount,
           amount: bookingData.amount.toString(), // Convert to string for decimal field
           serviceType: bookingData.serviceType,
-          scheduledDate: new Date(bookingData.scheduledDate).toISOString(), // Convert to ISO string
+          scheduledDate: new Date(bookingData.scheduledDate), // Convert to Date object
           specialInstructions: bookingData.specialInstructions || null,
           status: 'pending'
         });
