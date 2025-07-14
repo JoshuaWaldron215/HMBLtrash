@@ -604,9 +604,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Driver routes - organized by day
   app.get("/api/driver/route", authenticateToken, requireRole('driver'), async (req, res) => {
     try {
+      console.log('🚚 Driver route request from driver ID:', req.user!.id);
+      
       // Get all assigned pickups for the driver
       const pickups = await storage.getPickupsByDriver(req.user!.id);
+      console.log('📦 Total pickups for driver:', pickups.length);
+      
       const assignedPickups = pickups.filter(pickup => pickup.status === 'assigned');
+      console.log('✅ Assigned pickups:', assignedPickups.length);
       
       // Group pickups by date
       const pickupsByDate = assignedPickups.reduce((acc: any, pickup) => {
@@ -617,6 +622,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         acc[date].push(pickup);
         return acc;
       }, {});
+      
+      console.log('📅 Pickups by date:', Object.keys(pickupsByDate), Object.values(pickupsByDate).map((arr: any) => arr.length));
       
       // Sort pickups within each date by route order
       for (const date in pickupsByDate) {
@@ -631,11 +638,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Optimize routes for each day
       const optimizedRoutes: any = {};
       for (const date in pickupsByDate) {
+        console.log(`🔄 Optimizing route for ${date} with ${pickupsByDate[date].length} pickups`);
         optimizedRoutes[date] = await optimizeRoute(pickupsByDate[date]);
       }
       
+      console.log('🎯 Returning optimized routes:', Object.keys(optimizedRoutes));
       res.json(optimizedRoutes);
     } catch (error: any) {
+      console.error('❌ Driver route error:', error);
       res.status(400).json({ message: error.message });
     }
   });
