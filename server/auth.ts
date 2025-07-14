@@ -278,7 +278,7 @@ export class AuthService {
       const newUser = await storage.createUser({
         username: validatedData.username,
         email: validatedData.email,
-        passwordHash,
+        passwordHash: passwordHash, // Use 'passwordHash' field as defined in schema
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
         phone: validatedData.phone,
