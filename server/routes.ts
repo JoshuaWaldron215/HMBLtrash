@@ -4,10 +4,14 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import Stripe from "stripe";
 import { storage } from "./storage";
+import { authService } from "./auth";
 import { 
   registerSchema, 
   loginSchema, 
   insertPickupSchema,
+  changePasswordSchema,
+  passwordResetRequestSchema,
+  passwordResetSchema,
   type User 
 } from "@shared/schema";
 
@@ -31,7 +35,7 @@ declare global {
   }
 }
 
-// Middleware to verify JWT
+// Enhanced middleware to verify JWT with security features
 const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
@@ -40,13 +44,13 @@ const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
     return res.status(401).json({ message: 'Access token required' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-    if (err) {
-      return res.status(403).json({ message: 'Invalid token' });
-    }
-    req.user = user;
+  try {
+    const decoded = authService.verifyToken(token);
+    req.user = decoded;
     next();
-  });
+  } catch (error: any) {
+    return res.status(403).json({ message: 'Invalid token' });
+  }
 };
 
 // Role-based middleware
@@ -126,70 +130,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return `Navigate to ${pickup.address}. ${pickup.bagCount} bags. ${pickup.specialInstructions || 'Standard pickup.'}`;
   }
   
-  // Auth routes
+  // Enhanced Auth routes with security features
   app.post("/api/register", async (req, res) => {
     try {
-      const validatedData = registerSchema.parse(req.body);
-      const { confirmPassword, ...userData } = validatedData;
+      const ip = req.ip || req.connection.remoteAddress || 'unknown';
+      const userAgent = req.get('User-Agent') || 'unknown';
       
-      // Check if user exists
-      const existingUser = await storage.getUserByEmail(userData.email);
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
+      const result = await authService.register(req.body, ip, userAgent);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.error });
       }
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
-      
-      // Create user - all new registrations default to customer role
-      const user = await storage.createUser({
-        ...userData,
-        password: hashedPassword,
-        role: "customer", // Admin will change roles if needed
-      });
-
-      // Create JWT token
-      const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
       res.json({ 
-        user: { id: user.id, email: user.email, username: user.username, role: user.role },
-        token 
+        user: { 
+          id: result.user!.id, 
+          email: result.user!.email, 
+          username: result.user!.username, 
+          role: result.user!.role,
+          firstName: result.user!.firstName,
+          lastName: result.user!.lastName
+        },
+        token: result.token 
       });
     } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      console.error('Registration error:', error);
+      res.status(500).json({ message: "Registration failed. Please try again." });
     }
   });
 
   app.post("/api/login", async (req, res) => {
     try {
-      const validatedData = loginSchema.parse(req.body);
+      const ip = req.ip || req.connection.remoteAddress || 'unknown';
+      const userAgent = req.get('User-Agent') || 'unknown';
       
-      const user = await storage.getUserByEmail(validatedData.email);
-      if (!user) {
-        return res.status(400).json({ message: "Invalid credentials" });
+      const result = await authService.authenticate(req.body.email, req.body.password, ip, userAgent);
+      
+      if (!result.success) {
+        const status = result.requiresTwoFactor ? 200 : 400;
+        return res.status(status).json({ 
+          message: result.error || result.message,
+          requiresTwoFactor: result.requiresTwoFactor 
+        });
       }
-
-      const isValidPassword = await bcrypt.compare(validatedData.password, user.password);
-      if (!isValidPassword) {
-        return res.status(400).json({ message: "Invalid credentials" });
-      }
-
-      const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
 
       res.json({ 
-        user: { id: user.id, email: user.email, username: user.username, role: user.role },
-        token 
+        user: { 
+          id: result.user!.id, 
+          email: result.user!.email, 
+          username: result.user!.username, 
+          role: result.user!.role,
+          firstName: result.user!.firstName,
+          lastName: result.user!.lastName
+        },
+        token: result.token 
       });
     } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      console.error('Login error:', error);
+      res.status(500).json({ message: "Login failed. Please try again." });
+    }
+  });
+
+  // Password reset endpoints
+  app.post("/api/password-reset-request", async (req, res) => {
+    try {
+      const validation = passwordResetRequestSchema.parse(req.body);
+      const result = await authService.initiatePasswordReset(validation.email);
+      
+      // Always return success for security (don't reveal if email exists)
+      res.json({ message: result.message });
+    } catch (error: any) {
+      res.status(400).json({ message: "Invalid email format" });
+    }
+  });
+
+  app.post("/api/password-reset", async (req, res) => {
+    try {
+      const validation = passwordResetSchema.parse(req.body);
+      const result = await authService.resetPassword(validation.token, validation.newPassword);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.error });
+      }
+      
+      res.json({ message: result.message });
+    } catch (error: any) {
+      res.status(400).json({ message: "Invalid request data" });
+    }
+  });
+
+  app.post("/api/change-password", authenticateToken, async (req, res) => {
+    try {
+      const validation = changePasswordSchema.parse(req.body);
+      const result = await authService.changePassword(
+        req.user!.id, 
+        validation.currentPassword, 
+        validation.newPassword
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.error });
+      }
+      
+      res.json({ message: result.message });
+    } catch (error: any) {
+      res.status(400).json({ message: "Invalid request data" });
     }
   });
 
@@ -202,7 +247,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json({ id: user.id, email: user.email, username: user.username, role: user.role });
+      res.json({ 
+        id: user.id, 
+        email: user.email, 
+        username: user.username, 
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isActive: user.isActive,
+        emailVerified: user.emailVerified,
+        twoFactorEnabled: user.twoFactorEnabled
+      });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }

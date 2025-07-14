@@ -324,11 +324,47 @@ export class DatabaseStorage implements IStorage {
       const existingUsers = await db.select().from(users);
       if (existingUsers.length > 0) return;
 
-      const hashedPassword = await bcrypt.hash('password123', 10);
+      const hashedPassword = await bcrypt.hash('password123', 12); // Increased security
       const testUsers = [
-        { username: 'admin', email: 'admin@test.com', password: hashedPassword, role: 'admin' },
-        { username: 'driver1', email: 'driver@test.com', password: hashedPassword, role: 'driver' },
-        { username: 'customer1', email: 'customer@test.com', password: hashedPassword, role: 'customer' }
+        { 
+          username: 'admin', 
+          email: 'admin@test.com', 
+          passwordHash: hashedPassword, 
+          role: 'admin',
+          firstName: 'Admin',
+          lastName: 'User',
+          isActive: true,
+          emailVerified: true,
+          failedLoginAttempts: 0,
+          twoFactorEnabled: false,
+          loginHistory: []
+        },
+        { 
+          username: 'driver1', 
+          email: 'driver@test.com', 
+          passwordHash: hashedPassword, 
+          role: 'driver',
+          firstName: 'Driver',
+          lastName: 'One',
+          isActive: true,
+          emailVerified: true,
+          failedLoginAttempts: 0,
+          twoFactorEnabled: false,
+          loginHistory: []
+        },
+        { 
+          username: 'customer1', 
+          email: 'customer@test.com', 
+          passwordHash: hashedPassword, 
+          role: 'customer',
+          firstName: 'Customer',
+          lastName: 'One',
+          isActive: true,
+          emailVerified: true,
+          failedLoginAttempts: 0,
+          twoFactorEnabled: false,
+          loginHistory: []
+        }
       ];
       await db.insert(users).values(testUsers);
     } catch (error) {

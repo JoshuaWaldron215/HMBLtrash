@@ -6,7 +6,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  passwordHash: text("password_hash").notNull(), // Renamed from password to be clear it's hashed
   role: text("role").notNull().default("customer"), // customer, driver, admin
   phone: text("phone"),
   address: text("address"),
@@ -19,6 +19,15 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
   lastLoginAt: timestamp("last_login_at"),
   emailVerified: boolean("email_verified").default(false),
+  emailVerificationToken: text("email_verification_token"),
+  passwordResetToken: text("password_reset_token"),
+  passwordResetExpires: timestamp("password_reset_expires"),
+  // Security audit fields
+  failedLoginAttempts: integer("failed_login_attempts").default(0),
+  lockedUntil: timestamp("locked_until"),
+  twoFactorSecret: text("two_factor_secret"),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  loginHistory: jsonb("login_history"), // Store recent login attempts
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -163,6 +172,83 @@ export const insertUserSchema = createInsertSchema(users).omit({
   stripeCustomerId: true,
   stripeSubscriptionId: true,
   lastLoginAt: true,
+  passwordHash: true, // Omit from insert, will be handled separately
+  emailVerificationToken: true,
+  passwordResetToken: true,
+  passwordResetExpires: true,
+  failedLoginAttempts: true,
+  lockedUntil: true,
+  twoFactorSecret: true,
+  loginHistory: true,
+});
+
+// Enhanced password validation schema
+export const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters long")
+  .max(128, "Password must be less than 128 characters")
+  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)");
+
+// Enhanced email validation
+export const emailSchema = z.string()
+  .email("Please enter a valid email address")
+  .min(5, "Email must be at least 5 characters")
+  .max(255, "Email must be less than 255 characters")
+  .toLowerCase()
+  .refine(email => !email.includes('+'), "Email aliases with + are not allowed for security");
+
+// Registration schema with enhanced validation
+export const registerSchema = z.object({
+  username: z.string()
+    .min(3, "Username must be at least 3 characters")
+    .max(30, "Username must be less than 30 characters")
+    .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, hyphens, and underscores")
+    .refine(username => !username.includes('admin'), "Username cannot contain 'admin'"),
+  email: emailSchema,
+  password: passwordSchema,
+  confirmPassword: z.string(),
+  firstName: z.string().min(1, "First name is required").max(50, "First name must be less than 50 characters"),
+  lastName: z.string().min(1, "Last name is required").max(50, "Last name must be less than 50 characters"),
+  phone: z.string()
+    .regex(/^\+?[\d\s\-\(\)]+$/, "Please enter a valid phone number")
+    .min(10, "Phone number must be at least 10 digits")
+    .optional(),
+  address: z.string().max(255, "Address must be less than 255 characters").optional(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+// Login schema with rate limiting considerations
+export const loginSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, "Password is required"),
+  rememberMe: z.boolean().optional().default(false),
+  twoFactorCode: z.string().length(6, "Two-factor code must be 6 digits").optional(),
+});
+
+// Password reset schemas
+export const passwordResetRequestSchema = z.object({
+  email: emailSchema,
+});
+
+export const passwordResetSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  newPassword: passwordSchema,
+  confirmPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+// Change password schema for authenticated users
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: passwordSchema,
+  confirmPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 export const insertPickupSchema = createInsertSchema(pickups).omit({
@@ -210,19 +296,7 @@ export const insertPaymentHistorySchema = createInsertSchema(paymentHistory).omi
   createdAt: true,
 });
 
-export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
-
-export const registerSchema = insertUserSchema.omit({ role: true }).extend({
-  email: z.string().email(),
-  password: z.string().min(6),
-  confirmPassword: z.string().min(6),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+// Legacy schemas removed - using enhanced versions above
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
