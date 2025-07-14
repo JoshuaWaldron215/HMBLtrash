@@ -1365,6 +1365,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin route overview - see all created routes
+  app.get('/api/admin/routes', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      // Get all pickups that are part of routes (have routeOrder)
+      const allPickups = await storage.getAllPickups();
+      const routePickups = allPickups.filter(p => p.routeOrder && p.routeOrder > 0);
+      
+      // Group by driver and date
+      const routesByDriver = routePickups.reduce((acc: any, pickup) => {
+        const driverId = pickup.driverId || 'unassigned';
+        const date = pickup.scheduledDate ? pickup.scheduledDate.toISOString().split('T')[0] : 'unscheduled';
+        const routeKey = `${driverId}-${date}`;
+        
+        if (!acc[routeKey]) {
+          acc[routeKey] = {
+            driverId,
+            date,
+            pickups: [],
+            totalStops: 0,
+            completedStops: 0,
+            estimatedRevenue: 0,
+            status: 'pending'
+          };
+        }
+        
+        acc[routeKey].pickups.push(pickup);
+        acc[routeKey].totalStops++;
+        if (pickup.status === 'completed') {
+          acc[routeKey].completedStops++;
+        }
+        acc[routeKey].estimatedRevenue += pickup.amount || 0;
+        
+        return acc;
+      }, {});
+
+      // Convert to array and add driver names
+      const routes = await Promise.all(
+        Object.values(routesByDriver).map(async (route: any) => {
+          const driver = route.driverId !== 'unassigned' ? await storage.getUser(route.driverId) : null;
+          
+          // Sort pickups by route order
+          route.pickups.sort((a: any, b: any) => (a.routeOrder || 0) - (b.routeOrder || 0));
+          
+          // Determine route status
+          if (route.completedStops === route.totalStops && route.totalStops > 0) {
+            route.status = 'completed';
+          } else if (route.completedStops > 0) {
+            route.status = 'in_progress';
+          } else {
+            route.status = 'pending';
+          }
+          
+          return {
+            ...route,
+            driverName: driver ? driver.username : 'Unassigned',
+            driverEmail: driver ? driver.email : null,
+            progress: route.totalStops > 0 ? Math.round((route.completedStops / route.totalStops) * 100) : 0
+          };
+        })
+      );
+
+      res.json({
+        routes: routes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        summary: {
+          totalRoutes: routes.length,
+          activeRoutes: routes.filter(r => r.status === 'pending' || r.status === 'in_progress').length,
+          completedRoutes: routes.filter(r => r.status === 'completed').length,
+          totalRevenue: routes.reduce((sum, r) => sum + r.estimatedRevenue, 0)
+        }
+      });
+    } catch (error: any) {
+      console.error('Admin routes fetch error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.delete('/api/admin/clear-routes', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
       const { routeOptimizationService } = await import('./routeOptimizer');

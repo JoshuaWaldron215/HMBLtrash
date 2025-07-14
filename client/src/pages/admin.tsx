@@ -94,6 +94,13 @@ export default function Admin() {
     enabled: showClusters,
   });
 
+  // Fetch admin routes data
+  const { data: routesData } = useQuery({
+    queryKey: ['/api/admin/routes'],
+    queryFn: () => authenticatedRequest('GET', '/api/admin/routes').then(res => res.json()),
+    enabled: currentSection === 'routes',
+  });
+
   // Extract users from the response structure
   const allUsers = [
     ...(usersData.customers || []),
@@ -467,10 +474,33 @@ export default function Admin() {
         <MobileCard className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold">Current Optimized Route</h3>
-            <Button variant="ghost" size="sm" className="text-blue-600">
-              <Navigation className="w-4 h-4 mr-1" />
-              Open in Maps
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-blue-600"
+                onClick={() => {
+                  const routes = routesData?.routes || [];
+                  const routeDetails = routes.map((r: any, i: number) => 
+                    `Route ${i + 1}: ${r.driverName} - ${new Date(r.date).toLocaleDateString()}\n` +
+                    `Status: ${r.status} (${r.progress}% complete)\n` +
+                    `Stops: ${r.totalStops} | Revenue: $${r.estimatedRevenue}\n` +
+                    r.pickups.map((p: any, idx: number) => 
+                      `  ${idx + 1}. ${p.address} (${p.bagCount} bags)${p.status === 'completed' ? ' ✓' : ''}`
+                    ).join('\n')
+                  ).join('\n\n');
+                  
+                  alert(routeDetails || 'No routes created yet. Create routes from address clusters in the dashboard.');
+                }}
+              >
+                <Navigation className="w-4 h-4 mr-1" />
+                View All Routes
+              </Button>
+              <Button variant="ghost" size="sm" className="text-blue-600">
+                <Navigation className="w-4 h-4 mr-1" />
+                Open in Maps
+              </Button>
+            </div>
           </div>
           
           <div className="space-y-3">
