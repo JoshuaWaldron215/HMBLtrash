@@ -44,11 +44,7 @@ const SubscribeForm = () => {
       });
     } else {
       localStorage.removeItem('bookingData');
-      toast({
-        title: "Subscription Successful",
-        description: "You are now subscribed to weekly pickup service!",
-      });
-      setLocation('/dashboard');
+      setLocation('/dashboard?success=true');
     }
     setIsProcessing(false);
   };

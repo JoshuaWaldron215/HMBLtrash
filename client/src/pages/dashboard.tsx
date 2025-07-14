@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { 
@@ -35,8 +35,19 @@ import type { Pickup, Subscription, User as UserType } from '@shared/schema';
 export default function Dashboard() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedServiceType, setSelectedServiceType] = useState<'subscription' | 'one-time'>('one-time');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Check for success parameter in URL
+  useEffect(() => {
+    const isSubscriptionSuccess = window.location.search.includes('success=true');
+    if (isSubscriptionSuccess && !showSuccessMessage) {
+      setShowSuccessMessage(true);
+      // Clear the URL parameter
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [showSuccessMessage]);
 
   // Fetch user data
   const { data: user } = useQuery({
@@ -75,7 +86,28 @@ export default function Dashboard() {
     setShowBookingModal(true);
   };
 
+  // Success Confirmation Modal
+  const SuccessModal = () => (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <MobileCard className="max-w-sm w-full bg-white p-6 text-center">
+        <div className="text-6xl mb-4">🎉</div>
+        <h2 className="text-2xl font-bold text-green-600 mb-2">You're all set!</h2>
+        <p className="text-gray-600 mb-6">
+          Welcome to weekly pickup service! Your first pickup will be scheduled soon.
+        </p>
+        <MobileButton 
+          onClick={() => setShowSuccessMessage(false)}
+          className="w-full bg-green-600 hover:bg-green-700 text-white"
+        >
+          Continue to Dashboard
+        </MobileButton>
+      </MobileCard>
+    </div>
+  );
+
   return (
+    <>
+      {showSuccessMessage && <SuccessModal />}
     <MobileLayout 
       title="Dashboard" 
       rightAction={
@@ -333,5 +365,6 @@ export default function Dashboard() {
         serviceType={selectedServiceType}
       />
     </MobileLayout>
+    </>
   );
 }
