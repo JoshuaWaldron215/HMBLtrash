@@ -1171,6 +1171,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Address clustering endpoints for geographic route optimization
+  app.get("/api/admin/address-clusters", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { addressClusteringService } = await import('./addressClustering');
+      
+      // Get all customers with addresses
+      const customers = await storage.getUsersByRole('customer');
+      const customersWithAddresses = customers.filter(c => c.address && c.address.trim() !== '');
+      
+      if (customersWithAddresses.length === 0) {
+        return res.json({
+          clusters: [],
+          stats: {
+            totalClusters: 0,
+            totalCustomers: 0,
+            totalRevenue: 0,
+            availableClusters: 0,
+            completedToday: 0
+          }
+        });
+      }
+
+      const clusters = await addressClusteringService.clusterCustomerAddresses(customersWithAddresses);
+      const stats = addressClusteringService.getClusterStats(clusters);
+      
+      res.json({ clusters, stats });
+    } catch (error: any) {
+      console.error('Address clustering error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/optimize-cluster-route", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { clusterId, driverId } = req.body;
+      const { addressClusteringService } = await import('./addressClustering');
+      
+      // Get all customers and find the specified cluster
+      const customers = await storage.getUsersByRole('customer');
+      const clusters = await addressClusteringService.clusterCustomerAddresses(customers);
+      const targetCluster = clusters.find(c => c.id === clusterId);
+      
+      if (!targetCluster) {
+        return res.status(404).json({ message: 'Cluster not found' });
+      }
+
+      // Optimize route order within cluster
+      const optimizedAddresses = await addressClusteringService.optimizeClusterRoute(targetCluster);
+      
+      // Create pickup requests for each address in optimized order
+      const createdPickups = [];
+      const today = new Date();
+      
+      for (let i = 0; i < optimizedAddresses.length; i++) {
+        const address = optimizedAddresses[i];
+        
+        const pickup = await storage.createPickup({
+          customerId: address.customerId,
+          address: address.address,
+          scheduledDate: today,
+          bagCount: address.bagCount,
+          serviceType: 'subscription',
+          priority: 'standard',
+          amount: 5, // $5 per subscription pickup
+          status: 'pending',
+          instructions: `Cluster: ${targetCluster.name} | Stop #${i + 1}`,
+          routeOrder: i + 1
+        });
+        
+        // Assign to driver if specified
+        if (driverId) {
+          await storage.assignPickupToDriver(pickup.id, driverId);
+        }
+        
+        createdPickups.push(pickup);
+      }
+
+      res.json({
+        cluster: targetCluster,
+        optimizedRoute: optimizedAddresses,
+        pickups: createdPickups,
+        totalStops: createdPickups.length,
+        estimatedRevenue: createdPickups.length * 5,
+        estimatedTime: `${Math.round(createdPickups.length * 0.4)}h`
+      });
+    } catch (error: any) {
+      console.error('Cluster route optimization error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Legacy route optimization endpoint (for backward compatibility)
   app.post('/api/admin/optimize-routes', authenticateToken, requireRole('admin'), async (req, res) => {
     try {

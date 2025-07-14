@@ -13,6 +13,7 @@ import PickupHistory from "@/pages/pickup-history";
 import Billing from "@/pages/billing";
 import Settings from "@/pages/settings";
 import Admin from "@/pages/admin";
+import ClusterAdmin from "@/pages/cluster-admin";
 import Driver from "@/pages/driver";
 import DriverMap from "@/pages/driver-map";
 import DriverHistory from "@/pages/driver-history";
@@ -81,7 +82,13 @@ function Router() {
       {/* Protected admin routes */}
       <Route path="/admin">
         <ProtectedRoute allowedRoles={['admin']}>
-          <Admin />
+          <ClusterAdmin />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/admin/cluster">
+        <ProtectedRoute allowedRoles={['admin']}>
+          <ClusterAdmin />
         </ProtectedRoute>
       </Route>
       
