@@ -27,18 +27,37 @@ export interface CustomerAddress {
  * Groups customer addresses into geographic clusters for efficient route planning
  */
 export class AddressClusteringService {
-  // Philadelphia metro area neighborhoods with approximate centers
+  // Philadelphia Metro Area - Pennsylvania, New Jersey, Delaware
   private readonly PHILADELPHIA_NEIGHBORHOODS = {
-    'Center City': { lat: 39.9526, lng: -75.1652, radius: 2 },
-    'South Philly': { lat: 39.9259, lng: -75.1580, radius: 3 },
-    'Fishtown': { lat: 39.9742, lng: -75.1352, radius: 2.5 },
-    'Kensington': { lat: 39.9923, lng: -75.1237, radius: 2 },
-    'West Philly': { lat: 39.9612, lng: -75.2058, radius: 3.5 },
-    'North Philly': { lat: 40.0094, lng: -75.1394, radius: 3 },
-    'Manayunk': { lat: 40.0248, lng: -75.2238, radius: 2 },
-    'Delaware County': { lat: 39.8784, lng: -75.3282, radius: 5 },
-    'Montgomery County': { lat: 40.1379, lng: -75.3901, radius: 5 },
-    'Chester County': { lat: 39.9896, lng: -75.7346, radius: 6 }
+    // Philadelphia City Core
+    'Center City Philadelphia': { lat: 39.9526, lng: -75.1652, radius: 2 },
+    'South Philadelphia': { lat: 39.9259, lng: -75.1580, radius: 3 },
+    'Fishtown/Northern Liberties': { lat: 39.9742, lng: -75.1352, radius: 2.5 },
+    'Kensington/Port Richmond': { lat: 39.9923, lng: -75.1237, radius: 2.5 },
+    'West Philadelphia': { lat: 39.9612, lng: -75.2058, radius: 3.5 },
+    'North Philadelphia': { lat: 40.0094, lng: -75.1394, radius: 3 },
+    'Manayunk/Roxborough': { lat: 40.0248, lng: -75.2238, radius: 2.5 },
+    'Northeast Philadelphia': { lat: 40.0567, lng: -75.0821, radius: 4 },
+    'Northwest Philadelphia': { lat: 40.0543, lng: -75.1785, radius: 3 },
+    
+    // Pennsylvania Suburbs
+    'Main Line (Ardmore/Bryn Mawr)': { lat: 40.0084, lng: -75.2932, radius: 3 },
+    'Delaware County PA': { lat: 39.8784, lng: -75.3282, radius: 5 },
+    'Montgomery County PA': { lat: 40.1379, lng: -75.3901, radius: 5 },
+    'Chester County PA': { lat: 39.9896, lng: -75.7346, radius: 6 },
+    'Bucks County PA': { lat: 40.3434, lng: -75.1327, radius: 6 },
+    'King of Prussia/Wayne': { lat: 40.0890, lng: -75.3857, radius: 2.5 },
+    
+    // New Jersey Metro
+    'Camden County NJ': { lat: 39.8743, lng: -75.0379, radius: 4 },
+    'Cherry Hill NJ': { lat: 39.9348, lng: -75.0307, radius: 2.5 },
+    'Gloucester County NJ': { lat: 39.7051, lng: -75.1585, radius: 4 },
+    'Burlington County NJ': { lat: 39.8729, lng: -74.6776, radius: 5 },
+    'Moorestown/Marlton NJ': { lat: 39.9687, lng: -74.9188, radius: 3 },
+    
+    // Delaware Areas
+    'Wilmington DE': { lat: 39.7391, lng: -75.5398, radius: 3 },
+    'New Castle County DE': { lat: 39.5928, lng: -75.6058, radius: 4 }
   };
 
   /**
@@ -55,9 +74,9 @@ export class AddressClusteringService {
       hash = hash & hash; // Convert to 32-bit integer
     }
 
-    // Philadelphia area bounds: 39.8-40.2 lat, -75.8 to -74.9 lng
-    const lat = 39.8 + (Math.abs(hash % 400) / 1000); // 39.8 to 40.2
-    const lng = -75.8 + (Math.abs(hash % 900) / 1000); // -75.8 to -74.9
+    // Philadelphia Metro area bounds: 39.4-40.5 lat, -76.0 to -74.5 lng  
+    const lat = 39.4 + (Math.abs(hash % 1100) / 1000); // 39.4 to 40.5
+    const lng = -76.0 + (Math.abs(hash % 1500) / 1000); // -76.0 to -74.5
 
     return [lat, lng];
   }
