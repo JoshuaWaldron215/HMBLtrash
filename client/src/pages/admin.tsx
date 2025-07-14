@@ -37,6 +37,8 @@ import type { Pickup, User, Subscription } from '@shared/schema';
 export default function Admin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showClusters, setShowClusters] = useState(false);
+  const [selectedCluster, setSelectedCluster] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location] = useLocation();
@@ -83,6 +85,13 @@ export default function Admin() {
   const { data: usersData = { customers: [], drivers: [], admins: [] } } = useQuery({
     queryKey: ['/api/admin/users'],
     queryFn: () => authenticatedRequest('GET', '/api/admin/users').then(res => res.json()),
+  });
+
+  // Fetch address clusters for geographic view
+  const { data: clusterData } = useQuery({
+    queryKey: ['/api/admin/address-clusters'],
+    queryFn: () => authenticatedRequest('GET', '/api/admin/address-clusters').then(res => res.json()),
+    enabled: showClusters,
   });
 
   // Extract users from the response structure
@@ -145,6 +154,33 @@ export default function Admin() {
   const handleOptimizeRoute = (routeType: 'subscription' | 'package') => {
     optimizeRouteMutation.mutate(routeType);
   };
+
+  // Cluster route creation mutation
+  const createClusterRouteMutation = useMutation({
+    mutationFn: async ({ clusterId, driverId }: { clusterId: string; driverId?: number }) => {
+      const response = await authenticatedRequest('POST', '/api/admin/optimize-cluster-route', {
+        clusterId,
+        driverId
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/address-clusters'] });
+      toast({
+        title: "Route Created!",
+        description: `Created ${data.totalStops} pickup stops for ${data.cluster.name}`,
+      });
+      setSelectedCluster(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Create Route",
+        description: error.message || "Could not create cluster route",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Demo data creation mutation
   const createDemoMutation = useMutation({
@@ -584,6 +620,89 @@ export default function Admin() {
     </MobileSection>
   );
 
+  // Simple cluster view component
+  const ClusterView = () => {
+    const clusters = clusterData?.clusters || [];
+    
+    if (clusters.length === 0) {
+      return (
+        <MobileCard className="text-center py-6">
+          <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">No customer clusters found</p>
+        </MobileCard>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {clusters.map((cluster: any) => (
+          <MobileCard key={cluster.id} className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="font-semibold text-lg">{cluster.name}</h4>
+                <p className="text-sm text-muted-foreground">{cluster.totalCustomers} pickups • ${cluster.estimatedRevenue} revenue</p>
+              </div>
+              <StatusBadge 
+                status={cluster.status} 
+                className={cluster.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+              >
+                {cluster.status}
+              </StatusBadge>
+            </div>
+            
+            <div className="flex gap-2">
+              <MobileButton
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedCluster(selectedCluster?.id === cluster.id ? null : cluster)}
+                className="flex-1"
+              >
+                📋 {selectedCluster?.id === cluster.id ? 'Hide' : 'View'} Details
+              </MobileButton>
+              
+              {cluster.status === 'available' && (
+                <MobileButton
+                  variant="default"
+                  size="sm"
+                  onClick={() => createClusterRouteMutation.mutate({ clusterId: cluster.id })}
+                  disabled={createClusterRouteMutation.isPending}
+                  className="flex-1"
+                >
+                  {createClusterRouteMutation.isPending ? (
+                    <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    '🚚'
+                  )} Create Route
+                </MobileButton>
+              )}
+            </div>
+
+            {/* Customer Details */}
+            {selectedCluster?.id === cluster.id && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <h5 className="font-medium mb-2">Customers ({cluster.addresses.length})</h5>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {cluster.addresses.map((address: any) => (
+                    <div key={address.customerId} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm">
+                      <MapPin className="w-3 h-3 text-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">{address.username}</div>
+                        <div className="text-xs text-muted-foreground truncate">{address.address}</div>
+                      </div>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {address.bagCount} bags
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </MobileCard>
+        ))}
+      </div>
+    );
+  };
+
   const renderDashboardContent = () => (
     <>
       {/* Metrics Overview */}
@@ -630,25 +749,21 @@ export default function Admin() {
           </MobileCard>
         </div>
 
-        {/* Geographic Clustering Access */}
+        {/* Address Clusters */}
         <div className="mb-6">
-          <MobileCard className="bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-800/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Geographic Route Planning</h4>
-                <p className="text-sm text-blue-700 dark:text-blue-300">Group customers by neighborhoods for efficient routing</p>
-              </div>
-              <MobileButton 
-                variant="default" 
-                size="sm"
-                onClick={() => window.location.href = '/admin/clusters'}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <MapPin className="w-4 h-4 mr-1" />
-                View Clusters
-              </MobileButton>
-            </div>
-          </MobileCard>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Geographic Areas</h3>
+            <MobileButton 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowClusters(!showClusters)}
+            >
+              <MapPin className="w-4 h-4 mr-1" />
+              {showClusters ? 'Hide' : 'View'} Clusters
+            </MobileButton>
+          </div>
+          
+          {showClusters && <ClusterView />}
         </div>
 
         {/* Today's Route Overview */}
