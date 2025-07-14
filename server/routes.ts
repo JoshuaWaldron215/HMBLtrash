@@ -814,7 +814,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertPickupSchema.parse(requestData);
 
       const pickup = await storage.createPickup(validatedData);
-      res.json(pickup);
+      
+      // Automatically assign to default driver (driver@test.com)
+      const defaultDriver = await storage.getUserByEmail('driver@test.com');
+      if (defaultDriver) {
+        const assignedPickup = await storage.assignPickupToDriver(pickup.id, defaultDriver.id);
+        res.json(assignedPickup);
+      } else {
+        res.json(pickup);
+      }
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
@@ -845,6 +853,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(pickup);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Auto-assign all pending pickups to default driver
+  app.post("/api/admin/assign-pending-pickups", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const defaultDriver = await storage.getUserByEmail('driver@test.com');
+      if (!defaultDriver) {
+        return res.status(404).json({ message: "Default driver not found" });
+      }
+
+      const pendingPickups = await storage.getPickupsByStatus('pending');
+      const assignedPickups = [];
+
+      for (const pickup of pendingPickups) {
+        if (!pickup.driverId) { // Only assign if not already assigned
+          const assignedPickup = await storage.assignPickupToDriver(pickup.id, defaultDriver.id);
+          assignedPickups.push(assignedPickup);
+        }
+      }
+
+      res.json({
+        message: `Assigned ${assignedPickups.length} pending pickups to driver@test.com`,
+        assignedPickups: assignedPickups.length,
+        driver: defaultDriver.username
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
