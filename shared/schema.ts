@@ -6,7 +6,8 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(), // Renamed from password to be clear it's hashed
+  password: text("password").notNull(), // Main password field
+  passwordHash: text("password_hash"), // Optional legacy field
   role: text("role").notNull().default("customer"), // customer, driver, admin
   phone: text("phone"),
   address: text("address"),
@@ -172,7 +173,6 @@ export const insertUserSchema = createInsertSchema(users).omit({
   stripeCustomerId: true,
   stripeSubscriptionId: true,
   lastLoginAt: true,
-  passwordHash: true, // Omit from insert, will be handled separately
   emailVerificationToken: true,
   passwordResetToken: true,
   passwordResetExpires: true,

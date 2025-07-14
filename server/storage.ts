@@ -338,7 +338,7 @@ export class DatabaseStorage implements IStorage {
         { 
           username: 'admin', 
           email: 'admin@test.com', 
-          passwordHash: hashedPassword, 
+          password: hashedPassword, 
           role: 'admin',
           firstName: 'Admin',
           lastName: 'User',
@@ -351,7 +351,7 @@ export class DatabaseStorage implements IStorage {
         { 
           username: 'driver1', 
           email: 'driver@test.com', 
-          passwordHash: hashedPassword, 
+          password: hashedPassword, 
           role: 'driver',
           firstName: 'Driver',
           lastName: 'One',
@@ -364,7 +364,7 @@ export class DatabaseStorage implements IStorage {
         { 
           username: 'customer1', 
           email: 'customer@test.com', 
-          passwordHash: hashedPassword, 
+          password: hashedPassword, 
           role: 'customer',
           firstName: 'Customer',
           lastName: 'One',

@@ -190,7 +190,7 @@ export class AuthService {
       }
 
       // Verify password
-      const passwordValid = await this.verifyPassword(password, user.passwordHash);
+      const passwordValid = await this.verifyPassword(password, user.password);
       if (!passwordValid) {
         await this.recordLoginAttempt(user, false, ip, userAgent, "Invalid password");
         return {
@@ -278,7 +278,7 @@ export class AuthService {
       const newUser = await storage.createUser({
         username: validatedData.username,
         email: validatedData.email,
-        passwordHash: passwordHash, // Use 'passwordHash' field as defined in schema
+        password: passwordHash, // Use 'password' field to match database
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
         phone: validatedData.phone,
