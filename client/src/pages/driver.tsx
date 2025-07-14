@@ -54,7 +54,13 @@ export default function Driver() {
     retry: false,
   });
 
-  const todayRoute = Array.isArray(routeData) ? routeData : routeData.pickups || [];
+  // Handle new organized-by-date format
+  const todayDate = new Date().toISOString().split('T')[0];
+  const allPickups = routeData && typeof routeData === 'object' && !Array.isArray(routeData) 
+    ? Object.values(routeData).flat() 
+    : Array.isArray(routeData) ? routeData : [];
+  
+  const todayRoute = routeData && routeData[todayDate] ? routeData[todayDate] : [];
   const routeSummary = routeData.summary || {};
 
   // Complete pickup mutation
@@ -78,9 +84,11 @@ export default function Driver() {
     },
   });
 
-  // Use todayRoute instead of undefined pickups variable
-  const pendingPickups = Array.isArray(todayRoute) ? todayRoute.filter(p => p.status === 'assigned') : [];
-  const completedPickups = Array.isArray(todayRoute) ? todayRoute.filter(p => p.status === 'completed') : [];
+  // Use allPickups for stats and todayRoute for current day
+  const pendingPickups = allPickups.filter(p => p.status === 'assigned');
+  const completedPickups = allPickups.filter(p => p.status === 'completed');
+  const todayPendingPickups = todayRoute.filter(p => p.status === 'assigned');
+  const todayCompletedPickups = todayRoute.filter(p => p.status === 'completed');
   
   // Show loading state
   if (pickupsLoading || routeLoading) {
@@ -109,7 +117,7 @@ export default function Driver() {
       </MobileLayout>
     );
   }
-  const nextPickup = pendingPickups[0];
+  const nextPickup = todayPendingPickups[0] || pendingPickups[0];
 
   const handleCompletePickup = (pickupId: number) => {
     completePickupMutation.mutate(pickupId);
@@ -160,7 +168,7 @@ export default function Driver() {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-primary mb-1">
-              {routeSummary.totalStops || todayRoute.length}
+              {allPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Total Stops
@@ -168,7 +176,7 @@ export default function Driver() {
           </MobileCard>
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-green-600 mb-1">
-              {routeSummary.completed || completedPickups.length}
+              {completedPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Completed
@@ -176,7 +184,7 @@ export default function Driver() {
           </MobileCard>
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-orange-600 mb-1">
-              {routeSummary.remaining || pendingPickups.length}
+              {pendingPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Remaining
@@ -468,6 +476,56 @@ export default function Driver() {
                 </div>
               </div>
             </MobileCard>
+          </div>
+        </MobileSection>
+      )}
+
+      {/* Upcoming Pickups by Date */}
+      {routeData && typeof routeData === 'object' && !Array.isArray(routeData) && (
+        <MobileSection>
+          <h2 className="text-xl font-semibold mb-4">Upcoming Pickups by Date</h2>
+          <div className="space-y-4">
+            {Object.entries(routeData).map(([date, pickups]: [string, any]) => (
+              <MobileCard key={date} className="border-l-4 border-l-blue-500">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-lg">
+                    {date === todayDate ? 'Today' : new Date(date).toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      month: 'short', 
+                      day: 'numeric' 
+                    })}
+                  </h3>
+                  <div className="text-sm text-gray-600">
+                    {pickups.length} pickup{pickups.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  {pickups.map((pickup: any, index: number) => (
+                    <div key={pickup.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">
+                          {pickup.routeOrder || index + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{pickup.customerName || 'Customer'}</p>
+                          <p className="text-xs text-gray-600">{pickup.address}</p>
+                          <p className="text-xs text-gray-500">
+                            {pickup.bagCount} bags • {pickup.serviceType}
+                            {pickup.estimatedArrival && ` • ETA: ${new Date(pickup.estimatedArrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <StatusBadge status={pickup.status as any}>
+                          {pickup.status === 'completed' ? 'Complete' : 'Pending'}
+                        </StatusBadge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </MobileCard>
+            ))}
           </div>
         </MobileSection>
       )}

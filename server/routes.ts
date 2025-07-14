@@ -601,25 +601,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Driver routes
+  // Driver routes - organized by day
   app.get("/api/driver/route", authenticateToken, requireRole('driver'), async (req, res) => {
     try {
-      // Get all assigned pickups for the driver (not just today's)
+      // Get all assigned pickups for the driver
       const pickups = await storage.getPickupsByDriver(req.user!.id);
-      let assignedPickups = pickups.filter(pickup => pickup.status === 'assigned');
+      const assignedPickups = pickups.filter(pickup => pickup.status === 'assigned');
       
-      // Sort by route order if available, otherwise by distance from a central point
-      assignedPickups = assignedPickups.sort((a, b) => {
-        if (a.routeOrder && b.routeOrder) {
-          return a.routeOrder - b.routeOrder;
+      // Group pickups by date
+      const pickupsByDate = assignedPickups.reduce((acc: any, pickup) => {
+        const date = pickup.scheduledDate ? pickup.scheduledDate.toISOString().split('T')[0] : 'unscheduled';
+        if (!acc[date]) {
+          acc[date] = [];
         }
-        return 0;
-      });
+        acc[date].push(pickup);
+        return acc;
+      }, {});
       
-      // Add estimated travel times and optimize the route
-      const optimizedRoute = await optimizeRoute(assignedPickups);
+      // Sort pickups within each date by route order
+      for (const date in pickupsByDate) {
+        pickupsByDate[date].sort((a: any, b: any) => {
+          if (a.routeOrder && b.routeOrder) {
+            return a.routeOrder - b.routeOrder;
+          }
+          return 0;
+        });
+      }
       
-      res.json(optimizedRoute);
+      // Optimize routes for each day
+      const optimizedRoutes: any = {};
+      for (const date in pickupsByDate) {
+        optimizedRoutes[date] = await optimizeRoute(pickupsByDate[date]);
+      }
+      
+      res.json(optimizedRoutes);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
