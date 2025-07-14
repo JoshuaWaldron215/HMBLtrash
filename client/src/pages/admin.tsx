@@ -630,6 +630,27 @@ export default function Admin() {
           </MobileCard>
         </div>
 
+        {/* Geographic Clustering Access */}
+        <div className="mb-6">
+          <MobileCard className="bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-800/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Geographic Route Planning</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300">Group customers by neighborhoods for efficient routing</p>
+              </div>
+              <MobileButton 
+                variant="default" 
+                size="sm"
+                onClick={() => window.location.href = '/admin/clusters'}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <MapPin className="w-4 h-4 mr-1" />
+                View Clusters
+              </MobileButton>
+            </div>
+          </MobileCard>
+        </div>
+
         {/* Today's Route Overview */}
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-3">Today's Route Status</h3>

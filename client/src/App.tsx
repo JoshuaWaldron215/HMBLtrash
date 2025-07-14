@@ -82,11 +82,11 @@ function Router() {
       {/* Protected admin routes */}
       <Route path="/admin">
         <ProtectedRoute allowedRoles={['admin']}>
-          <ClusterAdmin />
+          <Admin />
         </ProtectedRoute>
       </Route>
       
-      <Route path="/admin/cluster">
+      <Route path="/admin/clusters">
         <ProtectedRoute allowedRoles={['admin']}>
           <ClusterAdmin />
         </ProtectedRoute>
