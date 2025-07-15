@@ -1,0 +1,75 @@
+Redesign the admin dashboard for "Acapella Trash powered by HMBL" with the goal of improving clarity, organization, and manual control over all pickups.
+
+---
+
+🧼 GENERAL CLEANUP:
+- Reduce visual noise and remove unused stats like total revenue per transaction (it's confusing)
+- Use fewer bright colors and more soft accents
+- Group related items into collapsible sections or tabs (e.g., Subscribers, Requests, Routes)
+
+---
+
+📆 SUBSCRIBER MANAGEMENT (NEW PAGE OR TAB):
+- Show a clean table or card list of all active subscribers:
+  - Columns: Name, Address, Subscription Status, Assigned Day (e.g. Monday), Bag Count
+  - Include "Edit" icon on each row to:
+    - Change their assigned pickup day (dropdown: Mon–Fri)
+    - Update bag count or pause subscription
+- Add filters by day (e.g. “Show all Tuesday pickups”)
+- Add a bulk assign tool: select multiple subscribers and assign to a pickup day
+
+---
+
+📦 ONE-TIME REQUESTS PAGE:
+- Keep “Same-Day” and “Next-Day” tabs, but also add:
+  - Filter by Assigned / Unassigned
+  - Column for Assigned Driver (with dropdown to change)
+  - Column for Assigned Day (with dropdown: Mon–Sun)
+- Add status badges: `Assigned`, `Unassigned`, `Urgent`
+- Allow quick action buttons:
+  - “Assign Driver”
+  - “Unassign”
+  - “Mark Completed”
+
+---
+
+📍 ROUTE OPTIMIZATION PAGE:
+- Keep "Optimize Subscription Route" and "Optimize Package Route" buttons
+- Below that, add:
+  - A multi-select dropdown or checkbox list of addresses
+  - When selected, calculate optimized route using Google Maps API
+  - Show output as ordered list: 1 → 2 → 3 with total drive time
+  - Include “View on Map” button next to result
+- Optional: Show estimated total revenue for selected route
+
+---
+
+🧭 TODAY’S ROUTES (MOVE THIS TO ITS OWN TAB OR PAGE):
+- Split view into: "Today’s Assigned Pickups" and "Unassigned Pickups"
+- Use table or card layout with:
+  - Stop number
+  - Address
+  - Driver
+  - Day
+  - Type: Subscription / One-Time
+  - Status (Scheduled, Completed, Missed)
+- Optional: “Reassign” or “Edit Pickup” modal on each card
+
+---
+
+🧩 SIDEBAR STRUCTURE (Update Navigation):
+- Dashboard
+- 📅 Assigned Pickups (new view with filters)
+- 🧍 Subscribers
+- 📦 One-Time Requests
+- 📍 Route Optimization
+- 🚚 Driver Assignments (optional — to manage driver profiles)
+- 📊 Pickup Reports
+- ⚙️ Settings
+
+---
+
+Keep design clean and easy to read with Tailwind:
+- Use consistent spacing, soft card shadows, hover interactions
+- Reduce overuse of badges unless actionable
+- Use icons only where helpful (calendar, location, bag count)

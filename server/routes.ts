@@ -955,6 +955,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/users", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/pickups", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const pickups = await storage.getAllPickups();
+      res.json(pickups);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/subscriptions", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const subscriptions = await storage.getAllSubscriptions();
+      res.json(subscriptions);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/routes", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const routes = await storage.getAllRoutes();
+      res.json(routes);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   app.get("/api/admin/drivers", authenticateToken, requireRole('admin'), async (req, res) => {
     try {
       const drivers = await storage.getUsersByRole('driver');

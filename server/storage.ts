@@ -52,6 +52,12 @@ export interface IStorage {
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
   updateSubscriptionStatus(id: number, status: string): Promise<Subscription>;
   getActiveSubscriptions(): Promise<Subscription[]>;
+  
+  // Additional methods for admin dashboard
+  getAllUsers(): Promise<User[]>;
+  getAllPickups(): Promise<Pickup[]>;
+  getAllRoutes(): Promise<Route[]>;
+  getAllSubscriptions(): Promise<Subscription[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -566,6 +572,23 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveSubscriptions(): Promise<Subscription[]> {
     return await db.select().from(subscriptions).where(eq(subscriptions.status, 'active'));
+  }
+
+  // Additional methods for admin dashboard
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async getAllPickups(): Promise<Pickup[]> {
+    return await db.select().from(pickups);
+  }
+
+  async getAllRoutes(): Promise<Route[]> {
+    return await db.select().from(routes);
+  }
+
+  async getAllSubscriptions(): Promise<Subscription[]> {
+    return await db.select().from(subscriptions);
   }
 }
 
