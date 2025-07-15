@@ -911,6 +911,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create fresh test data endpoint
+  app.post("/api/admin/create-fresh-data", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { resetAndCreateFreshData } = await import('./createFreshTestData');
+      const result = await resetAndCreateFreshData();
+      
+      if (result.success) {
+        res.json({ 
+          message: result.message,
+          summary: {
+            users: 7, // 1 admin + 1 driver + 5 customers
+            pickups: 5,
+            totalValue: 125.00
+          }
+        });
+      } else {
+        res.status(500).json({ message: result.error });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/pickups/:id/complete", authenticateToken, requireRole('driver'), async (req, res) => {
     try {
       const pickupId = parseInt(req.params.id);
