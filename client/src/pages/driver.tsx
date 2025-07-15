@@ -30,6 +30,7 @@ import type { Pickup, User } from '@shared/schema';
 export default function Driver() {
   const [isOnline, setIsOnline] = useState(true);
   const [startingAddress, setStartingAddress] = useState('');
+  const [selectedPickups, setSelectedPickups] = useState<number[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -58,26 +59,56 @@ export default function Driver() {
   const todayPendingPickups = todayRoute.filter(p => p.status === 'assigned');
   const todayCompletedPickups = todayRoute.filter(p => p.status === 'completed');
 
-  // Complete pickup mutation
-  const completePickupMutation = useMutation({
-    mutationFn: (pickupId: number) => 
-      authenticatedRequest('POST', `/api/pickups/${pickupId}/complete`),
-    onSuccess: () => {
+  // Complete selected pickups mutation
+  const completePickupsMutation = useMutation({
+    mutationFn: async (pickupIds: number[]) => {
+      const results = await Promise.all(
+        pickupIds.map(id => 
+          authenticatedRequest('POST', `/api/pickups/${id}/complete`)
+        )
+      );
+      return results;
+    },
+    onSuccess: (_, pickupIds) => {
       queryClient.invalidateQueries({ queryKey: ['/api/driver/route'] });
       queryClient.invalidateQueries({ queryKey: ['/api/driver/full-route'] });
+      setSelectedPickups([]); // Clear selections after completion
       toast({
-        title: "Pickup Completed",
-        description: "Great job! The pickup has been marked as completed.",
+        title: "Pickups Completed",
+        description: `Successfully completed ${pickupIds.length} pickup${pickupIds.length > 1 ? 's' : ''}.`,
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to complete pickup. Please try again.",
+        description: "Failed to complete some pickups. Please try again.",
         variant: "destructive",
       });
     },
   });
+
+  // Selection helper functions
+  const togglePickupSelection = (pickupId: number) => {
+    setSelectedPickups(prev => 
+      prev.includes(pickupId) 
+        ? prev.filter(id => id !== pickupId)
+        : [...prev, pickupId]
+    );
+  };
+
+  const selectAllPendingPickups = () => {
+    const pendingIds = todayPendingPickups.map(p => p.id);
+    setSelectedPickups(pendingIds);
+  };
+
+  const clearSelection = () => {
+    setSelectedPickups([]);
+  };
+
+  const handleCompleteSelected = () => {
+    if (selectedPickups.length === 0) return;
+    completePickupsMutation.mutate(selectedPickups);
+  };
   
   // Show loading state
   if (routeLoading) {
@@ -107,10 +138,6 @@ export default function Driver() {
     );
   }
   const nextPickup = todayPendingPickups[0];
-
-  const handleCompletePickup = (pickupId: number) => {
-    completePickupMutation.mutate(pickupId);
-  };
 
   const handleNavigate = (address: string) => {
     const encodedAddress = encodeURIComponent(address);
@@ -273,6 +300,45 @@ export default function Driver() {
               </MobileButton>
             </div>
 
+            {/* Selection Controls */}
+            {todayPendingPickups.length > 0 && (
+              <div className="flex items-center gap-2 mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 flex-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={selectAllPendingPickups}
+                    disabled={completePickupsMutation.isPending}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearSelection}
+                    disabled={completePickupsMutation.isPending || selectedPickups.length === 0}
+                  >
+                    Clear
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedPickups.length} selected
+                  </span>
+                </div>
+                <Button
+                  onClick={handleCompleteSelected}
+                  disabled={selectedPickups.length === 0 || completePickupsMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {completePickupsMutation.isPending ? (
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                  ) : (
+                    <Check className="w-4 h-4 mr-2" />
+                  )}
+                  Complete Selected ({selectedPickups.length})
+                </Button>
+              </div>
+            )}
+
             {/* All Pickups List */}
             <div className="space-y-3">
               {todayRoute.map((pickup: any, index: number) => (
@@ -283,15 +349,21 @@ export default function Driver() {
                 }`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start flex-1">
-                      {/* Stop Number & Checkbox */}
+                      {/* Stop Number & Selection Checkbox */}
                       <div className="flex items-center mr-3">
-                        <input
-                          type="checkbox"
-                          checked={pickup.status === 'completed'}
-                          onChange={() => pickup.status !== 'completed' && handleCompletePickup(pickup.id)}
-                          className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                          disabled={completePickupMutation.isPending}
-                        />
+                        {pickup.status === 'completed' ? (
+                          <div className="w-5 h-5 bg-green-600 text-white rounded flex items-center justify-center">
+                            <Check className="w-3 h-3" />
+                          </div>
+                        ) : (
+                          <input
+                            type="checkbox"
+                            checked={selectedPickups.includes(pickup.id)}
+                            onChange={() => togglePickupSelection(pickup.id)}
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            disabled={completePickupsMutation.isPending}
+                          />
+                        )}
                         <div className="ml-2 w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
                           {pickup.routeOrder || index + 1}
                         </div>
@@ -364,17 +436,7 @@ export default function Driver() {
                       Navigate
                     </Button>
                     
-                    {pickup.status !== 'completed' && (
-                      <Button 
-                        size="sm"
-                        onClick={() => handleCompletePickup(pickup.id)}
-                        disabled={completePickupMutation.isPending}
-                        className="flex items-center bg-green-600 hover:bg-green-700"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        {completePickupMutation.isPending ? 'Completing...' : 'Complete'}
-                      </Button>
-                    )}
+
                   </div>
                 </div>
               ))}
