@@ -247,7 +247,7 @@ export default function Admin() {
   // Calculate metrics
   const customers = users.filter(u => u.role === 'customer');
   const drivers = users.filter(u => u.role === 'driver');
-  const totalRevenue = pickups.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalRevenue = pickups.reduce((sum, p) => sum + (parseFloat(p.amount?.toString() || '0') || 0), 0);
   const pendingPickups = pickups.filter(p => p.status === 'pending');
   const completedPickups = pickups.filter(p => p.status === 'completed');
   const activeSubscriptions = subscriptions.filter(s => s.status === 'active');
@@ -386,7 +386,7 @@ export default function Admin() {
                   </div>
                   <div className="text-right">
                     <span className={`text-sm font-medium ${isUrgent ? 'text-orange-600' : 'text-blue-600'}`}>
-                      ${pickup.amount}
+                      ${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}
                     </span>
                     <div className="text-xs text-muted-foreground">
                       {pickup.serviceType === 'same-day' ? '$25-35' : '$10-15'}
@@ -525,7 +525,7 @@ export default function Admin() {
                       </div>
                       <div className="flex items-center gap-4 text-xs">
                         <span className="text-muted-foreground">{pickup.bagCount} bags</span>
-                        <span className="font-medium text-green-600">${pickup.amount}</span>
+                        <span className="font-medium text-green-600">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
                         <StatusBadge status={pickup.serviceType === 'subscription' ? 'completed' : 'assigned'}>
                           {pickup.serviceType === 'subscription' ? 'Subscription' : 
                            pickup.serviceType === 'same-day' ? 'Same-Day' : 'Next-Day'}
@@ -559,7 +559,7 @@ export default function Admin() {
               </div>
               <div>
                 <div className="text-lg font-semibold text-green-600">
-                  ${pickups.filter(p => p.status === 'assigned').reduce((sum, p) => sum + (p.amount || 0), 0)}
+                  ${pickups.filter(p => p.status === 'assigned').reduce((sum, p) => sum + (parseFloat(p.amount?.toString() || '0') || 0), 0).toFixed(2)}
                 </div>
                 <div className="text-xs text-muted-foreground">Route Revenue</div>
               </div>
@@ -751,7 +751,7 @@ export default function Admin() {
           <MobileCard className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">${totalRevenue}</div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">${totalRevenue.toFixed(2)}</div>
                 <div className="text-sm text-green-600/80 dark:text-green-400/80">Revenue</div>
               </div>
               <DollarSign className="w-8 h-8 text-green-600 dark:text-green-400" />
@@ -861,7 +861,7 @@ export default function Admin() {
                           </div>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <span>{pickup.bagCount} bags</span>
-                            <span className="font-medium text-green-600">${pickup.amount}</span>
+                            <span className="font-medium text-green-600">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
                             {pickup.estimatedArrival && (
                               <span>ETA: {pickup.estimatedArrival}</span>
                             )}
@@ -894,7 +894,7 @@ export default function Admin() {
                   </div>
                   <div>
                     <div className="text-lg font-semibold text-green-600">
-                      ${pickups.filter(p => p.status === 'assigned').reduce((sum, p) => sum + (p.amount || 0), 0)}
+                      ${pickups.filter(p => p.status === 'assigned').reduce((sum, p) => sum + (parseFloat(p.amount?.toString() || '0') || 0), 0).toFixed(2)}
                     </div>
                     <div className="text-xs text-muted-foreground">Route Revenue</div>
                   </div>
