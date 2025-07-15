@@ -37,6 +37,7 @@ export interface IStorage {
   updatePickupStatus(id: number, status: string, driverId?: number): Promise<Pickup>;
   assignPickupToDriver(pickupId: number, driverId: number): Promise<Pickup>;
   completePickup(id: number): Promise<Pickup>;
+  updatePickup(id: number, updates: Partial<Pickup>): Promise<Pickup>;
   
   // Route operations
   getRoute(id: number): Promise<Route | undefined>;
@@ -499,6 +500,15 @@ export class DatabaseStorage implements IStorage {
     const [pickup] = await db
       .update(pickups)
       .set({ status: 'completed' })
+      .where(eq(pickups.id, id))
+      .returning();
+    return pickup;
+  }
+
+  async updatePickup(id: number, updates: Partial<Pickup>): Promise<Pickup> {
+    const [pickup] = await db
+      .update(pickups)
+      .set(updates)
       .where(eq(pickups.id, id))
       .returning();
     return pickup;

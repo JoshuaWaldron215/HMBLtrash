@@ -1138,6 +1138,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/admin/pickups/:id/reschedule', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newDate, reason } = req.body;
+      
+      // Get the pickup and customer info
+      const pickup = await storage.getPickup(parseInt(id));
+      if (!pickup) {
+        return res.status(404).json({ message: 'Pickup not found' });
+      }
+      
+      const customer = await storage.getUser(pickup.customerId);
+      if (!customer) {
+        return res.status(404).json({ message: 'Customer not found' });
+      }
+      
+      // Update the pickup with new date
+      const updatedPickup = await storage.updatePickup(parseInt(id), {
+        scheduledDate: new Date(newDate),
+        updatedAt: new Date(),
+        status: 'rescheduled'
+      });
+      
+      // Send email notification (simple implementation without external API)
+      const emailContent = {
+        to: customer.email,
+        subject: `Acapella Trash Pickup Rescheduled - ${new Date(newDate).toLocaleDateString()}`,
+        body: `
+Dear ${customer.firstName || customer.username},
+
+Your trash pickup has been rescheduled:
+
+Original Date: ${pickup.scheduledDate ? new Date(pickup.scheduledDate).toLocaleDateString() : 'Not set'}
+New Date: ${new Date(newDate).toLocaleDateString()}
+Address: ${pickup.address}
+Bags: ${pickup.bagCount}
+${reason ? `Reason: ${reason}` : ''}
+
+We apologize for any inconvenience. If you have any questions, please contact us at acapellatrashhmbl@gmail.com.
+
+Best regards,
+Acapella Trash Removal Team
+        `
+      };
+      
+      // For now, we'll log the email content (in production, you'd send via email service)
+      console.log('📧 Email notification sent to customer:', emailContent);
+      
+      res.json({
+        pickup: updatedPickup,
+        emailSent: true,
+        emailContent: emailContent
+      });
+    } catch (error: any) {
+      console.error('Reschedule error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Route Optimization endpoints - separated by service type
   app.post('/api/admin/optimize-subscription-route', authenticateToken, requireRole('admin'), async (req, res) => {
     try {

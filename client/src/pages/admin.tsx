@@ -19,7 +19,8 @@ import {
   Settings,
   Download,
   RefreshCw,
-  Navigation
+  Navigation,
+  Edit3
 } from 'lucide-react';
 import MobileLayout, { 
   MobileCard, 
@@ -32,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { authenticatedRequest } from '@/lib/auth';
+import ReschedulePickupModal from '@/components/reschedule-pickup-modal';
 import type { Pickup, User, Subscription } from '@shared/schema';
 
 export default function Admin() {
@@ -39,6 +41,7 @@ export default function Admin() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showClusters, setShowClusters] = useState(false);
   const [selectedCluster, setSelectedCluster] = useState<any>(null);
+  const [reschedulePickup, setReschedulePickup] = useState<{ pickup: Pickup; customer: User } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location] = useLocation();
@@ -390,6 +393,17 @@ export default function Admin() {
                     </span>
                     <div className="text-xs text-muted-foreground">
                       {pickup.serviceType === 'same-day' ? '$25-35' : '$10-15'}
+                    </div>
+                    <div className="flex gap-1 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setReschedulePickup({ pickup, customer: customer! })}
+                        className="text-xs h-6 px-2"
+                      >
+                        <Edit3 className="w-3 h-3 mr-1" />
+                        Reschedule
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -876,6 +890,15 @@ export default function Admin() {
                           <div className="text-xs text-muted-foreground">
                             Driver: {driver?.username || 'Unassigned'}
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setReschedulePickup({ pickup, customer: customer! })}
+                            className="text-xs h-6 px-2 mt-1"
+                          >
+                            <Edit3 className="w-3 h-3 mr-1" />
+                            Reschedule
+                          </Button>
                         </div>
                       </div>
                     );
@@ -933,6 +956,16 @@ export default function Admin() {
       }
     >
       {renderSectionContent()}
+      
+      {/* Reschedule Pickup Modal */}
+      {reschedulePickup && (
+        <ReschedulePickupModal
+          pickup={reschedulePickup.pickup}
+          customer={reschedulePickup.customer}
+          isOpen={!!reschedulePickup}
+          onClose={() => setReschedulePickup(null)}
+        />
+      )}
     </MobileLayout>
   );
 }

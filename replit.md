@@ -91,6 +91,15 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Implemented comprehensive data validation and error responses
   * Added proper JWT token validation and role-based access control
   * Ensured all critical user flows work without issues
+- ✓ Admin pickup rescheduling system (July 15, 2025):
+  * Built comprehensive pickup rescheduling functionality with date/time selection
+  * Created ReschedulePickupModal component with intuitive UI for date selection and reason input
+  * Implemented backend API endpoint for pickup rescheduling with customer email notifications
+  * Added "Reschedule" buttons throughout admin dashboard for easy pickup management
+  * Built automatic email notification system (currently logs to console, ready for SMTP integration)
+  * Fixed revenue calculation bug: converted string amounts to numbers to prevent concatenation
+  * Enhanced pickup display with proper currency formatting (2 decimal places)
+  * Added pickup status tracking with "rescheduled" status for audit trail
 - ✓ Final admin dashboard clustering simplification (July 14, 2025):
   * Removed separate clustering page for streamlined navigation
   * Added integrated "View Clusters" button on main admin dashboard
