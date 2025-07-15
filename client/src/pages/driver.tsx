@@ -33,15 +33,8 @@ export default function Driver() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch driver pickups
-  const { data: pickups = [], isLoading: pickupsLoading, error: pickupsError } = useQuery({
-    queryKey: ['/api/pickups'],
-    queryFn: () => authenticatedRequest('GET', '/api/pickups').then(res => res.json() as Promise<Pickup[]>),
-    retry: false,
-  });
-
-  // Fetch today's optimized route
-  const { data: routeData = { pickups: [], summary: {} }, isLoading: routeLoading, error: routeError } = useQuery({
+  // Fetch today's optimized route (primary data source)
+  const { data: routeData = [], isLoading: routeLoading, error: routeError } = useQuery({
     queryKey: ['/api/driver/route'],
     queryFn: () => authenticatedRequest('GET', '/api/driver/route').then(res => res.json()),
     retry: false,
@@ -56,20 +49,22 @@ export default function Driver() {
 
   // Handle new organized-by-date format
   const todayDate = new Date().toISOString().split('T')[0];
-  const allPickups = routeData && typeof routeData === 'object' && !Array.isArray(routeData) 
-    ? Object.values(routeData).flat() 
-    : Array.isArray(routeData) ? routeData : [];
   
-  const todayRoute = routeData && routeData[todayDate] ? routeData[todayDate] : [];
+  // Get today's route data - this is the primary source of truth
+  const todayRoute = Array.isArray(routeData) ? routeData : [];
   const routeSummary = routeData.summary || {};
+
+  // Use ONLY today's route data for all calculations to ensure consistency
+  const todayPendingPickups = todayRoute.filter(p => p.status === 'assigned');
+  const todayCompletedPickups = todayRoute.filter(p => p.status === 'completed');
 
   // Complete pickup mutation
   const completePickupMutation = useMutation({
     mutationFn: (pickupId: number) => 
       authenticatedRequest('POST', `/api/pickups/${pickupId}/complete`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/pickups'] });
       queryClient.invalidateQueries({ queryKey: ['/api/driver/route'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/driver/full-route'] });
       toast({
         title: "Pickup Completed",
         description: "Great job! The pickup has been marked as completed.",
@@ -83,15 +78,9 @@ export default function Driver() {
       });
     },
   });
-
-  // Use allPickups for stats and todayRoute for current day
-  const pendingPickups = allPickups.filter(p => p.status === 'assigned');
-  const completedPickups = allPickups.filter(p => p.status === 'completed');
-  const todayPendingPickups = todayRoute.filter(p => p.status === 'assigned');
-  const todayCompletedPickups = todayRoute.filter(p => p.status === 'completed');
   
   // Show loading state
-  if (pickupsLoading || routeLoading) {
+  if (routeLoading) {
     return (
       <MobileLayout title="Driver Dashboard">
         <div className="min-h-screen flex items-center justify-center">
@@ -102,7 +91,7 @@ export default function Driver() {
   }
 
   // Show error state for authentication issues
-  if (pickupsError || routeError) {
+  if (routeError) {
     return (
       <MobileLayout title="Driver Dashboard">
         <div className="min-h-screen flex items-center justify-center">
@@ -117,7 +106,7 @@ export default function Driver() {
       </MobileLayout>
     );
   }
-  const nextPickup = todayPendingPickups[0] || pendingPickups[0];
+  const nextPickup = todayPendingPickups[0];
 
   const handleCompletePickup = (pickupId: number) => {
     completePickupMutation.mutate(pickupId);
@@ -168,7 +157,7 @@ export default function Driver() {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-primary mb-1">
-              {allPickups.length}
+              {todayRoute.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Total Stops
@@ -176,7 +165,7 @@ export default function Driver() {
           </MobileCard>
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-green-600 mb-1">
-              {completedPickups.length}
+              {todayCompletedPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Completed
@@ -184,7 +173,7 @@ export default function Driver() {
           </MobileCard>
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-orange-600 mb-1">
-              {pendingPickups.length}
+              {todayPendingPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Remaining
@@ -468,7 +457,7 @@ export default function Driver() {
               <div>
                 <p className="text-sm text-muted-foreground">Completion Rate</p>
                 <p className="text-2xl font-bold">
-                  {todayRoute.length > 0 ? Math.round((completedPickups.length / todayRoute.length) * 100) : 0}%
+                  {todayRoute.length > 0 ? Math.round((todayCompletedPickups.length / todayRoute.length) * 100) : 0}%
                 </p>
               </div>
               <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
