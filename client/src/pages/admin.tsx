@@ -339,7 +339,7 @@ export default function Admin() {
           onClick={() => setStatusFilter('same-day')}
           className="flex-1"
         >
-          Same-Day ($25-35)
+          Same-Day ($25-65)
         </Button>
         <Button 
           variant={statusFilter === 'next-day' ? 'default' : 'outline'} 
@@ -347,7 +347,7 @@ export default function Admin() {
           onClick={() => setStatusFilter('next-day')}
           className="flex-1"
         >
-          Next-Day ($10-15)
+          Next-Day ($15-50)
         </Button>
         <Button 
           variant={statusFilter === 'all' ? 'default' : 'outline'} 
@@ -392,7 +392,7 @@ export default function Admin() {
                       ${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}
                     </span>
                     <div className="text-xs text-muted-foreground">
-                      {pickup.serviceType === 'same-day' ? '$25-35' : '$10-15'}
+                      {pickup.serviceType === 'same-day' ? '$25-65' : '$15-50'}
                     </div>
                     <div className="flex gap-1 mt-2">
                       <Button

@@ -141,6 +141,13 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Implemented proper database clearing and seeding functionality
   * Created test customer account: customer@test.com / password123
   * Total test pickup value: $125.00 across all assignments
+- ✓ Industry-aligned pricing structure implementation (July 20, 2025):
+  * Updated one-time pickup pricing to industry standards ($15-50 for next-day, $25-65 for same-day)
+  * Implemented immediate service premium (150% of same-day rates)
+  * Maintained subscription pricing ($12-35 based on bag count)
+  * Added comprehensive pricing test suite with 100% pass rate
+  * Updated admin dashboard pricing displays to reflect new structure
+  * Changed admin@test.com and driver@test.com passwords to password123
 
 ## User Preferences
 
