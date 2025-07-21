@@ -33,7 +33,7 @@ export default function Driver() {
   const [startingAddress, setStartingAddress] = useState('');
   const [selectedPickups, setSelectedPickups] = useState<number[]>([]);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient(); // Already imported above
 
   // Fetch today's optimized route (primary data source)
   const { data: routeData = [], isLoading: routeLoading, error: routeError } = useQuery({
@@ -64,9 +64,10 @@ export default function Driver() {
   const completePickupsMutation = useMutation({
     mutationFn: async (pickupIds: number[]) => {
       const results = await Promise.all(
-        pickupIds.map(id => 
-          authenticatedRequest('POST', `/api/pickups/${id}/complete`)
-        )
+        pickupIds.map(async id => {
+          const response = await authenticatedRequest('POST', `/api/pickups/${id}/complete`);
+          return response.json();
+        })
       );
       return results;
     },
@@ -311,15 +312,22 @@ export default function Driver() {
                         currentLocation: startingAddress.trim()
                       });
                       
-                      if (response.googleMapsUrl) {
-                        window.open(response.googleMapsUrl, '_blank');
+                      const data = await response.json();
+                      
+                      if (data.googleMapsUrl) {
+                        window.open(data.googleMapsUrl, '_blank');
                         toast({
                           title: "Route Optimized!",
-                          description: `${response.totalStops} stops reordered for efficiency. Opening in Google Maps.`,
+                          description: `${data.totalStops} stops reordered for efficiency. Opening in Google Maps.`,
                         });
                         
                         // Refresh the route data to show new order
                         await queryClient.invalidateQueries({ queryKey: ['/api/driver/route'] });
+                      } else {
+                        toast({
+                          title: "Optimization Complete",
+                          description: data.message || "Route has been optimized",
+                        });
                       }
                     } catch (error: any) {
                       toast({
@@ -451,13 +459,7 @@ export default function Driver() {
                     </div>
                     
                     {/* Status Badge */}
-                    <StatusBadge 
-                      status={pickup.status as any} 
-                      className={pickup.status === 'completed' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' 
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
-                      }
-                    >
+                    <StatusBadge status={pickup.status as any}>
                       {pickup.status === 'completed' ? 'Complete' : 'Pending'}
                     </StatusBadge>
                   </div>
