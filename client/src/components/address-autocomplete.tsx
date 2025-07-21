@@ -33,6 +33,7 @@ export default function AddressAutocomplete({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+  const [hasSelected, setHasSelected] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteService = useRef<any>(null);
   const debounceTimer = useRef<NodeJS.Timeout>();
@@ -94,6 +95,7 @@ export default function AddressAutocomplete({
   // Handle input changes with debouncing
   const handleInputChange = (inputValue: string) => {
     onChange(inputValue);
+    setHasSelected(false); // Reset selection state when user types
     
     if (!googleMapsLoaded || !autocompleteService.current || inputValue.length < 3) {
       setSuggestions([]);
@@ -156,6 +158,7 @@ export default function AddressAutocomplete({
     setSuggestions([]);
     setShowSuggestions(false);
     setIsLoading(false);
+    setHasSelected(true); // Mark that user has selected an address
     inputRef.current?.blur();
   };
 
@@ -232,7 +235,7 @@ export default function AddressAutocomplete({
         )}
 
         {/* Fallback suggestions when Google API isn't working */}
-        {(!googleMapsLoaded || (!showSuggestions && value.length > 2 && !isLoading)) && value.length > 0 && (
+        {(!googleMapsLoaded || (!showSuggestions && value.length > 2 && !isLoading)) && value.length > 0 && !hasSelected && (
           <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
             <div className="px-4 py-2 text-xs text-muted-foreground border-b">
               {!googleMapsLoaded ? 'Manual entry - Common Philadelphia locations:' : 'Quick suggestions:'}
