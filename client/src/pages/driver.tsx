@@ -39,7 +39,11 @@ export default function Driver() {
   // Fetch 7-day schedule (primary data source)
   const { data: scheduleData = {}, isLoading: routeLoading, error: routeError } = useQuery({
     queryKey: ['/api/driver/route'],
-    queryFn: () => authenticatedRequest('GET', '/api/driver/route').then(res => res.json()),
+    queryFn: () => authenticatedRequest('GET', '/api/driver/route').then(res => {
+      const data = res.json();
+      console.log('🔄 Driver dashboard received schedule data:', data);
+      return data;
+    }),
     retry: false,
   });
 
@@ -62,7 +66,12 @@ export default function Driver() {
     a.date.localeCompare(b.date)
   );
 
-  // Use ONLY today's route data for all calculations to ensure consistency
+  // Calculate totals from all schedule days for proper summary
+  const allPickups = scheduleDays.flatMap((day: any) => day.pickups || []);
+  const allPendingPickups = allPickups.filter((p: any) => p.status === 'assigned');
+  const allCompletedPickups = allPickups.filter((p: any) => p.status === 'completed');
+
+  // Use ONLY today's route data for today-specific calculations
   const todayPendingPickups = todayRoute.filter((p: any) => p.status === 'assigned');
   const todayCompletedPickups = todayRoute.filter((p: any) => p.status === 'completed');
 
@@ -187,11 +196,11 @@ export default function Driver() {
           <div className={`w-4 h-4 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
         </div>
 
-        {/* Today's Summary */}
+        {/* Weekly Summary */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-primary mb-1">
-              {todayRoute.length}
+              {allPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Total Stops
@@ -199,7 +208,7 @@ export default function Driver() {
           </MobileCard>
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-green-600 mb-1">
-              {todayCompletedPickups.length}
+              {allCompletedPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Completed
@@ -207,7 +216,7 @@ export default function Driver() {
           </MobileCard>
           <MobileCard className="text-center">
             <div className="text-2xl font-bold text-orange-600 mb-1">
-              {todayPendingPickups.length}
+              {allPendingPickups.length}
             </div>
             <div className="text-xs text-muted-foreground">
               Remaining
@@ -234,14 +243,20 @@ export default function Driver() {
               
               // Skip weekends since you work Mon-Fri only
               if (isWeekend) return null;
+              
+              // Mark past assigned pickups as needing attention
+              const isPastDay = day.isPast;
+              const displayName = day.isPast ? `${day.dayName} (Past)` : 
+                                day.isToday ? 'Today' : 
+                                day.isTomorrow ? 'Tomorrow' : day.dayName;
 
               return (
                 <MobileCard key={day.date} className={`${day.isToday ? 'border-2 border-primary bg-primary/5' : ''}`}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
                       <div>
-                        <h4 className={`font-semibold ${day.isToday ? 'text-primary' : ''}`}>
-                          {day.isToday ? 'Today' : day.isTomorrow ? 'Tomorrow' : day.dayName}
+                        <h4 className={`font-semibold ${day.isToday ? 'text-primary' : isPastDay ? 'text-red-600' : ''}`}>
+                          {displayName}
                         </h4>
                         <p className="text-sm text-muted-foreground">
                           {new Date(day.date).toLocaleDateString('en-US', { 

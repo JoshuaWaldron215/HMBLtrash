@@ -1124,26 +1124,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = new Date();
       const schedule = {};
       
-      // Initialize next 7 days
-      for (let i = 0; i < 7; i++) {
+      console.log('📅 Today:', today.toISOString().split('T')[0]);
+      
+      // Initialize 7-day window (includes past 2 days + today + next 4 days for complete view)
+      for (let i = -2; i < 5; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
         const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        console.log(`📅 Day ${i}: ${dateKey} (${date.toLocaleDateString('en-US', { weekday: 'long' })})`);
         schedule[dateKey] = {
           date: dateKey,
           dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
           isToday: i === 0,
           isTomorrow: i === 1,
+          isPast: i < 0,
           pickups: []
         };
       }
       
       // Group pickups by their scheduled date
       assignedPickups.forEach(pickup => {
+        console.log(`🔍 Pickup ${pickup.id}: scheduledDate = ${pickup.scheduledDate}`);
         if (pickup.scheduledDate) {
           const pickupDate = new Date(pickup.scheduledDate).toISOString().split('T')[0];
+          console.log(`📅 Pickup ${pickup.id}: computed date = ${pickupDate}`);
           if (schedule[pickupDate]) {
             schedule[pickupDate].pickups.push(pickup);
+            console.log(`✅ Added pickup ${pickup.id} to ${pickupDate}`);
+          } else {
+            console.log(`❌ Date ${pickupDate} not in 7-day window for pickup ${pickup.id}`);
+          }
+        } else {
+          console.log(`⚠️ Pickup ${pickup.id} has no scheduledDate - assigning to today`);
+          // If no scheduled date, assign to today
+          const todayKey = today.toISOString().split('T')[0];
+          if (schedule[todayKey]) {
+            schedule[todayKey].pickups.push(pickup);
           }
         }
       });
