@@ -224,191 +224,49 @@ export default function Driver() {
           </MobileCard>
         </div>
 
-        {/* 7-Day Schedule View */}
-        {scheduleDays.length > 0 ? (
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 mb-4">
-              <Calendar className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-lg">Weekly Schedule</h3>
-              <span className="text-sm text-muted-foreground">
-                (Mon-Fri Service)
-              </span>
+        {/* Today's Pickups - Primary Focus */}
+        {todayRoute.length > 0 ? (
+          <MobileCard className="mb-6 border-2 border-primary bg-primary/5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  TODAY
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-primary">Today's Route</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {todayPendingPickups.length} remaining • {todayCompletedPickups.length} completed
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-primary">{todayRoute.length}</div>
+                <div className="text-xs text-muted-foreground">stops</div>
+              </div>
             </div>
 
-            {scheduleDays.map((day: any) => {
-              const dayPickups = day.pickups || [];
-              const pendingPickups = dayPickups.filter((p: any) => p.status === 'assigned');
-              const completedPickups = dayPickups.filter((p: any) => p.status === 'completed');
-              const isWeekend = new Date(day.date).getDay() === 0 || new Date(day.date).getDay() === 6;
-              
-              // Skip weekends since you work Mon-Fri only
-              if (isWeekend) return null;
-
-              return (
-                <MobileCard key={day.date} className={`${day.isToday ? 'border-2 border-primary bg-primary/5' : ''}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div>
-                        <h4 className={`font-semibold ${day.isToday ? 'text-primary' : ''}`}>
-                          {day.isToday ? 'Today' : day.isTomorrow ? 'Tomorrow' : day.dayName}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(day.date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </p>
-                      </div>
-                      {day.isToday && (
-                        <div className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-medium">
-                          TODAY
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${dayPickups.length > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
-                        {dayPickups.length}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {dayPickups.length === 1 ? 'pickup' : 'pickups'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Today's Progress Bar */}
-                  {day.isToday && dayPickups.length > 0 && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">Today's Progress</span>
-                        <span className="text-sm text-muted-foreground">
-                          {completedPickups.length} of {dayPickups.length} done
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                          style={{ 
-                            width: `${dayPickups.length > 0 ? (completedPickups.length / dayPickups.length) * 100 : 0}%` 
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pickup List */}
-                  {dayPickups.length > 0 ? (
-                    <div className="space-y-2">
-                      {dayPickups.map((pickup: any, index: number) => (
-                        <div 
-                          key={pickup.id}
-                          className={`p-3 rounded-lg border ${
-                            pickup.status === 'completed' 
-                              ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' 
-                              : 'bg-background border-border'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              {day.isToday && (
-                                <input
-                                  type="checkbox"
-                                  checked={selectedPickups.includes(pickup.id)}
-                                  onChange={() => togglePickupSelection(pickup.id)}
-                                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                                  disabled={pickup.status === 'completed'}
-                                />
-                              )}
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm font-medium">#{pickup.routeOrder || index + 1}</span>
-                                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                                  <span className="text-sm font-medium">{pickup.address}</span>
-                                </div>
-                                <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
-                                  <span className="flex items-center space-x-1">
-                                    <Package className="w-3 h-3" />
-                                    <span>{pickup.bagCount} bags</span>
-                                  </span>
-                                  {pickup.estimatedArrival && (
-                                    <span className="flex items-center space-x-1">
-                                      <Clock className="w-3 h-3" />
-                                      <span>ETA: {pickup.estimatedArrival}</span>
-                                    </span>
-                                  )}
-                                  <span className="font-medium">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              {pickup.status === 'completed' ? (
-                                <Check className="w-5 h-5 text-green-600" />
-                              ) : (
-                                day.isToday && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleNavigate(pickup.address)}
-                                    className="text-primary hover:text-primary/80"
-                                  >
-                                    <Navigation className="w-4 h-4" />
-                                  </Button>
-                                )
-                              )}
-                            </div>
-                          </div>
-                          {pickup.specialInstructions && (
-                            <p className="text-xs text-muted-foreground mt-2 ml-7">
-                              Note: {pickup.specialInstructions}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6 text-muted-foreground">
-                      <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No pickups scheduled</p>
-                    </div>
-                  )}
-                </MobileCard>
-              );
-            })}
-          </div>
-        ) : (
-          <MobileCard className="text-center py-8">
-            <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="font-semibold text-lg mb-2">No Schedule Available</h3>
-            <p className="text-muted-foreground">
-              No pickups are currently assigned to you.
-            </p>
-          </MobileCard>
-        )}
-
-        {/* Today's Action Section */}
-        {todayRoute.length > 0 && (
-          <MobileCard className="mb-6 mt-6">
-            <h3 className="font-semibold text-lg mb-4">Today's Actions</h3>
-
-            {/* Route Summary */}
-            <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div>
-                <p className="text-sm text-blue-700 dark:text-blue-300">Total Distance</p>
-                <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                  {fullRouteData?.totalDistance || `${(todayRoute.length * 2.3).toFixed(2)} miles`}
-                </p>
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Progress</span>
+                <span className="text-sm text-muted-foreground">
+                  {todayCompletedPickups.length} of {todayRoute.length} done
+                </span>
               </div>
-              <div>
-                <p className="text-sm text-blue-700 dark:text-blue-300">Est. Time</p>
-                <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                  {fullRouteData?.estimatedTime || `${todayRoute.length * 18} minutes`}
-                </p>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${todayRoute.length > 0 ? (todayCompletedPickups.length / todayRoute.length) * 100 : 0}%` 
+                  }}
+                />
               </div>
             </div>
 
             {/* Selection Controls */}
             {todayPendingPickups.length > 0 && (
-              <div className="flex items-center gap-2 mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="flex items-center gap-2 flex-1">
+              <div className="flex items-center justify-between mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -439,47 +297,172 @@ export default function Driver() {
                   ) : (
                     <Check className="w-4 h-4 mr-2" />
                   )}
-                  Complete Selected ({selectedPickups.length})
+                  Complete ({selectedPickups.length})
                 </Button>
               </div>
             )}
+
+            {/* Today's Pickup List */}
+            <div className="space-y-3">
+              {todayRoute.map((pickup: any, index: number) => (
+                <div 
+                  key={pickup.id}
+                  className={`p-4 rounded-lg border-2 ${
+                    pickup.status === 'completed' 
+                      ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' 
+                      : selectedPickups.includes(pickup.id)
+                        ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-700'
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedPickups.includes(pickup.id)}
+                      onChange={() => togglePickupSelection(pickup.id)}
+                      className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
+                      disabled={pickup.status === 'completed'}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
+                          #{pickup.routeOrder || index + 1}
+                        </span>
+                        <span className="font-medium">{pickup.address}</span>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <span className="flex items-center space-x-1">
+                          <Package className="w-4 h-4" />
+                          <span>{pickup.bagCount} bags</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <Clock className="w-4 h-4" />
+                          <span>ETA: {pickup.estimatedArrival}</span>
+                        </span>
+                        <span className="font-medium">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
+                      </div>
+                      {pickup.specialInstructions && (
+                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
+                          Note: {pickup.specialInstructions}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {pickup.status === 'completed' ? (
+                        <div className="flex items-center text-green-600">
+                          <Check className="w-5 h-5 mr-1" />
+                          <span className="text-sm font-medium">Done</span>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleNavigate(pickup.address)}
+                          className="text-primary hover:text-primary/80"
+                        >
+                          <Navigation className="w-4 h-4 mr-1" />
+                          Navigate
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </MobileCard>
+        ) : (
+          <MobileCard className="text-center py-8 mb-6">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+            <h3 className="font-semibold text-lg mb-2">All Done for Today!</h3>
+            <p className="text-muted-foreground">
+              No more pickups scheduled for today.
+            </p>
           </MobileCard>
         )}
+
+        {/* Upcoming Schedule Preview */}
+        {scheduleDays.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg flex items-center space-x-2">
+              <Calendar className="w-5 h-5 text-muted-foreground" />
+              <span>Upcoming Schedule</span>
+            </h3>
+
+            {scheduleDays.filter((day: any) => !day.isToday).map((day: any) => {
+              const dayPickups = day.pickups || [];
+              const isWeekend = new Date(day.date).getDay() === 0 || new Date(day.date).getDay() === 6;
+              
+              // Skip weekends since you work Mon-Fri only
+              if (isWeekend) return null;
+
+              return (
+                <MobileCard key={day.date} className="border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold">
+                        {day.isTomorrow ? 'Tomorrow' : day.dayName}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(day.date).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-xl font-bold ${dayPickups.length > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                        {dayPickups.length}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {dayPickups.length === 1 ? 'pickup' : 'pickups'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {dayPickups.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {dayPickups.slice(0, 2).map((pickup: any, index: number) => (
+                        <div key={pickup.id} className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <MapPin className="w-3 h-3" />
+                          <span>{pickup.address}</span>
+                          <span>•</span>
+                          <span>{pickup.bagCount} bags</span>
+                        </div>
+                      ))}
+                      {dayPickups.length > 2 && (
+                        <p className="text-sm text-muted-foreground">
+                          + {dayPickups.length - 2} more pickups
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </MobileCard>
+              );
+            })}
+          </div>
+        )}
+
       </MobileSection>
 
       {/* Quick Actions */}
       <MobileSection>
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <MobileButton 
             variant="outline"
             className="flex flex-col items-center space-y-2 h-auto py-4"
             onClick={() => {
-              const addresses = todayRoute.map((p: any) => p.address).join('|');
-              const encodedAddresses = encodeURIComponent(addresses);
-              window.open(`https://maps.google.com/maps?daddr=${encodedAddresses}`, '_blank');
+              if (todayRoute.length > 0) {
+                const addresses = todayRoute.map((p: any) => p.address).join('|');
+                const encodedAddresses = encodeURIComponent(addresses);
+                window.open(`https://maps.google.com/maps?daddr=${encodedAddresses}`, '_blank');
+              }
             }}
           >
             <Route className="w-6 h-6" />
             <span>Full Route</span>
-          </MobileButton>
-          
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-            onClick={toggleOnlineStatus}
-          >
-            {isOnline ? (
-              <>
-                <Pause className="w-6 h-6" />
-                <span>Go Offline</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-6 h-6" />
-                <span>Go Online</span>
-              </>
-            )}
           </MobileButton>
           
           <MobileButton 
@@ -497,38 +480,6 @@ export default function Driver() {
             <Star className="w-6 h-6" />
             <span>Earnings</span>
           </MobileButton>
-        </div>
-      </MobileSection>
-
-      {/* Performance Stats */}
-      <MobileSection className="bg-muted/20">
-        <h2 className="text-xl font-semibold mb-4">Today's Performance</h2>
-        <div className="grid grid-cols-1 gap-4">
-          <MobileCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Completion Rate</p>
-                <p className="text-2xl font-bold">
-                  {todayRoute.length > 0 ? Math.round((todayCompletedPickups.length / todayRoute.length) * 100) : 0}%
-                </p>
-              </div>
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-                <Star className="w-8 h-8 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </MobileCard>
-          
-          <MobileCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Pickups</p>
-                <p className="text-2xl font-bold">{todayRoute.length}</p>
-              </div>
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                <Package className="w-8 h-8 text-primary" />
-              </div>
-            </div>
-          </MobileCard>
         </div>
       </MobileSection>
     </MobileLayout>
