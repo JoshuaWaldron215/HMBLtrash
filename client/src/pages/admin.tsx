@@ -139,9 +139,7 @@ export default function Admin() {
         ? '/api/admin/optimize-subscription-route' 
         : '/api/admin/optimize-package-route';
       
-      const response = await authenticatedRequest(endpoint, {
-        method: 'POST',
-      });
+      const response = await authenticatedRequest('POST', endpoint);
       
       return response.json();
     },
@@ -195,9 +193,7 @@ export default function Admin() {
   // Demo data creation mutation
   const createDemoMutation = useMutation({
     mutationFn: async () => {
-      const response = await authenticatedRequest('/api/admin/create-demo-data', {
-        method: 'POST',
-      });
+      const response = await authenticatedRequest('POST', '/api/admin/create-demo-data');
       return response.json();
     },
     onSuccess: (data) => {
@@ -545,15 +541,15 @@ export default function Admin() {
                            pickup.serviceType === 'same-day' ? 'Same-Day' : 'Next-Day'}
                         </StatusBadge>
                       </div>
-                      {pickup.instructions && (
+                      {pickup.specialInstructions && (
                         <div className="text-xs text-blue-600 mt-1">
-                          Note: {pickup.instructions}
+                          Note: {pickup.specialInstructions}
                         </div>
                       )}
                     </div>
                     <div className="text-right">
                       <div className="text-xs text-muted-foreground">
-                        ETA: {pickup.estimatedArrival || '~30min'}
+                        ETA: {pickup.scheduledDate ? new Date(pickup.scheduledDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '~30min'}
                       </div>
                     </div>
                   </div>
@@ -686,10 +682,7 @@ export default function Admin() {
                 <h4 className="font-semibold text-lg">{cluster.name}</h4>
                 <p className="text-sm text-muted-foreground">{cluster.totalCustomers} pickups • ${cluster.estimatedRevenue} revenue</p>
               </div>
-              <StatusBadge 
-                status={cluster.status} 
-                className={cluster.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
-              >
+              <StatusBadge status={cluster.status === 'available' ? 'pending' : 'completed'}>
                 {cluster.status}
               </StatusBadge>
             </div>
@@ -706,7 +699,7 @@ export default function Admin() {
               
               {cluster.status === 'available' && (
                 <MobileButton
-                  variant="default"
+                  variant="primary"
                   size="sm"
                   onClick={() => createClusterRouteMutation.mutate({ clusterId: cluster.id })}
                   disabled={createClusterRouteMutation.isPending}
@@ -880,9 +873,9 @@ export default function Admin() {
                               <span>ETA: {pickup.estimatedArrival}</span>
                             )}
                           </div>
-                          {pickup.instructions && (
+                          {pickup.specialInstructions && (
                             <div className="text-xs text-blue-600 mt-1">
-                              Note: {pickup.instructions}
+                              Note: {pickup.specialInstructions}
                             </div>
                           )}
                         </div>

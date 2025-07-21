@@ -706,26 +706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Driver route optimization endpoint
-  app.get("/api/driver/route", authenticateToken, requireRole('driver'), async (req, res) => {
-    try {
-      const driverId = req.user!.id;
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Get all pickups assigned to this driver for today
-      const assignedPickups = await storage.getPickupsByDriver(driverId);
-      const todayPickups = assignedPickups.filter(pickup => 
-        pickup.scheduledDate && pickup.scheduledDate.toISOString().split('T')[0] === today
-      );
-      
-      // Simple route optimization (in real app, this would use Google Maps API or similar)
-      const optimizedRoute = await optimizeRoute(todayPickups);
-      
-      res.json(optimizedRoute);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
+  // Driver route optimization endpoint (removed - duplicate below)
 
   // Route optimization function with Google Maps Distance Matrix integration
   async function optimizeRoute(pickups: any[]) {
@@ -1023,49 +1004,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Driver routes - organized by day
+  // Driver routes - get assigned pickups for today
   app.get("/api/driver/route", authenticateToken, requireRole('driver'), async (req, res) => {
     try {
       console.log('🚚 Driver route request from driver ID:', req.user!.id);
       
-      // Get all assigned pickups for the driver
+      // Get all assigned pickups for the driver (any date, not just today)
       const pickups = await storage.getPickupsByDriver(req.user!.id);
       console.log('📦 Total pickups for driver:', pickups.length);
       
       const assignedPickups = pickups.filter(pickup => pickup.status === 'assigned');
       console.log('✅ Assigned pickups:', assignedPickups.length);
       
-      // Group pickups by date
-      const pickupsByDate = assignedPickups.reduce((acc: any, pickup) => {
-        const date = pickup.scheduledDate ? pickup.scheduledDate.toISOString().split('T')[0] : 'unscheduled';
-        if (!acc[date]) {
-          acc[date] = [];
-        }
-        acc[date].push(pickup);
-        return acc;
-      }, {});
+      // For driver dashboard, return ALL assigned pickups, not just today's
+      // This ensures the driver can see their full workload
+      const optimizedRoute = await optimizeRoute(assignedPickups);
       
-      console.log('📅 Pickups by date:', Object.keys(pickupsByDate), Object.values(pickupsByDate).map((arr: any) => arr.length));
-      
-      // Sort pickups within each date by route order
-      for (const date in pickupsByDate) {
-        pickupsByDate[date].sort((a: any, b: any) => {
-          if (a.routeOrder && b.routeOrder) {
-            return a.routeOrder - b.routeOrder;
-          }
-          return 0;
-        });
-      }
-      
-      // Optimize routes for each day
-      const optimizedRoutes: any = {};
-      for (const date in pickupsByDate) {
-        console.log(`🔄 Optimizing route for ${date} with ${pickupsByDate[date].length} pickups`);
-        optimizedRoutes[date] = await optimizeRoute(pickupsByDate[date]);
-      }
-      
-      console.log('🎯 Returning optimized routes:', Object.keys(optimizedRoutes));
-      res.json(optimizedRoutes);
+      console.log('🎯 Returning route with', optimizedRoute.length, 'pickups');
+      res.json(optimizedRoute);
     } catch (error: any) {
       console.error('❌ Driver route error:', error);
       res.status(400).json({ message: error.message });
@@ -1126,40 +1082,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin API endpoints that are missing
-  app.get('/api/admin/pickups', authenticateToken, requireRole('admin'), async (req, res) => {
-    try {
-      const allPickups = await storage.getPickupsByStatus('pending');
-      const assignedPickups = await storage.getPickupsByStatus('assigned');
-      const completedPickups = await storage.getPickupsByStatus('completed');
-      
-      const pickups = [...allPickups, ...assignedPickups, ...completedPickups];
-      res.json(pickups);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
+  // Admin pickups endpoint (removed duplicate - using existing one above)
 
-  app.get('/api/admin/subscriptions', authenticateToken, requireRole('admin'), async (req, res) => {
-    try {
-      const subscriptions = await storage.getActiveSubscriptions();
-      res.json(subscriptions);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
+  // Admin subscriptions endpoint (removed duplicate - using existing one above)
 
-  app.post('/api/admin/pickups/:id/assign', authenticateToken, requireRole('admin'), async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { driverId } = req.body;
-      
-      const pickup = await storage.assignPickupToDriver(parseInt(id), driverId);
-      res.json(pickup);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
+  // Admin pickup assignment endpoint (removed duplicate - using existing one above)
 
   app.post('/api/admin/pickups/:id/reschedule', authenticateToken, requireRole('admin'), async (req, res) => {
     try {

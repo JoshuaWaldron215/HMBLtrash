@@ -40,7 +40,7 @@ export class PickupRouteManager {
     return pickups.map(pickup => ({
       id: pickup.id,
       name: `Pickup #${pickup.id}`,
-      fullAddress: pickup.fullAddress,
+      fullAddress: pickup.fullAddress || pickup.address || 'Unknown address',
       notes: `${pickup.bagCount} bags - ${pickup.specialInstructions || 'Standard pickup'}`,
       coordinates: pickup.coordinates ? JSON.parse(pickup.coordinates) : undefined
     }));
@@ -69,7 +69,7 @@ export class PickupRouteManager {
       date: new Date(),
       pickupIds: subscriptions.map(p => p.id.toString()),
       optimizedOrder: optimizedRoute,
-      totalDistance: parseFloat(optimizedRoute.totalDistance.replace(/[^\d.]/g, '')),
+      totalDistance: optimizedRoute.totalDistance,
       estimatedTime: parseInt(optimizedRoute.totalDuration.replace(/[^\d]/g, '')),
       googleMapsUrl: optimizedRoute.googleMapsUrl,
       startLocation: optimizedRoute.startPoint.fullAddress,
@@ -112,7 +112,7 @@ export class PickupRouteManager {
       date: new Date(),
       pickupIds: packagePickups.map(p => p.id.toString()),
       optimizedOrder: optimizedRoute,
-      totalDistance: parseFloat(optimizedRoute.totalDistance.replace(/[^\d.]/g, '')),
+      totalDistance: optimizedRoute.totalDistance,
       estimatedTime: parseInt(optimizedRoute.totalDuration.replace(/[^\d]/g, '')),
       googleMapsUrl: optimizedRoute.googleMapsUrl,
       startLocation: optimizedRoute.startPoint.fullAddress,
@@ -166,7 +166,7 @@ export class PickupRouteManager {
       date: new Date(),
       pickupIds: optimizedRoute.optimizedStops.map(stop => stop.id!.toString()),
       optimizedOrder: optimizedRoute,
-      totalDistance: parseFloat(optimizedRoute.totalDistance.replace(' mi', '')),
+      totalDistance: optimizedRoute.totalDistance,
       estimatedTime: parseInt(optimizedRoute.totalDuration.replace(' min', '')),
       googleMapsUrl: optimizedRoute.googleMapsUrl,
       startLocation: optimizedRoute.startPoint.fullAddress,
