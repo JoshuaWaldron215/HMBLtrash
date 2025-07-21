@@ -13,7 +13,7 @@ import {
   type InsertSubscription
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lt } from "drizzle-orm";
+import { eq, and, gte, lt, desc } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
@@ -567,8 +567,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSubscriptionByCustomer(customerId: number): Promise<Subscription | undefined> {
-    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.customerId, customerId));
-    return subscription || undefined;
+    // Get the most recent active subscription first, or most recent if no active subscription
+    const allSubscriptions = await db.select().from(subscriptions)
+      .where(eq(subscriptions.customerId, customerId))
+      .orderBy(desc(subscriptions.createdAt));
+    
+    // First try to find an active subscription
+    const activeSubscription = allSubscriptions.find(sub => sub.status === 'active');
+    if (activeSubscription) {
+      return activeSubscription;
+    }
+    
+    // If no active subscription, return the most recent one
+    return allSubscriptions[0] || undefined;
   }
 
   async getSubscriptionByStripeId(stripeId: string): Promise<Subscription | undefined> {
