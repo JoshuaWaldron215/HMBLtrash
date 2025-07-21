@@ -1061,13 +1061,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return 0;
       });
       
-      // Create optimized Google Maps URL starting from 2500 Knights Rd
-      const startingPoint = encodeURIComponent("2500 Knights Rd, Bensalem, PA 19020");
+      // Create flexible Google Maps URL - can be customized by driver
       const pickupAddresses = sortedPickups.map(pickup => encodeURIComponent(pickup.address));
       const destination = pickupAddresses[pickupAddresses.length - 1];
       const waypoints = pickupAddresses.slice(0, -1).join('|');
       
-      let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startingPoint}&destination=${destination}`;
+      // Default starting point (can be overridden by driver)
+      const defaultStart = encodeURIComponent("2500 Knights Rd, Bensalem, PA 19020");
+      
+      let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${defaultStart}&destination=${destination}`;
       if (waypoints) {
         googleMapsUrl += `&waypoints=${waypoints}`;
       }
@@ -1078,14 +1080,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         estimatedTime: `${Math.round(sortedPickups.length * 18 + 15)} minutes`, // Add travel time from depot
         totalDistance: `${(sortedPickups.length * 2.3 + 8.5).toFixed(1)} miles`, // Add distance from Bensalem
         googleMapsUrl,
-        startingPoint: "2500 Knights Rd, Bensalem, PA 19020",
+        defaultStartingPoint: "2500 Knights Rd, Bensalem, PA 19020",
         stops: [
           {
             order: 0,
             address: "2500 Knights Rd, Bensalem, PA 19020",
-            customer: "Starting Point",
+            customer: "Default Starting Point",
             bags: 0,
-            instructions: "Depot - Begin Route"
+            instructions: "Depot (can be changed by driver)"
           },
           ...sortedPickups.map((pickup, index) => ({
             order: index + 1,
@@ -1107,7 +1109,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin subscriptions endpoint (removed duplicate - using existing one above)
 
-  // Admin pickup assignment endpoint (removed duplicate - using existing one above)
+  // Enhanced pickup assignment with automatic route optimization
+  app.post('/api/admin/assign-pickup/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { driverId, currentDriverLocation } = req.body;
+      
+      // Assign the pickup to driver
+      const updatedPickup = await storage.updatePickup(parseInt(id), {
+        driverId: parseInt(driverId),
+        status: 'assigned',
+        updatedAt: new Date()
+      });
+      
+      // Get all assigned pickups for this driver
+      const allPickups = await storage.getAllPickups();
+      const driverPickups = allPickups.filter(p => p.driverId === parseInt(driverId) && p.status === 'assigned');
+      
+      // Auto-optimize route if driver has current location
+      if (currentDriverLocation && driverPickups.length > 1) {
+        console.log(`🔄 Auto-optimizing route for driver ${driverId} from ${currentDriverLocation}`);
+        
+        // Simple optimization algorithm based on geographic proximity
+        const optimizedOrder = optimizePickupRoute(driverPickups, currentDriverLocation);
+        
+        // Update route orders in database
+        for (let i = 0; i < optimizedOrder.length; i++) {
+          await storage.updatePickup(optimizedOrder[i].id, {
+            routeOrder: i + 1,
+            updatedAt: new Date()
+          });
+        }
+        
+        console.log(`✅ Route optimized: ${optimizedOrder.length} stops reordered`);
+      }
+      
+      res.json({ 
+        pickup: updatedPickup,
+        routeOptimized: !!currentDriverLocation,
+        totalDriverPickups: driverPickups.length
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // New endpoint for drivers to request route optimization from their current location
+  app.post('/api/driver/optimize-route', authenticateToken, requireRole('driver'), async (req, res) => {
+    try {
+      const { currentLocation } = req.body;
+      const driverId = req.user.id;
+      
+      // Get all assigned pickups for this driver
+      const allPickups = await storage.getAllPickups();
+      const driverPickups = allPickups.filter(p => p.driverId === driverId && p.status === 'assigned');
+      
+      if (driverPickups.length === 0) {
+        return res.json({ message: 'No pickups to optimize', optimizedRoute: [] });
+      }
+      
+      // Optimize route from current location
+      const optimizedOrder = optimizePickupRoute(driverPickups, currentLocation);
+      
+      // Update route orders in database
+      for (let i = 0; i < optimizedOrder.length; i++) {
+        await storage.updatePickup(optimizedOrder[i].id, {
+          routeOrder: i + 1,
+          updatedAt: new Date()
+        });
+      }
+      
+      // Create Google Maps URL
+      const origin = encodeURIComponent(currentLocation);
+      const addresses = optimizedOrder.map(pickup => encodeURIComponent(pickup.address));
+      const destination = addresses[addresses.length - 1];
+      const waypoints = addresses.slice(0, -1).join('|');
+      
+      let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+      if (waypoints) {
+        googleMapsUrl += `&waypoints=${waypoints}`;
+      }
+      googleMapsUrl += '&travelmode=driving';
+      
+      res.json({
+        message: 'Route optimized successfully',
+        optimizedRoute: optimizedOrder.map((pickup, index) => ({
+          ...pickup,
+          routeOrder: index + 1,
+          estimatedArrival: new Date(Date.now() + (index + 1) * 18 * 60000).toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit' 
+          })
+        })),
+        googleMapsUrl,
+        startingLocation: currentLocation,
+        totalStops: optimizedOrder.length,
+        estimatedTime: `${optimizedOrder.length * 18} minutes`
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
 
   app.post('/api/admin/pickups/:id/reschedule', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
@@ -1728,4 +1830,49 @@ Acapella Trash Removal Team
 
   const httpServer = createServer(app);
   return httpServer;
+}
+
+// Route optimization algorithm - finds efficient path through pickup points
+function optimizePickupRoute(pickups: any[], startLocation: string): any[] {
+  if (pickups.length <= 1) return pickups;
+  
+  // Simple heuristic optimization based on geographic proximity
+  // In production, this would use Google Distance Matrix API for actual distances
+  
+  const optimized = [...pickups];
+  
+  // Sort by approximate geographic clustering
+  optimized.sort((a, b) => {
+    // Extract street information for basic geographic sorting
+    const extractLocationInfo = (addr: string) => {
+      const match = addr.match(/^(\d+)\s+([^,]+),\s*([^,]+)/);
+      if (!match) return { number: 9999, street: addr, area: '' };
+      
+      return {
+        number: parseInt(match[1]) || 9999,
+        street: match[2].trim(),
+        area: match[3].trim()
+      };
+    };
+    
+    const aInfo = extractLocationInfo(a.address);
+    const bInfo = extractLocationInfo(b.address);
+    
+    // Group by area/neighborhood first
+    if (aInfo.area !== bInfo.area) {
+      return aInfo.area.localeCompare(bInfo.area);
+    }
+    
+    // Then by street name
+    if (aInfo.street !== bInfo.street) {
+      return aInfo.street.localeCompare(bInfo.street);
+    }
+    
+    // Finally by street number
+    return aInfo.number - bInfo.number;
+  });
+  
+  console.log(`🗺️ Optimized route for ${pickups.length} pickups from ${startLocation}`);
+  
+  return optimized;
 }

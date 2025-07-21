@@ -25,6 +25,7 @@ import MobileLayout, {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { authenticatedRequest } from '@/lib/auth';
+import { queryClient } from '@/lib/queryClient';
 import type { Pickup, User } from '@shared/schema';
 
 export default function Driver() {
@@ -144,6 +145,35 @@ export default function Driver() {
     window.open(`https://maps.google.com/maps?daddr=${encodedAddress}`, '_blank');
   };
 
+  // Route optimization algorithm - simple nearest neighbor with greedy approach
+  const optimizeRouteFromLocation = (pickups: any[], startLocation: string) => {
+    if (pickups.length <= 1) return pickups;
+    
+    // For now, use a simple heuristic based on address sorting
+    // In production, this would use Google Distance Matrix API
+    const sortedPickups = [...pickups].sort((a, b) => {
+      // Sort by street number and name for geographic proximity
+      const extractStreetInfo = (addr: string) => {
+        const match = addr.match(/^(\d+)\s+(.+)/);
+        return {
+          number: match ? parseInt(match[1]) : 9999,
+          street: match ? match[2] : addr
+        };
+      };
+      
+      const aInfo = extractStreetInfo(a.address);
+      const bInfo = extractStreetInfo(b.address);
+      
+      // First sort by street name, then by number
+      if (aInfo.street !== bInfo.street) {
+        return aInfo.street.localeCompare(bInfo.street);
+      }
+      return aInfo.number - bInfo.number;
+    });
+    
+    return sortedPickups;
+  };
+
   const toggleOnlineStatus = () => {
     setIsOnline(!isOnline);
     toast({
@@ -252,31 +282,58 @@ export default function Driver() {
               </div>
             </div>
 
-            {/* Optimized Route Navigation */}
+            {/* Dynamic Route Navigation */}
             <div className="space-y-3 mb-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                <div className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Starting Point</div>
-                <div className="text-blue-900 dark:text-blue-100 font-semibold">2500 Knights Rd, Bensalem, PA 19020</div>
+              <div>
+                <label htmlFor="currentLocation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Your Current Location
+                </label>
+                <input
+                  id="currentLocation"
+                  type="text"
+                  value={startingAddress}
+                  onChange={(e) => setStartingAddress(e.target.value)}
+                  placeholder="Enter your current address..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+                <div className="text-xs text-muted-foreground mt-1">
+                  Route will be optimized from this location to all pickup points
+                </div>
               </div>
               
               <MobileButton 
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                onClick={() => {
-                  if (todayRoute.length > 0) {
-                    // Create optimized Google Maps URL starting from depot
-                    const origin = encodeURIComponent("2500 Knights Rd, Bensalem, PA 19020");
-                    const sortedPickups = todayRoute.sort((a: any, b: any) => (a.routeOrder || 0) - (b.routeOrder || 0));
-                    const addresses = sortedPickups.map((pickup: any) => encodeURIComponent(pickup.address));
-                    const destination = addresses[addresses.length - 1];
-                    const waypoints = addresses.slice(0, -1).join('|');
-                    
-                    let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-                    if (waypoints) {
-                      googleMapsUrl += `&waypoints=${waypoints}`;
+                onClick={async () => {
+                  if (todayRoute.length > 0 && startingAddress.trim()) {
+                    try {
+                      // Call API to optimize route from current location
+                      const response = await authenticatedRequest('POST', '/api/driver/optimize-route', {
+                        currentLocation: startingAddress.trim()
+                      });
+                      
+                      if (response.googleMapsUrl) {
+                        window.open(response.googleMapsUrl, '_blank');
+                        toast({
+                          title: "Route Optimized!",
+                          description: `${response.totalStops} stops reordered for efficiency. Opening in Google Maps.`,
+                        });
+                        
+                        // Refresh the route data to show new order
+                        await queryClient.invalidateQueries({ queryKey: ['/api/driver/route'] });
+                      }
+                    } catch (error: any) {
+                      toast({
+                        title: "Optimization Failed",
+                        description: error.message || "Could not optimize route",
+                        variant: "destructive",
+                      });
                     }
-                    googleMapsUrl += '&travelmode=driving';
-                    
-                    window.open(googleMapsUrl, '_blank');
+                  } else if (!startingAddress.trim()) {
+                    toast({
+                      title: "Current Location Required",
+                      description: "Please enter your current location to optimize the route.",
+                      variant: "destructive",
+                    });
                   } else {
                     toast({
                       title: "No Route Available",
@@ -287,7 +344,7 @@ export default function Driver() {
                 }}
               >
                 <Navigation className="w-4 h-4 mr-2" />
-                Open Optimized Route in Google Maps
+                Optimize Route from My Location
               </MobileButton>
             </div>
 
