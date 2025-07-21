@@ -147,8 +147,8 @@ export default function Home() {
             <h1 className="text-3xl font-bold mb-2">Acapella Trash</h1>
             <p className="text-xl text-white text-opacity-90">powered by HMBL</p>
           </div>
-          <p className="text-lg text-white text-opacity-80 mb-8 leading-relaxed">
-            Where Anything Is Possible and No Job is Too Big or Small We Will Get it Done  
+          <p className="text-lg text-white text-opacity-90 mb-8 leading-relaxed">
+            Professional waste removal service for Philadelphia. Where anything is possible and no job is too big or small — we will get it done.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <MobileButton 
@@ -222,7 +222,7 @@ export default function Home() {
               <MobileButton 
                 variant={option.popular ? 'primary' : 'outline'}
                 className="w-full"
-                onClick={() => handleBooking(option.type)}
+                onClick={() => handleBooking(option.type as 'subscription' | 'one-time')}
               >
                 {option.buttonText}
               </MobileButton>

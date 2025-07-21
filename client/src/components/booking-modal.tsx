@@ -231,14 +231,18 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                           <button
                             key={option.count}
                             onClick={() => setFormData({...formData, bagCount: option.count})}
-                            className={`p-4 rounded-xl border text-center transition-all ${
+                            className={`p-4 rounded-xl border-2 text-center transition-all duration-200 ${
                               formData.bagCount === option.count
-                                ? 'border-primary bg-primary bg-opacity-10 text-primary'
-                                : 'border-border hover:border-primary hover:border-opacity-50'
+                                ? 'border-primary bg-primary text-primary-foreground shadow-md scale-105'
+                                : 'border-border hover:border-primary hover:border-opacity-50 hover:shadow-sm'
                             }`}
                           >
                             <div className="font-semibold">{option.count} bags</div>
-                            <div className="text-sm text-muted-foreground">${option.price}</div>
+                            <div className={`text-sm ${
+                              formData.bagCount === option.count 
+                                ? 'text-primary-foreground text-opacity-80' 
+                                : 'text-muted-foreground'
+                            }`}>${option.price}</div>
                           </button>
                         ))}
                       </div>
