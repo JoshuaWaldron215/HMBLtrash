@@ -318,11 +318,17 @@ export default function Driver() {
                       return;
                     }
 
-                    const endLocation = encodeURIComponent(assignedStops[assignedStops.length - 1]);
-                    const waypointAddresses = assignedStops.slice(0, -1).map(addr => encodeURIComponent(addr)).join("%7C");
-                    const waypoints = `optimize:true%7C${waypointAddresses}`;
+                    // For Google Maps web URLs, we'll create a simple multi-stop route
+                    // Google Maps will automatically suggest route optimization in the interface
+                    const allStops = [startingAddress.trim(), ...assignedStops];
+                    const encodedStops = allStops.map(stop => encodeURIComponent(stop)).join('/');
+                    
+                    const googleMapsUrl = `https://www.google.com/maps/dir/${encodedStops}`;
 
-                    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startLocation}&destination=${endLocation}&travelmode=driving&waypoints=${waypoints}`;
+                    // Alternative: Use the Google Maps API format with all stops as waypoints
+                    // const destination = encodeURIComponent(assignedStops[assignedStops.length - 1]);
+                    // const waypoints = assignedStops.slice(0, -1).map(addr => encodeURIComponent(addr)).join('|');
+                    // const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startLocation}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`;
                     window.open(googleMapsUrl, "_blank");
                     
                     toast({
