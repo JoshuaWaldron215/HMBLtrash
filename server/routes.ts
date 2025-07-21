@@ -1108,35 +1108,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Driver routes - get assigned pickups for today
+  // Driver routes - get assigned pickups organized by date (7-day schedule)
   app.get("/api/driver/route", authenticateToken, requireRole('driver'), async (req, res) => {
     try {
       console.log('🚚 Driver route request from driver ID:', req.user!.id);
       
-      // Get all assigned pickups for the driver (any date, not just today)
+      // Get all assigned pickups for the driver
       const pickups = await storage.getPickupsByDriver(req.user!.id);
       console.log('📦 Total pickups for driver:', pickups.length);
       
       const assignedPickups = pickups.filter(pickup => pickup.status === 'assigned');
       console.log('✅ Assigned pickups:', assignedPickups.length);
       
-      // For driver dashboard, return ALL assigned pickups, not just today's
-      // This ensures the driver can see their full workload
-      const optimizedRoute = await optimizeRoute(assignedPickups);
+      // Group pickups by scheduled date for 7-day view
+      const today = new Date();
+      const schedule = {};
       
-      console.log('🎯 Returning route with', optimizedRoute.length, 'pickups');
+      // Initialize next 7 days
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        schedule[dateKey] = {
+          date: dateKey,
+          dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
+          isToday: i === 0,
+          isTomorrow: i === 1,
+          pickups: []
+        };
+      }
       
-      // Add starting point and optimized route order info
-      const routeWithStartingPoint = optimizedRoute.map((pickup, index) => ({
-        ...pickup,
-        routeOrder: index + 1,
-        estimatedArrival: new Date(Date.now() + (index + 1) * 18 * 60000).toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit' 
-        })
-      }));
+      // Group pickups by their scheduled date
+      assignedPickups.forEach(pickup => {
+        if (pickup.scheduledDate) {
+          const pickupDate = new Date(pickup.scheduledDate).toISOString().split('T')[0];
+          if (schedule[pickupDate]) {
+            schedule[pickupDate].pickups.push(pickup);
+          }
+        }
+      });
       
-      res.json(routeWithStartingPoint);
+      // Sort pickups within each day by route order
+      Object.values(schedule).forEach((day: any) => {
+        day.pickups.sort((a, b) => (a.routeOrder || 0) - (b.routeOrder || 0));
+        day.pickups = day.pickups.map((pickup, index) => ({
+          ...pickup,
+          routeOrder: index + 1,
+          estimatedArrival: new Date(Date.now() + (index + 1) * 18 * 60000).toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit' 
+          })
+        }));
+      });
+      
+      console.log('🎯 Returning 7-day schedule with pickups');
+      
+      res.json(schedule);
     } catch (error: any) {
       console.error('❌ Driver route error:', error);
       res.status(400).json({ message: error.message });
