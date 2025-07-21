@@ -149,25 +149,33 @@ export class AuthService {
   }
 
   /**
-   * Authenticate user with enhanced security checks
+   * Authenticate user with enhanced security checks - accepts email or username
    */
-  async authenticate(email: string, password: string, ip: string, userAgent: string): Promise<AuthResult> {
+  async authenticate(emailOrUsername: string, password: string, ip: string, userAgent: string): Promise<AuthResult> {
     try {
       // Validate input
-      const validation = loginSchema.safeParse({ email, password });
+      const validation = loginSchema.safeParse({ emailOrUsername, password });
       if (!validation.success) {
         return {
           success: false,
-          error: "Invalid email or password format"
+          error: "Invalid credentials format"
         };
       }
 
-      // Find user by email
-      const user = await storage.getUserByEmail(email.toLowerCase());
+      // Determine if input is email or username and find user accordingly
+      const isEmail = emailOrUsername.includes('@');
+      let user;
+      
+      if (isEmail) {
+        user = await storage.getUserByEmail(emailOrUsername.toLowerCase());
+      } else {
+        user = await storage.getUserByUsername(emailOrUsername);
+      }
+      
       if (!user) {
         return {
           success: false,
-          error: "Invalid email or password"
+          error: "Invalid email/username or password"
         };
       }
 
@@ -195,7 +203,7 @@ export class AuthService {
         await this.recordLoginAttempt(user, false, ip, userAgent, "Invalid password");
         return {
           success: false,
-          error: "Invalid email or password"
+          error: "Invalid email/username or password"
         };
       }
 

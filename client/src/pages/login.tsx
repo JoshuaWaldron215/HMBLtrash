@@ -94,18 +94,18 @@ export default function Login() {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">
-                Email
+              <Label htmlFor="emailOrUsername">
+                Email or Username
               </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                {...register("email")}
+                id="emailOrUsername"
+                type="text"
+                placeholder="Enter your email or username"
+                {...register("emailOrUsername")}
                 className="w-full"
               />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
+              {errors.emailOrUsername && (
+                <p className="text-sm text-red-500">{errors.emailOrUsername.message}</p>
               )}
             </div>
             <div className="space-y-2">

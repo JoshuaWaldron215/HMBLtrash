@@ -345,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       const userAgent = req.get('User-Agent') || 'unknown';
       
-      const result = await authService.authenticate(req.body.email, req.body.password, ip, userAgent);
+      const result = await authService.authenticate(req.body.emailOrUsername, req.body.password, ip, userAgent);
       
       if (!result.success) {
         const status = result.requiresTwoFactor ? 200 : 400;

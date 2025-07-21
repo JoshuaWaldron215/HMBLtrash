@@ -219,9 +219,9 @@ export const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
-// Login schema with rate limiting considerations
+// Login schema with rate limiting considerations - accepts username or email
 export const loginSchema = z.object({
-  email: emailSchema,
+  emailOrUsername: z.string().min(1, "Email or username is required"),
   password: z.string().min(1, "Password is required"),
   rememberMe: z.boolean().optional().default(false),
   twoFactorCode: z.string().length(6, "Two-factor code must be 6 digits").optional(),
