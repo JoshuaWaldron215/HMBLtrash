@@ -157,6 +157,8 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Enhanced admin assignment workflow to include driver's current location for auto-optimization
   * Created Google Maps integration that builds optimized multi-stop routes from any starting point
   * Implemented scenario: driver at art museum can get optimized route to 5 new customer locations
+  * Replaced backend route optimization with direct Google Maps URL generation using optimize:true parameter
+  * Enhanced user experience by opening Google Maps directly with fully optimized routes
 
 ## User Preferences
 

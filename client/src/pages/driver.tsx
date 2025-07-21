@@ -304,38 +304,34 @@ export default function Driver() {
               
               <MobileButton 
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                onClick={async () => {
-                  if (todayRoute.length > 0 && startingAddress.trim()) {
-                    try {
-                      // Call API to optimize route from current location
-                      const response = await authenticatedRequest('POST', '/api/driver/optimize-route', {
-                        currentLocation: startingAddress.trim()
-                      });
-                      
-                      const data = await response.json();
-                      
-                      if (data.googleMapsUrl) {
-                        window.open(data.googleMapsUrl, '_blank');
-                        toast({
-                          title: "Route Optimized!",
-                          description: `${data.totalStops} stops reordered for efficiency. Opening in Google Maps.`,
-                        });
-                        
-                        // Refresh the route data to show new order
-                        await queryClient.invalidateQueries({ queryKey: ['/api/driver/route'] });
-                      } else {
-                        toast({
-                          title: "Optimization Complete",
-                          description: data.message || "Route has been optimized",
-                        });
-                      }
-                    } catch (error: any) {
+                onClick={() => {
+                  const handleOptimizeRoute = () => {
+                    const startLocation = encodeURIComponent(startingAddress.trim());
+                    const assignedStops = todayRoute.map(p => `${p.address}`);
+                    
+                    if (assignedStops.length < 2) {
                       toast({
-                        title: "Optimization Failed",
-                        description: error.message || "Could not optimize route",
+                        title: "Need More Stops",
+                        description: "Need at least two stops to optimize a route.",
                         variant: "destructive",
                       });
+                      return;
                     }
+
+                    const endLocation = encodeURIComponent(assignedStops[assignedStops.length - 1]);
+                    const waypoints = "optimize:true|" + assignedStops.slice(0, -1).map(encodeURIComponent).join("|");
+
+                    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startLocation}&destination=${endLocation}&travelmode=driving&waypoints=${waypoints}`;
+                    window.open(googleMapsUrl, "_blank");
+                    
+                    toast({
+                      title: "Route Optimized!",
+                      description: `Opening optimized route with ${assignedStops.length} stops in Google Maps.`,
+                    });
+                  };
+
+                  if (todayRoute.length > 0 && startingAddress.trim()) {
+                    handleOptimizeRoute();
                   } else if (!startingAddress.trim()) {
                     toast({
                       title: "Current Location Required",
