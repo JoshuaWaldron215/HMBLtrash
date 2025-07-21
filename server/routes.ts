@@ -706,6 +706,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cancel subscription endpoint
+  app.post('/api/cancel-subscription', authenticateToken, async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get existing subscription
+      const existingSubscription = await storage.getSubscriptionByCustomer(user.id);
+      if (!existingSubscription || existingSubscription.status !== 'active') {
+        return res.status(400).json({ message: "No active subscription found" });
+      }
+
+      // For test mode (no Stripe integration), just update database
+      if (!stripe) {
+        await storage.updateSubscription(existingSubscription.id, {
+          status: 'cancelled',
+          cancellationDate: new Date(),
+          cancellationReason: reason || 'Customer requested cancellation',
+          autoRenewal: false
+        });
+        
+        res.json({
+          message: "Subscription cancelled successfully",
+          testMode: true,
+          cancellationDate: new Date().toISOString()
+        });
+        return;
+      }
+
+      // Real Stripe cancellation would go here
+      const cancelledSubscription = await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+      
+      await storage.updateSubscription(existingSubscription.id, {
+        status: 'cancelled',
+        cancellationDate: new Date(),
+        cancellationReason: reason || 'Customer requested cancellation',
+        autoRenewal: false
+      });
+
+      res.json({
+        message: "Subscription cancelled successfully",
+        cancellationDate: cancelledSubscription.canceled_at
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Admin endpoint to cancel any user's subscription
+  app.post('/api/admin/cancel-subscription/:userId', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const userId = parseInt(req.params.userId);
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get existing subscription
+      const existingSubscription = await storage.getSubscriptionByCustomer(userId);
+      if (!existingSubscription || existingSubscription.status !== 'active') {
+        return res.status(400).json({ message: "No active subscription found for this user" });
+      }
+
+      // For test mode (no Stripe integration), just update database
+      if (!stripe) {
+        await storage.updateSubscription(existingSubscription.id, {
+          status: 'cancelled',
+          cancellationDate: new Date(),
+          cancellationReason: reason || 'Admin cancelled subscription',
+          autoRenewal: false
+        });
+        
+        res.json({
+          message: `Subscription cancelled successfully for ${user.username}`,
+          testMode: true,
+          cancellationDate: new Date().toISOString()
+        });
+        return;
+      }
+
+      // Real Stripe cancellation would go here
+      const cancelledSubscription = await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+      
+      await storage.updateSubscription(existingSubscription.id, {
+        status: 'cancelled',
+        cancellationDate: new Date(),
+        cancellationReason: reason || 'Admin cancelled subscription',
+        autoRenewal: false
+      });
+
+      res.json({
+        message: `Subscription cancelled successfully for ${user.username}`,
+        cancellationDate: cancelledSubscription.canceled_at
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Driver route optimization endpoint (removed - duplicate below)
 
   // Route optimization function with Google Maps Distance Matrix integration

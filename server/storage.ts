@@ -52,6 +52,7 @@ export interface IStorage {
   getSubscriptionByStripeId(stripeId: string): Promise<Subscription | undefined>;
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
   updateSubscriptionStatus(id: number, status: string): Promise<Subscription>;
+  updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription>;
   getActiveSubscriptions(): Promise<Subscription[]>;
   
   // Additional methods for admin dashboard
@@ -324,6 +325,15 @@ export class MemStorage implements IStorage {
     return updatedSubscription;
   }
 
+  async updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription> {
+    const subscription = this.subscriptions.get(id);
+    if (!subscription) throw new Error('Subscription not found');
+    
+    const updatedSubscription = { ...subscription, ...updates, updatedAt: new Date() };
+    this.subscriptions.set(id, updatedSubscription);
+    return updatedSubscription;
+  }
+
   async getActiveSubscriptions(): Promise<Subscription[]> {
     return Array.from(this.subscriptions.values()).filter(sub => sub.status === 'active');
   }
@@ -578,6 +588,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(subscriptions.id, id))
       .returning();
     return subscription;
+  }
+
+  async updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription> {
+    const [updated] = await db
+      .update(subscriptions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    
+    if (!updated) throw new Error('Subscription not found');
+    return updated;
   }
 
   async getActiveSubscriptions(): Promise<Subscription[]> {
