@@ -319,8 +319,8 @@ export default function Driver() {
                     }
 
                     const endLocation = encodeURIComponent(assignedStops[assignedStops.length - 1]);
-                    const waypointAddresses = assignedStops.slice(0, -1).map(addr => encodeURIComponent(addr)).join("|");
-                    const waypoints = encodeURIComponent("optimize:true|") + waypointAddresses;
+                    const waypointAddresses = assignedStops.slice(0, -1).map(addr => encodeURIComponent(addr)).join("%7C");
+                    const waypoints = `optimize:true%7C${waypointAddresses}`;
 
                     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startLocation}&destination=${endLocation}&travelmode=driving&waypoints=${waypoints}`;
                     window.open(googleMapsUrl, "_blank");
