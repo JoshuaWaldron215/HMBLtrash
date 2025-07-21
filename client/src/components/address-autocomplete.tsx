@@ -46,26 +46,48 @@ export default function AddressAutocomplete({
       return;
     }
 
-    if ((window as any).google?.maps) {
+    console.log('Loading Google Maps API...');
+
+    if ((window as any).google?.maps?.places) {
+      console.log('Google Maps API already loaded');
       setGoogleMapsLoaded(true);
-      autocompleteService.current = new (window as any).google.maps.places.AutocompleteService();
+      try {
+        autocompleteService.current = new (window as any).google.maps.places.AutocompleteService();
+        console.log('AutocompleteService initialized successfully');
+      } catch (error) {
+        console.error('Error initializing AutocompleteService:', error);
+      }
       return;
     }
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
     script.async = true;
     script.defer = true;
-    script.onload = () => {
+    
+    // Add global callback
+    (window as any).initGoogleMaps = () => {
+      console.log('Google Maps callback executed');
       setGoogleMapsLoaded(true);
-      autocompleteService.current = new (window as any).google.maps.places.AutocompleteService();
+      try {
+        autocompleteService.current = new (window as any).google.maps.places.AutocompleteService();
+        console.log('AutocompleteService initialized successfully');
+      } catch (error) {
+        console.error('Error initializing AutocompleteService:', error);
+      }
     };
+
+    script.onerror = (error) => {
+      console.error('Failed to load Google Maps script:', error);
+    };
+
     document.head.appendChild(script);
 
     return () => {
       if (document.head.contains(script)) {
         document.head.removeChild(script);
       }
+      delete (window as any).initGoogleMaps;
     };
   }, []);
 
@@ -76,6 +98,7 @@ export default function AddressAutocomplete({
     if (!googleMapsLoaded || !autocompleteService.current || inputValue.length < 3) {
       setSuggestions([]);
       setShowSuggestions(false);
+      setIsLoading(false);
       return;
     }
 
@@ -85,25 +108,45 @@ export default function AddressAutocomplete({
 
     debounceTimer.current = setTimeout(() => {
       setIsLoading(true);
+      console.log('Making autocomplete request for:', inputValue);
       
       const request = {
         input: inputValue,
         componentRestrictions: { country: 'us' },
-        types: ['address'],
-        fields: ['description', 'place_id', 'structured_formatting']
+        types: ['address']
       };
 
-      autocompleteService.current!.getPlacePredictions(request, (predictions: any, status: any) => {
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.log('Autocomplete request timed out');
         setIsLoading(false);
-        
-        if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
-          setSuggestions(predictions.slice(0, 5)); // Limit to 5 suggestions
-          setShowSuggestions(true);
-        } else {
-          setSuggestions([]);
-          setShowSuggestions(false);
-        }
-      });
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }, 5000); // 5 second timeout
+
+      try {
+        autocompleteService.current!.getPlacePredictions(request, (predictions: any, status: any) => {
+          clearTimeout(timeoutId);
+          console.log('Autocomplete response:', { status, predictions });
+          setIsLoading(false);
+          
+          if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
+            console.log('Showing suggestions:', predictions.length);
+            setSuggestions(predictions.slice(0, 5)); // Limit to 5 suggestions
+            setShowSuggestions(true);
+          } else {
+            console.log('No suggestions or error:', status);
+            setSuggestions([]);
+            setShowSuggestions(false);
+          }
+        });
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('Error making autocomplete request:', error);
+        setIsLoading(false);
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
     }, 300); // 300ms debounce
   };
 
@@ -187,11 +230,34 @@ export default function AddressAutocomplete({
           </div>
         )}
 
-        {/* No Google Maps API fallback message */}
-        {!googleMapsLoaded && value.length > 0 && (
-          <div className="text-xs text-muted-foreground mt-1 flex items-center space-x-1">
-            <MapPin className="h-3 w-3" />
-            <span>Enter your complete address manually</span>
+        {/* Fallback suggestions when Google API isn't working */}
+        {(!googleMapsLoaded || (!showSuggestions && value.length > 2 && !isLoading)) && (
+          <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+            <div className="px-4 py-2 text-xs text-muted-foreground border-b">
+              {!googleMapsLoaded ? 'Manual entry - Common Philadelphia locations:' : 'Quick suggestions:'}
+            </div>
+            {[
+              "1300 W Girard Ave, Philadelphia, PA 19123",
+              "1500 Spring Garden St, Philadelphia, PA 19130", 
+              "2000 Pennsylvania Ave, Philadelphia, PA 19130",
+              "1800 JFK Blvd, Philadelphia, PA 19103",
+              "1200 Market St, Philadelphia, PA 19107"
+            ].filter(addr => 
+              addr.toLowerCase().includes(value.toLowerCase()) || 
+              value.toLowerCase().split(' ').some(word => word.length > 2 && addr.toLowerCase().includes(word))
+            ).slice(0, 3).map((address, index) => (
+              <button
+                key={index}
+                type="button"
+                className="w-full px-4 py-3 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none transition-colors"
+                onClick={() => handleSuggestionSelect({ description: address, place_id: `fallback-${index}` })}
+              >
+                <div className="flex items-start space-x-3">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">{address}</div>
+                </div>
+              </button>
+            ))}
           </div>
         )}
       </div>
