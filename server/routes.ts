@@ -1021,7 +1021,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const optimizedRoute = await optimizeRoute(assignedPickups);
       
       console.log('🎯 Returning route with', optimizedRoute.length, 'pickups');
-      res.json(optimizedRoute);
+      
+      // Add starting point and optimized route order info
+      const routeWithStartingPoint = optimizedRoute.map((pickup, index) => ({
+        ...pickup,
+        routeOrder: index + 1,
+        estimatedArrival: new Date(Date.now() + (index + 1) * 18 * 60000).toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit' 
+        })
+      }));
+      
+      res.json(routeWithStartingPoint);
     } catch (error: any) {
       console.error('❌ Driver route error:', error);
       res.status(400).json({ message: error.message });
@@ -1050,30 +1061,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return 0;
       });
       
-      // Create Google Maps URL with multiple waypoints
-      const addresses = sortedPickups.map(pickup => encodeURIComponent(pickup.address));
-      const origin = addresses[0];
-      const destination = addresses[addresses.length - 1];
-      const waypoints = addresses.slice(1, -1).join('|');
+      // Create optimized Google Maps URL starting from 2500 Knights Rd
+      const startingPoint = encodeURIComponent("2500 Knights Rd, Bensalem, PA 19020");
+      const pickupAddresses = sortedPickups.map(pickup => encodeURIComponent(pickup.address));
+      const destination = pickupAddresses[pickupAddresses.length - 1];
+      const waypoints = pickupAddresses.slice(0, -1).join('|');
       
-      let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+      let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startingPoint}&destination=${destination}`;
       if (waypoints) {
         googleMapsUrl += `&waypoints=${waypoints}`;
       }
       googleMapsUrl += '&travelmode=driving';
       
       const routeSummary = {
-        totalStops: sortedPickups.length,
-        estimatedTime: `${sortedPickups.length * 18} minutes`,
-        totalDistance: `${(sortedPickups.length * 2.3).toFixed(2)} miles`,
+        totalStops: sortedPickups.length + 1, // Include starting point
+        estimatedTime: `${Math.round(sortedPickups.length * 18 + 15)} minutes`, // Add travel time from depot
+        totalDistance: `${(sortedPickups.length * 2.3 + 8.5).toFixed(1)} miles`, // Add distance from Bensalem
         googleMapsUrl,
-        stops: sortedPickups.map((pickup, index) => ({
-          order: index + 1,
-          address: pickup.address,
-          customer: pickup.customerName || 'Customer',
-          bags: pickup.bagCount,
-          instructions: pickup.specialInstructions
-        }))
+        startingPoint: "2500 Knights Rd, Bensalem, PA 19020",
+        stops: [
+          {
+            order: 0,
+            address: "2500 Knights Rd, Bensalem, PA 19020",
+            customer: "Starting Point",
+            bags: 0,
+            instructions: "Depot - Begin Route"
+          },
+          ...sortedPickups.map((pickup, index) => ({
+            order: index + 1,
+            address: pickup.address,
+            customer: pickup.customerName || 'Customer',
+            bags: pickup.bagCount,
+            instructions: pickup.specialInstructions || 'Standard pickup'
+          }))
+        ]
       };
       
       res.json(routeSummary);

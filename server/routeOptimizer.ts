@@ -37,11 +37,11 @@ export interface DirectionStep {
   endLocation: [number, number];
 }
 
-// Fixed depot location in Philadelphia
-const DEPOT_ADDRESS: Address = {
-  name: "Acapella Trash Removal Depot",
-  fullAddress: "2334 N Broad St, Philadelphia, PA 19132",
-  coordinates: [39.9851, -75.1553] // Approximate coordinates
+// Starting point for all routes
+const STARTING_DEPOT: Address = {
+  name: "Acapella Trash Depot",
+  fullAddress: "2500 Knights Rd, Bensalem, PA 19020",
+  coordinates: [40.1023, -74.9339] // Bensalem coordinates
 };
 
 // Mock test addresses for development

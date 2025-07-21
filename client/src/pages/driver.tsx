@@ -252,36 +252,27 @@ export default function Driver() {
               </div>
             </div>
 
-            {/* Full Route Navigation */}
+            {/* Optimized Route Navigation */}
             <div className="space-y-3 mb-4">
-              <div>
-                <label htmlFor="startingAddress" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Starting Address (Optional)
-                </label>
-                <input
-                  id="startingAddress"
-                  type="text"
-                  value={startingAddress}
-                  onChange={(e) => setStartingAddress(e.target.value)}
-                  placeholder="Enter your starting location..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                <div className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Starting Point</div>
+                <div className="text-blue-900 dark:text-blue-100 font-semibold">2500 Knights Rd, Bensalem, PA 19020</div>
               </div>
+              
               <MobileButton 
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
                   if (todayRoute.length > 0) {
-                    // Create custom Google Maps URL with starting address
-                    const addresses = todayRoute.map((pickup: any) => encodeURIComponent(pickup.address));
+                    // Create optimized Google Maps URL starting from depot
+                    const origin = encodeURIComponent("2500 Knights Rd, Bensalem, PA 19020");
+                    const sortedPickups = todayRoute.sort((a: any, b: any) => (a.routeOrder || 0) - (b.routeOrder || 0));
+                    const addresses = sortedPickups.map((pickup: any) => encodeURIComponent(pickup.address));
                     const destination = addresses[addresses.length - 1];
                     const waypoints = addresses.slice(0, -1).join('|');
-                    const origin = startingAddress ? encodeURIComponent(startingAddress) : addresses[0];
                     
                     let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-                    if (waypoints && startingAddress) {
+                    if (waypoints) {
                       googleMapsUrl += `&waypoints=${waypoints}`;
-                    } else if (waypoints) {
-                      googleMapsUrl += `&waypoints=${waypoints.split('|').slice(1).join('|')}`;
                     }
                     googleMapsUrl += '&travelmode=driving';
                     
@@ -296,7 +287,7 @@ export default function Driver() {
                 }}
               >
                 <Navigation className="w-4 h-4 mr-2" />
-                Open Full Route in Google Maps
+                Open Optimized Route in Google Maps
               </MobileButton>
             </div>
 
@@ -339,9 +330,9 @@ export default function Driver() {
               </div>
             )}
 
-            {/* All Pickups List */}
+            {/* Optimized Route List */}
             <div className="space-y-3">
-              {todayRoute.map((pickup: any, index: number) => (
+              {todayRoute.sort((a: any, b: any) => (a.routeOrder || 0) - (b.routeOrder || 0)).map((pickup: any, index: number) => (
                 <div key={pickup.id} className={`p-4 rounded-lg border-l-4 ${
                   pickup.status === 'completed' 
                     ? 'border-green-500 bg-green-50 dark:bg-green-900/10' 
