@@ -118,9 +118,9 @@ export default function Home() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
               <Truck className="w-8 h-8 text-primary" />
-              <div>
-                <h1 className="font-bold text-lg">Acapella Trash</h1>
-                <p className="text-sm text-muted-foreground">powered by HMBL</p>
+              <div className="leading-tight">
+                <h1 className="font-bold text-lg leading-tight">Acapella Trash</h1>
+                <p className="text-xs text-muted-foreground leading-tight mt-0.5">powered by HMBL</p>
               </div>
             </div>
             

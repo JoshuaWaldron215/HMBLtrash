@@ -200,11 +200,11 @@
   }
   
   .app-tab-button.active {
-    @apply bg-primary bg-opacity-10 text-primary;
+    @apply bg-primary text-primary-foreground shadow-sm border-t-2 border-t-primary;
   }
   
   .app-tab-button.inactive {
-    @apply text-muted-foreground hover:text-foreground;
+    @apply text-muted-foreground hover:text-foreground hover:bg-muted;
   }
   
   .app-section {
