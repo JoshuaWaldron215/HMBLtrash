@@ -1,0 +1,207 @@
+import { useState, useEffect, useRef } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { MapPin, Loader2 } from 'lucide-react';
+
+interface AddressAutocompleteProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  className?: string;
+  required?: boolean;
+}
+
+interface AddressSuggestion {
+  description: string;
+  place_id: string;
+  structured_formatting?: {
+    main_text: string;
+    secondary_text: string;
+  };
+}
+
+export default function AddressAutocomplete({
+  value,
+  onChange,
+  placeholder = "Enter your address",
+  label = "Address",
+  className = "",
+  required = false
+}: AddressAutocompleteProps) {
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteService = useRef<any>(null);
+  const debounceTimer = useRef<NodeJS.Timeout>();
+
+  // Load Google Maps script
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    
+    if (!apiKey) {
+      console.log('Google Maps API key not found - using basic address input');
+      return;
+    }
+
+    if ((window as any).google?.maps) {
+      setGoogleMapsLoaded(true);
+      autocompleteService.current = new (window as any).google.maps.places.AutocompleteService();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      setGoogleMapsLoaded(true);
+      autocompleteService.current = new (window as any).google.maps.places.AutocompleteService();
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
+
+  // Handle input changes with debouncing
+  const handleInputChange = (inputValue: string) => {
+    onChange(inputValue);
+    
+    if (!googleMapsLoaded || !autocompleteService.current || inputValue.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      setIsLoading(true);
+      
+      const request = {
+        input: inputValue,
+        componentRestrictions: { country: 'us' },
+        types: ['address'],
+        fields: ['description', 'place_id', 'structured_formatting']
+      };
+
+      autocompleteService.current!.getPlacePredictions(request, (predictions: any, status: any) => {
+        setIsLoading(false);
+        
+        if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setSuggestions(predictions.slice(0, 5)); // Limit to 5 suggestions
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      });
+    }, 300); // 300ms debounce
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = (suggestion: AddressSuggestion) => {
+    onChange(suggestion.description);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    inputRef.current?.blur();
+  };
+
+  // Hide suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {label && (
+        <Label htmlFor="address-input">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
+      )}
+      
+      <div className="relative">
+        <div className="relative">
+          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            ref={inputRef}
+            id="address-input"
+            type="text"
+            value={value}
+            onChange={(e) => handleInputChange(e.target.value)}
+            placeholder={placeholder}
+            className="pl-10 pr-10"
+            autoComplete="street-address"
+            required={required}
+          />
+          {isLoading && (
+            <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
+
+        {/* Suggestions dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={suggestion.place_id || index}
+                type="button"
+                className="w-full px-4 py-3 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none transition-colors"
+                onClick={() => handleSuggestionSelect(suggestion)}
+              >
+                <div className="flex items-start space-x-3">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    {suggestion.structured_formatting ? (
+                      <>
+                        <div className="font-medium text-sm truncate">
+                          {suggestion.structured_formatting.main_text}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {suggestion.structured_formatting.secondary_text}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm">{suggestion.description}</div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* No Google Maps API fallback message */}
+        {!googleMapsLoaded && value.length > 0 && (
+          <div className="text-xs text-muted-foreground mt-1 flex items-center space-x-1">
+            <MapPin className="h-3 w-3" />
+            <span>Enter your complete address manually</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Type declarations for Google Maps (simplified)
+declare global {
+  interface Window {
+    google: any;
+  }
+}

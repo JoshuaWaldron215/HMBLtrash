@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { authenticatedRequest } from '@/lib/auth';
 import { MobileButton, MobileCard, MobileInput } from '@/components/mobile-layout';
 import TestPaymentModal from '@/components/test-payment-modal';
+import AddressAutocomplete from '@/components/address-autocomplete';
 import type { Subscription } from '@shared/schema';
 
 interface BookingModalProps {
@@ -274,16 +275,13 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
               <div>
                 <h3 className="font-semibold mb-4">Pickup Address</h3>
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="address" className="text-sm font-medium mb-2 block">Street Address</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
-                      placeholder="Enter your pickup address"
-                      className="app-input"
-                    />
-                  </div>
+                  <AddressAutocomplete
+                    value={formData.address}
+                    onChange={(value) => setFormData({...formData, address: value})}
+                    label="Street Address"
+                    placeholder="Enter your pickup address"
+                    required
+                  />
                   
                   <div>
                     <Label htmlFor="instructions" className="text-sm font-medium mb-2 block">
