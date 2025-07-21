@@ -125,7 +125,7 @@ export default function Login() {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-service-primary text-white hover:bg-service-accent"
+              className="w-full app-button-primary"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -134,14 +134,14 @@ export default function Login() {
                   Signing in...
                 </>
               ) : (
-                "Sign in"
+                "Sign In"
               )}
             </Button>
           </form>
           <div className="mt-4 text-center">
-            <p className="text-sm text-service-secondary">
+            <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link href="/register" className="text-service-primary hover:underline">
+              <Link href="/register" className="text-primary hover:underline">
                 Sign up
               </Link>
             </p>

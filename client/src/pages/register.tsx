@@ -221,7 +221,7 @@ export default function Register() {
             </div>
             <Button 
               type="submit" 
-              className="w-full"
+              className="w-full app-button-primary"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -230,7 +230,7 @@ export default function Register() {
                   Creating account...
                 </>
               ) : (
-                "Create account"
+                "Create Account"
               )}
             </Button>
           </form>
