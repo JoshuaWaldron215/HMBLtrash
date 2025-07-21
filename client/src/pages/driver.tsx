@@ -243,20 +243,14 @@ export default function Driver() {
               
               // Skip weekends since you work Mon-Fri only
               if (isWeekend) return null;
-              
-              // Mark past assigned pickups as needing attention
-              const isPastDay = day.isPast;
-              const displayName = day.isPast ? `${day.dayName} (Past)` : 
-                                day.isToday ? 'Today' : 
-                                day.isTomorrow ? 'Tomorrow' : day.dayName;
 
               return (
                 <MobileCard key={day.date} className={`${day.isToday ? 'border-2 border-primary bg-primary/5' : ''}`}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
                       <div>
-                        <h4 className={`font-semibold ${day.isToday ? 'text-primary' : isPastDay ? 'text-red-600' : ''}`}>
-                          {displayName}
+                        <h4 className={`font-semibold ${day.isToday ? 'text-primary' : ''}`}>
+                          {day.isToday ? 'Today' : day.isTomorrow ? 'Tomorrow' : day.dayName}
                         </h4>
                         <p className="text-sm text-muted-foreground">
                           {new Date(day.date).toLocaleDateString('en-US', { 

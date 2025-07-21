@@ -1117,6 +1117,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pickups = await storage.getPickupsByDriver(req.user!.id);
       console.log('📦 Total pickups for driver:', pickups.length);
       
+      // Auto-complete pickups more than 2 days old (can't pickup trash from the past)
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      
+      const oldPickups = pickups.filter(pickup => 
+        pickup.status === 'assigned' && 
+        pickup.scheduledDate && 
+        new Date(pickup.scheduledDate) < twoDaysAgo
+      );
+      
+      if (oldPickups.length > 0) {
+        console.log(`🔄 Auto-completing ${oldPickups.length} old pickups (older than 2 days)`);
+        for (const pickup of oldPickups) {
+          await storage.updatePickupStatus(pickup.id, 'completed');
+          console.log(`✅ Auto-completed pickup ${pickup.id} from ${pickup.scheduledDate}`);
+        }
+        // Refresh pickup data after updates
+        const updatedPickups = await storage.getPickupsByDriver(req.user!.id);
+        pickups.length = 0;
+        pickups.push(...updatedPickups);
+      }
+
       const assignedPickups = pickups.filter(pickup => pickup.status === 'assigned');
       console.log('✅ Assigned pickups:', assignedPickups.length);
       
@@ -1126,8 +1148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('📅 Today:', today.toISOString().split('T')[0]);
       
-      // Initialize 7-day window (includes past 2 days + today + next 4 days for complete view)
-      for (let i = -2; i < 5; i++) {
+      // Initialize 7-day window (today + next 6 days since old pickups are auto-completed)
+      for (let i = 0; i < 7; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
         const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
