@@ -255,15 +255,26 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                   <div>
                     <Label htmlFor="scheduledDate" className="text-sm font-medium mb-2 block">
                       {serviceType === 'subscription' ? 'Start Date' : 'Pickup Date'}
+                      <span className="text-red-500 ml-1">*</span>
                     </Label>
-                    <Input
-                      id="scheduledDate"
-                      type="date"
-                      value={formData.scheduledDate}
-                      onChange={(e) => setFormData({...formData, scheduledDate: e.target.value})}
-                      className="app-input"
-                      min={new Date().toISOString().split('T')[0]}
-                    />
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="scheduledDate"
+                        type="date"
+                        value={formData.scheduledDate}
+                        onChange={(e) => setFormData({...formData, scheduledDate: e.target.value})}
+                        className="app-input pl-10 text-base cursor-pointer"
+                        min={new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                    </div>
+                    {!formData.scheduledDate && (
+                      <div className="text-xs text-muted-foreground mt-1 flex items-center space-x-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>Select your preferred {serviceType === 'subscription' ? 'start' : 'pickup'} date</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -158,6 +158,38 @@
   .app-input {
     @apply bg-input border border-border rounded-xl px-4 py-4 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200 text-base;
   }
+
+  /* Enhanced date input styling */
+  input[type="date"].app-input {
+    @apply text-foreground cursor-pointer;
+    color-scheme: light;
+    position: relative;
+  }
+
+  input[type="date"].app-input::-webkit-calendar-picker-indicator {
+    @apply cursor-pointer opacity-70 hover:opacity-100 transition-opacity;
+    background: transparent;
+    padding: 4px;
+    border-radius: 4px;
+    position: absolute;
+    right: 8px;
+  }
+
+  input[type="date"].app-input:focus::-webkit-calendar-picker-indicator {
+    @apply opacity-100;
+  }
+
+  /* Ensure date input text is visible */
+  input[type="date"].app-input::-webkit-datetime-edit {
+    @apply text-foreground;
+  }
+
+  input[type="date"].app-input::-webkit-datetime-edit-text,
+  input[type="date"].app-input::-webkit-datetime-edit-month-field,
+  input[type="date"].app-input::-webkit-datetime-edit-day-field,
+  input[type="date"].app-input::-webkit-datetime-edit-year-field {
+    @apply text-foreground;
+  }
   
   .app-status-badge {
     @apply inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium;

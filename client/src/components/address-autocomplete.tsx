@@ -155,6 +155,7 @@ export default function AddressAutocomplete({
     onChange(suggestion.description);
     setSuggestions([]);
     setShowSuggestions(false);
+    setIsLoading(false);
     inputRef.current?.blur();
   };
 
@@ -231,7 +232,7 @@ export default function AddressAutocomplete({
         )}
 
         {/* Fallback suggestions when Google API isn't working */}
-        {(!googleMapsLoaded || (!showSuggestions && value.length > 2 && !isLoading)) && (
+        {(!googleMapsLoaded || (!showSuggestions && value.length > 2 && !isLoading)) && value.length > 0 && (
           <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
             <div className="px-4 py-2 text-xs text-muted-foreground border-b">
               {!googleMapsLoaded ? 'Manual entry - Common Philadelphia locations:' : 'Quick suggestions:'}
