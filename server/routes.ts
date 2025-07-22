@@ -1024,12 +1024,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pickupId = parseInt(req.params.id);
       console.log(`🔄 Completing pickup ${pickupId} for driver ${req.user!.id}`);
       
+      // Get the pickup before completing to check if it's a subscription
+      const originalPickup = await storage.getPickup(pickupId);
+      if (!originalPickup) {
+        return res.status(404).json({ message: 'Pickup not found' });
+      }
+      
       const pickup = await storage.completePickup(pickupId);
       console.log(`✅ Pickup ${pickupId} completed successfully, status: ${pickup.status}`);
+      
+      // If this was a subscription pickup, create next week's pickup
+      if (originalPickup.serviceType === 'subscription') {
+        console.log(`📅 Creating next week's subscription pickup for customer ${originalPickup.customerId}`);
+        
+        const nextWeekDate = new Date(originalPickup.scheduledDate);
+        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+        
+        const nextPickup = await storage.createPickup({
+          customerId: originalPickup.customerId,
+          address: originalPickup.address,
+          bagCount: originalPickup.bagCount,
+          serviceType: 'subscription',
+          scheduledDate: nextWeekDate,
+          amount: originalPickup.amount,
+          specialInstructions: originalPickup.specialInstructions,
+          status: 'pending'
+        });
+        
+        console.log(`📦 Next week's pickup created: #${nextPickup.id} for ${nextWeekDate.toDateString()}`);
+      }
       
       res.json(pickup);
     } catch (error: any) {
       console.error(`❌ Error completing pickup ${req.params.id}:`, error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Bulk complete pickups for driver dashboard
+  app.post("/api/driver/complete-bulk", authenticateToken, requireRole('driver'), async (req, res) => {
+    try {
+      const { pickupIds } = req.body;
+      console.log(`🔄 Bulk completing ${pickupIds.length} pickups for driver ${req.user!.id}`);
+      
+      const completedPickups = [];
+      const createdSubscriptionPickups = [];
+      
+      for (const pickupId of pickupIds) {
+        // Get the pickup before completing to check if it's a subscription
+        const originalPickup = await storage.getPickup(pickupId);
+        if (!originalPickup) continue;
+        
+        const completed = await storage.completePickup(pickupId);
+        completedPickups.push(completed);
+        
+        // If this was a subscription pickup, create next week's pickup
+        if (originalPickup.serviceType === 'subscription') {
+          const nextWeekDate = new Date(originalPickup.scheduledDate);
+          nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+          
+          const nextPickup = await storage.createPickup({
+            customerId: originalPickup.customerId,
+            address: originalPickup.address,
+            bagCount: originalPickup.bagCount,
+            serviceType: 'subscription',
+            scheduledDate: nextWeekDate,
+            amount: originalPickup.amount,
+            specialInstructions: originalPickup.specialInstructions,
+            status: 'pending'
+          });
+          
+          createdSubscriptionPickups.push(nextPickup);
+        }
+      }
+      
+      console.log(`✅ Bulk completed ${completedPickups.length} pickups, created ${createdSubscriptionPickups.length} future subscription pickups`);
+      
+      res.json({
+        completed: completedPickups,
+        nextWeekPickups: createdSubscriptionPickups,
+        message: `Completed ${completedPickups.length} pickups successfully`
+      });
+    } catch (error: any) {
+      console.error('❌ Error bulk completing pickups:', error);
       res.status(400).json({ message: error.message });
     }
   });

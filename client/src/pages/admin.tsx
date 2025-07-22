@@ -381,6 +381,20 @@ export default function Admin() {
                         <Package className="w-3 h-3 mr-1" />
                         <span>{pickup.bagCount} bags • {customer?.username || 'Unknown'}</span>
                       </div>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        <span>
+                          {pickup.scheduledDate 
+                            ? new Date(pickup.scheduledDate).toLocaleDateString('en-US', { 
+                                weekday: 'short', 
+                                month: 'short', 
+                                day: 'numeric',
+                                year: pickup.scheduledDate.includes('2025') ? undefined : 'numeric'
+                              })
+                            : 'No date set'
+                          }
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">

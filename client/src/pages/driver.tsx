@@ -75,30 +75,29 @@ export default function Driver() {
   const todayPendingPickups = todayRoute.filter((p: any) => p.status === 'assigned');
   const todayCompletedPickups = todayRoute.filter((p: any) => p.status === 'completed');
 
-  // Complete selected pickups mutation
+  // Complete selected pickups mutation using bulk endpoint
   const completePickupsMutation = useMutation({
     mutationFn: async (pickupIds: number[]) => {
-      const results = await Promise.all(
-        pickupIds.map(async id => {
-          const response = await authenticatedRequest('POST', `/api/pickups/${id}/complete`);
-          return response.json();
-        })
-      );
-      return results;
+      const response = await authenticatedRequest('POST', '/api/driver/complete-bulk', { pickupIds });
+      return response.json();
     },
-    onSuccess: (_, pickupIds) => {
+    onSuccess: (data, pickupIds) => {
       queryClient.invalidateQueries({ queryKey: ['/api/driver/route'] });
       queryClient.invalidateQueries({ queryKey: ['/api/driver/full-route'] });
       setSelectedPickups([]); // Clear selections after completion
+      
+      const subscriptionCount = data.nextWeekPickups?.length || 0;
       toast({
         title: "Pickups Completed",
-        description: `Successfully completed ${pickupIds.length} pickup${pickupIds.length > 1 ? 's' : ''}.`,
+        description: `Successfully completed ${pickupIds.length} pickup${pickupIds.length > 1 ? 's' : ''}${
+          subscriptionCount > 0 ? `. Created ${subscriptionCount} subscription pickup${subscriptionCount > 1 ? 's' : ''} for next week.` : '.'
+        }`,
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to complete some pickups. Please try again.",
+        description: "Failed to complete pickups. Please try again.",
         variant: "destructive",
       });
     },
