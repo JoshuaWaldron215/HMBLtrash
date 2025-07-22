@@ -170,6 +170,13 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Implemented smart data consistency ensuring summary counts match displayed pickups
   * Added special instruction highlighting and ETA calculations for each pickup stop
   * Created streamlined upcoming schedule preview showing next few days without overwhelming interface
+- ✓ Domain deployment and custom domain setup (July 22, 2025):
+  * Successfully deployed application to Replit hosting platform
+  * Configured custom domain acapellatrashremoval.com with proper DNS records
+  * Set up A record pointing to Replit IP (34.111.179.208)
+  * Added TXT verification record for domain ownership validation
+  * Configured CNAME record for www subdomain routing
+  * Domain verification in progress - website will be live at custom domain once complete
 
 ## User Preferences
 
