@@ -65,7 +65,7 @@ const pricingOptions = [
     price: 'Call for Quote',
     period: '',
     popular: false,
-    features: ['House cleanouts', 'Basement & attic clearing', 'Estate cleanouts', 'Construction debris'],
+    features: ['House cleanouts', 'Basement & attic clearing', 'Estate cleanouts', 'Garage cleanouts'],
     buttonText: 'Call (267) 401-4292',
     isSpecial: true
   }
@@ -168,7 +168,7 @@ export default function Home() {
               <span className="text-white font-semibold">Now Offering Cleanout Services</span>
             </div>
             <p className="text-white text-opacity-90 text-sm mb-3">
-              House cleanouts • Basements • Attics • Estate cleanouts • Construction debris
+              House cleanouts • Basements • Attics • Estate cleanouts • Garages
             </p>
             <MobileButton 
               variant="outline"
