@@ -58,6 +58,16 @@ const pricingOptions = [
     popular: false,
     features: ['4 bags - $30', '8 bags - $45', '10 bags - $50', '25 bags - $100'],
     buttonText: 'Book Now'
+  },
+  {
+    type: 'cleanout',
+    title: 'Cleanout Services',
+    price: 'Call for Quote',
+    period: '',
+    popular: false,
+    features: ['House cleanouts', 'Basement & attic clearing', 'Estate cleanouts', 'Construction debris'],
+    buttonText: 'Call (267) 401-4292',
+    isSpecial: true
   }
 ];
 
@@ -147,9 +157,28 @@ export default function Home() {
             <h1 className="text-3xl font-bold mb-2">Acapella Trash</h1>
             <p className="text-xl text-white text-opacity-90">powered by HMBL</p>
           </div>
-          <p className="text-lg text-white text-opacity-90 mb-8 leading-relaxed">
+          <p className="text-lg text-white text-opacity-90 mb-6 leading-relaxed">
             Professional waste removal service for Philadelphia. Where anything is possible and no job is too big or small — we will get it done.
           </p>
+          
+          {/* NEW Service Announcement */}
+          <div className="bg-orange-500 bg-opacity-20 border border-orange-400 border-opacity-30 rounded-lg p-4 mb-8 backdrop-blur-sm">
+            <div className="flex items-center justify-center mb-2">
+              <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-medium mr-2">NEW!</span>
+              <span className="text-white font-semibold">Now Offering Cleanout Services</span>
+            </div>
+            <p className="text-white text-opacity-90 text-sm mb-3">
+              House cleanouts • Basements • Attics • Estate cleanouts • Construction debris
+            </p>
+            <MobileButton 
+              variant="outline"
+              className="border-orange-400 text-orange-100 hover:bg-orange-500 hover:text-white bg-orange-500 bg-opacity-10"
+              onClick={() => window.open('tel:2674014292')}
+            >
+              Call (267) 401-4292 for Quote
+            </MobileButton>
+          </div>
+          
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <MobileButton 
               variant="primary" 
@@ -188,16 +217,24 @@ export default function Home() {
       {/* Pricing Section */}
       <MobileSection className="bg-muted/30">
         <h2 className="text-2xl font-bold text-center mb-8">Simple Pricing</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {pricingOptions.map((option) => (
             <MobileCard 
               key={option.type} 
-              className={`relative ${option.popular ? 'border-primary border-2' : ''}`}
+              className={`relative ${option.popular ? 'border-primary border-2' : ''} ${(option as any).isSpecial ? 'border-orange-500 border-2' : ''}`}
             >
               {option.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                     Most Popular
+                  </span>
+                </div>
+              )}
+              
+              {(option as any).isSpecial && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    NEW Service!
                   </span>
                 </div>
               )}
@@ -219,13 +256,23 @@ export default function Home() {
                 ))}
               </ul>
               
-              <MobileButton 
-                variant={option.popular ? 'primary' : 'outline'}
-                className="w-full"
-                onClick={() => handleBooking(option.type as 'subscription' | 'one-time')}
-              >
-                {option.buttonText}
-              </MobileButton>
+              {(option as any).isSpecial ? (
+                <MobileButton 
+                  variant="outline"
+                  className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
+                  onClick={() => window.open('tel:2674014292')}
+                >
+                  {option.buttonText}
+                </MobileButton>
+              ) : (
+                <MobileButton 
+                  variant={option.popular ? 'primary' : 'outline'}
+                  className="w-full"
+                  onClick={() => handleBooking(option.type as 'subscription' | 'one-time')}
+                >
+                  {option.buttonText}
+                </MobileButton>
+              )}
             </MobileCard>
           ))}
         </div>

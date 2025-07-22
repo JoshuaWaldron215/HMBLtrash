@@ -177,6 +177,13 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Added TXT verification record for domain ownership validation
   * Configured CNAME record for www subdomain routing
   * Domain verification in progress - website will be live at custom domain once complete
+- ✓ Added cleanout services promotion to homepage (July 22, 2025):
+  * Added prominent cleanout services announcement in hero section with "NEW!" badge
+  * Created third pricing card for cleanout services with orange styling
+  * Integrated phone number (267) 401-4292 for cleanout pricing quotes
+  * Listed services: house cleanouts, basements, attics, estate cleanouts, construction debris
+  * Updated grid layout to accommodate three service offerings
+  * Added click-to-call functionality for easy customer contact
 
 ## User Preferences
 
