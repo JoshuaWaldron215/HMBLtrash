@@ -265,8 +265,8 @@ export default function Driver() {
 
             {/* Selection Controls */}
             {todayPendingPickups.length > 0 && (
-              <div className="flex items-center justify-between mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg border">
-                <div className="flex items-center gap-2">
+              <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg border space-y-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Button
                     variant="outline"
                     size="sm"
@@ -290,7 +290,8 @@ export default function Driver() {
                 <Button
                   onClick={handleCompleteSelected}
                   disabled={selectedPickups.length === 0 || completePickupsMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  size="sm"
                 >
                   {completePickupsMutation.isPending ? (
                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
@@ -315,56 +316,63 @@ export default function Driver() {
                         : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                   }`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedPickups.includes(pickup.id)}
-                      onChange={() => togglePickupSelection(pickup.id)}
-                      className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
-                      disabled={pickup.status === 'completed'}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
-                          #{pickup.routeOrder || index + 1}
-                        </span>
-                        <span className="font-medium">{pickup.address}</span>
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                        <span className="flex items-center space-x-1">
-                          <Package className="w-4 h-4" />
-                          <span>{pickup.bagCount} bags</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4" />
-                          <span>ETA: {pickup.estimatedArrival}</span>
-                        </span>
-                        <span className="font-medium">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
-                      </div>
-                      {pickup.specialInstructions && (
-                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
-                          Note: {pickup.specialInstructions}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {pickup.status === 'completed' ? (
-                        <div className="flex items-center text-green-600">
-                          <Check className="w-5 h-5 mr-1" />
-                          <span className="text-sm font-medium">Done</span>
+                  <div className="space-y-3">
+                    {/* Header with checkbox, route number, and address */}
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedPickups.includes(pickup.id)}
+                        onChange={() => togglePickupSelection(pickup.id)}
+                        className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary mt-1"
+                        disabled={pickup.status === 'completed'}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
+                            #{pickup.routeOrder || index + 1}
+                          </span>
+                          <span className="font-medium text-sm leading-tight">{pickup.address}</span>
                         </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleNavigate(pickup.address)}
-                          className="text-primary hover:text-primary/80"
-                        >
-                          <Navigation className="w-4 h-4 mr-1" />
-                          Navigate
-                        </Button>
-                      )}
+                        
+                        {/* Pickup details in a grid */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                          <span className="flex items-center space-x-1">
+                            <Package className="w-3 h-3" />
+                            <span>{pickup.bagCount} bags</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <Clock className="w-3 h-3" />
+                            <span>ETA: {pickup.estimatedArrival}</span>
+                          </span>
+                          <span className="font-medium">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
+                          <div className="flex justify-end">
+                            {pickup.status === 'completed' ? (
+                              <div className="flex items-center text-green-600">
+                                <Check className="w-4 h-4 mr-1" />
+                                <span className="text-xs font-medium">Done</span>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleNavigate(pickup.address)}
+                                className="text-primary hover:text-primary/80 h-7 px-2 text-xs"
+                              >
+                                <Navigation className="w-3 h-3 mr-1" />
+                                Navigate
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                    
+                    {/* Special instructions if any */}
+                    {pickup.specialInstructions && (
+                      <p className="text-sm text-amber-700 dark:text-amber-300 p-2 bg-amber-50 dark:bg-amber-900/20 rounded ml-8">
+                        Note: {pickup.specialInstructions}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
