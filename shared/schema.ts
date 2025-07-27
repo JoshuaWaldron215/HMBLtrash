@@ -90,9 +90,11 @@ export const routes = pgTable("routes", {
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").references(() => users.id).notNull(),
+  packageType: text("package_type").default("basic"), // basic, clean-carry, heavy-duty, premium
   stripeSubscriptionId: text("stripe_subscription_id").notNull(),
   status: text("status").notNull(), // active, cancelled, past_due
   nextPickupDate: timestamp("next_pickup_date"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).default("35"),
   // Additional subscription fields
   frequency: text("frequency").notNull().default("weekly"), // weekly, biweekly, monthly
   preferredDay: text("preferred_day"), // monday, tuesday, etc.

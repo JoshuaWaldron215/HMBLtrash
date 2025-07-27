@@ -34,7 +34,7 @@ import type { Pickup, Subscription, User as UserType } from '@shared/schema';
 
 export default function Dashboard() {
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [selectedServiceType, setSelectedServiceType] = useState<'subscription' | 'one-time'>('one-time');
+  const [selectedServiceType, setSelectedServiceType] = useState<'basic' | 'clean-carry' | 'heavy-duty' | 'premium' | 'one-time'>('one-time');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -71,9 +71,10 @@ export default function Dashboard() {
   const completedPickups = pickups.filter(p => p.status === 'completed');
   const hasActiveSubscription = subscription && subscription.status === 'active';
 
-  const handleBooking = (type: 'subscription' | 'one-time') => {
+  const handleBooking = (type: 'basic' | 'clean-carry' | 'heavy-duty' | 'premium' | 'one-time') => {
     // Check if user already has an active subscription
-    if (type === 'subscription' && hasActiveSubscription) {
+    const isSubscriptionType = ['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(type);
+    if (isSubscriptionType && hasActiveSubscription) {
       toast({
         title: "Subscription Already Active",
         description: "You already have an active weekly subscription. Manage your existing subscription instead.",
@@ -163,14 +164,14 @@ export default function Dashboard() {
               <h3 className="font-semibold text-lg">Subscription Status</h3>
             </div>
             {hasActiveSubscription && (
-              <StatusBadge status="active">Active</StatusBadge>
+              <StatusBadge status="completed">Active</StatusBadge>
             )}
           </div>
           
           {hasActiveSubscription ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Weekly pickup service - $20/month
+                {subscription?.packageType || 'Basic'} package - ${subscription?.amount || 35}/month
               </p>
               <p className="text-sm font-medium">
                 Next pickup: {subscription?.nextPickupDate ? 
@@ -206,7 +207,7 @@ export default function Dashboard() {
               <MobileButton 
                 variant="primary" 
                 size="sm" 
-                onClick={() => handleBooking('subscription')}
+                onClick={() => handleBooking('basic')}
               >
                 Start Subscription
               </MobileButton>
@@ -281,7 +282,7 @@ export default function Dashboard() {
                         {pickup.bagCount} bags • {pickup.serviceType}
                       </p>
                     </div>
-                    <StatusBadge status={pickup.status}>
+                    <StatusBadge status={pickup.status as "pending" | "assigned" | "completed"}>
                       {pickup.status === 'assigned' ? 'Scheduled' : pickup.status}
                     </StatusBadge>
                   </div>
