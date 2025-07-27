@@ -23,7 +23,7 @@ interface TestPaymentModalProps {
   onSuccess: () => void;
   clientSecret: string;
   amount: number;
-  serviceType: 'subscription' | 'one-time';
+  serviceType: 'basic' | 'clean-carry' | 'heavy-duty' | 'premium' | 'one-time';
   testMode?: boolean;
   testCards?: any;
 }

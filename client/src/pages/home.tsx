@@ -76,6 +76,16 @@ const pricingOptions = [
     popular: false,
     features: ['2x per week pickup', 'Up to 6 bags per pickup', '1 bag recycling per pickup', '1 furniture item/week', 'Bin power washing', 'Monthly lawn mowing'],
     buttonText: 'Choose Premium'
+  },
+  {
+    type: 'custom',
+    title: 'Custom Quote',
+    price: 'Call',
+    period: 'for pricing',
+    popular: false,
+    isCustom: true,
+    features: ['Commercial properties', 'Large volume pickup', 'Special waste disposal', 'Construction cleanup', 'Custom scheduling', 'Bulk item removal'],
+    buttonText: 'Get Custom Quote'
   }
 ];
 
@@ -224,12 +234,12 @@ export default function Home() {
 
       {/* Pricing Section */}
       <MobileSection className="bg-muted/30">
-        <h2 className="text-2xl font-bold text-center mb-8">Simple Pricing</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        <h2 className="text-2xl font-bold text-center mb-8">Choose Your Service Package</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-8xl mx-auto">
           {pricingOptions.map((option) => (
             <MobileCard 
               key={option.type} 
-              className={`relative ${option.popular ? 'border-primary border-2' : ''} ${(option as any).isSpecial ? 'border-orange-500 border-2' : ''}`}
+              className={`relative ${option.popular ? 'border-primary border-2' : ''} ${(option as any).isSpecial ? 'border-orange-500 border-2' : ''} ${(option as any).isCustom ? 'border-blue-500 border-2' : ''}`}
             >
               {option.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -243,6 +253,14 @@ export default function Home() {
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                     NEW Service!
+                  </span>
+                </div>
+              )}
+              
+              {(option as any).isCustom && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    Custom Solutions
                   </span>
                 </div>
               )}
@@ -272,6 +290,14 @@ export default function Home() {
                 >
                   {option.buttonText}
                 </MobileButton>
+              ) : (option as any).isCustom ? (
+                <MobileButton 
+                  variant="outline"
+                  className="w-full border-blue-500 text-blue-600 hover:bg-blue-50"
+                  onClick={() => window.open('tel:2674014292')}
+                >
+                  {option.buttonText}
+                </MobileButton>
               ) : (
                 <MobileButton 
                   variant={option.popular ? 'primary' : 'outline'}
@@ -283,6 +309,29 @@ export default function Home() {
               )}
             </MobileCard>
           ))}
+        </div>
+      </MobileSection>
+
+      {/* Custom Quote Section */}
+      <MobileSection className="bg-blue-50">
+        <div className="text-center max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold mb-4">Need a Custom Quote?</h2>
+          <p className="text-muted-foreground mb-6">
+            For commercial properties, large volume pickups, construction cleanup, or special waste disposal needs, 
+            call us for a personalized quote tailored to your specific requirements.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <MobileButton 
+              variant="primary"
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => window.open('tel:2674014292')}
+            >
+              Call (267) 401-4292
+            </MobileButton>
+            <p className="text-sm text-muted-foreground">
+              Available Monday-Friday, 8AM-6PM EST
+            </p>
+          </div>
         </div>
       </MobileSection>
 

@@ -270,7 +270,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="scheduledDate" className="text-sm font-medium mb-2 block">
-                      {serviceType === 'subscription' ? 'Start Date' : 'Pickup Date'}
+                      {['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) ? 'Start Date' : 'Pickup Date'}
                       <span className="text-red-500 ml-1">*</span>
                     </Label>
                     <div className="relative">
@@ -288,7 +288,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                     {!formData.scheduledDate && (
                       <div className="text-xs text-muted-foreground mt-1 flex items-center space-x-1">
                         <Calendar className="h-3 w-3" />
-                        <span>Select your preferred {serviceType === 'subscription' ? 'start' : 'pickup'} date</span>
+                        <span>Select your preferred {['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) ? 'start' : 'pickup'} date</span>
                       </div>
                     )}
                   </div>
@@ -336,7 +336,9 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Service</span>
                     <span className="font-medium">
-                      {serviceType === 'subscription' ? 'Weekly Subscription' : 'One-Time Pickup'}
+                      {['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) ? 
+                        `${serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('-', ' & ')} Package` : 
+                        'One-Time Pickup'}
                     </span>
                   </div>
                   
@@ -364,7 +366,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                       <span className="font-semibold">Total</span>
                       <span className="text-2xl font-bold">
                         ${getCurrentPrice()}
-                        {serviceType === 'subscription' && <span className="text-sm font-normal">/month</span>}
+                        {['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) && <span className="text-sm font-normal">/month</span>}
                       </span>
                     </div>
                   </div>

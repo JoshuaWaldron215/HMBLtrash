@@ -66,11 +66,13 @@ console.log('💪 Heavy Duty Package: $75/month');
 console.log('🏆 Premium Property Package: $150/month');
 
 console.log('\n🔧 Changes made:');
-console.log('✓ Updated home page pricing cards to show 4 packages');
+console.log('✓ Updated home page pricing cards to show 4 packages + custom quote');
 console.log('✓ Modified booking modal to support package selection');
 console.log('✓ Added package types to database schema');
 console.log('✓ Updated subscription endpoints for new pricing');
 console.log('✓ Enhanced dashboard to display package information');
+console.log('✓ Added "call for quote" functionality for custom services');
+console.log('✓ Created dedicated contact section for commercial clients');
 
 console.log('\n🎉 Pricing structure update complete!');
 console.log('🚀 Ready for testing with new four-tier package system');

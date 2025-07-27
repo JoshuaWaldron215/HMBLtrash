@@ -184,16 +184,18 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Listed services: house cleanouts, basements, attics, estate cleanouts, construction debris
   * Updated grid layout to accommodate three service offerings
   * Added click-to-call functionality for easy customer contact
-- ✓ Four-tier pricing structure implementation (July 27, 2025):
+- ✓ Four-tier pricing structure with custom quote implementation (July 27, 2025):
   * Upgraded from single $20/month tier to comprehensive four-tier package system
   * Basic Package ($35): 1x weekly pickup, 6 bags, recycling, bin washing
   * Clean & Carry Package ($60): Basic + furniture removal, power washing
   * Heavy Duty Package ($75): 2x weekly pickup, enhanced service levels
   * Premium Property Package ($150): Full service including monthly lawn mowing
-  * Updated homepage pricing display with four subscription cards
+  * Custom Quote Option: Call (267) 401-4292 for commercial and special services
+  * Updated homepage pricing display with five service options including custom quotes
   * Modified booking modal to support package-based subscription selection
   * Enhanced database schema with packageType and amount fields for subscriptions
   * Updated server endpoints to handle new package pricing structure
+  * Added dedicated custom quote section for commercial clients and large projects
   * Improved dashboard to display active package information and pricing
 
 ## User Preferences
