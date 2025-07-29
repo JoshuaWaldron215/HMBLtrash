@@ -1,5 +1,6 @@
 import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb, index, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 export const users = pgTable("users", {
@@ -308,6 +309,24 @@ export const insertPaymentHistorySchema = createInsertSchema(paymentHistory).omi
 });
 
 // Legacy schemas removed - using enhanced versions above
+
+// Database relations
+export const usersRelations = relations(users, ({ many }) => ({
+  pickups: many(pickups),
+  subscriptions: many(subscriptions),
+  driverMetrics: many(driverMetrics),
+  notifications: many(notifications),
+  paymentHistory: many(paymentHistory),
+}));
+
+export const pickupsRelations = relations(pickups, ({ one }) => ({
+  customer: one(users, { fields: [pickups.customerId], references: [users.id] }),
+  driver: one(users, { fields: [pickups.driverId], references: [users.id] }),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  customer: one(users, { fields: [subscriptions.customerId], references: [users.id] }),
+}));
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;

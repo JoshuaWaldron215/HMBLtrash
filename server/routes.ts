@@ -247,11 +247,20 @@ const requireRole = (role: string) => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Health check endpoint - must be first to ensure API routing works
+  app.get("/api/health", (req, res) => {
+    res.json({ 
+      status: "healthy", 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
 
   
   // Enhanced Auth routes with security features
-  app.post("/api/register", async (req, res) => {
+  app.post("/api/auth/register", async (req, res) => {
     try {
+      console.log('Registration request body:', req.body);
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       const userAgent = req.get('User-Agent') || 'unknown';
       
@@ -278,12 +287,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/login", async (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     try {
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       const userAgent = req.get('User-Agent') || 'unknown';
       
-      const result = await authService.authenticate(req.body.emailOrUsername, req.body.password, ip, userAgent);
+      const result = await authService.authenticate(req.body.username || req.body.email, req.body.password, ip, userAgent);
       
       if (!result.success) {
         const status = result.requiresTwoFactor ? 200 : 400;
