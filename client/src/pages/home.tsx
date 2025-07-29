@@ -44,55 +44,46 @@ const pricingOptions = [
   {
     type: 'subscription',
     packageType: 'basic',
-    title: '🟢 Basic Package',
+    title: 'Basic Package',
     price: '$35',
     period: '/month',
-    popular: true,
-    features: ['1x per week trash pickup', 'Up to 6 trash bags', '1 bag of recycling', 'Non-commercial trash only'],
-    subtitle: 'Ideal for small households',
-    buttonText: 'Start Basic'
+    popular: false,
+    features: ['Weekly trash pickup', 'Up to 6 trash bags', '1 bag of recycling', 'Residential properties only'],
+    subtitle: 'Perfect for small households',
+    buttonText: 'Get Started'
   },
   {
     type: 'subscription',
     packageType: 'clean-carry',
-    title: '🔵 Clean & Carry Package',
+    title: 'Clean & Carry',
     price: '$60',
     period: '/month',
-    popular: false,
-    features: ['1x per week trash pickup', 'Up to 6 trash bags', '1 bag of recycling', '1 furniture item included', 'Weekly trash can power washing'],
-    subtitle: 'Great for families or shared homes',
-    buttonText: 'Start Clean & Carry'
+    popular: true,
+    features: ['Weekly trash pickup', 'Up to 6 trash bags', '1 bag of recycling', '1 furniture item included', 'Weekly bin power washing'],
+    subtitle: 'Most popular choice',
+    buttonText: 'Choose Plan'
   },
   {
     type: 'subscription',
     packageType: 'heavy-duty',
-    title: '🟣 Heavy Duty Package',
+    title: 'Heavy Duty',
     price: '$75',
     period: '/month',
     popular: false,
-    features: ['2x per week trash pickup', 'Up to 6 bags per pickup', '1 bag recycling per pickup', '1 furniture item per week', 'Weekly power washing'],
-    subtitle: 'Ideal for larger homes or heavy waste output',
-    buttonText: 'Start Heavy Duty'
+    features: ['Twice weekly pickup', 'Up to 6 bags per pickup', '1 recycling bag per pickup', '1 furniture item per week', 'Weekly power washing'],
+    subtitle: 'For busy households',
+    buttonText: 'Choose Plan'
   },
   {
     type: 'subscription',
     packageType: 'premium',
-    title: '🔴 Premium Property Package',
+    title: 'Premium Property',
     price: '$150',
     period: '/month',
     popular: false,
-    features: ['2x per week trash pickup', 'Up to 6 bags per pickup', '1 bag recycling per pickup', '1 furniture item per week', 'Weekly power washing', 'Monthly lawn mowing (¼ acre)'],
-    subtitle: 'Perfect for homeowners wanting full outdoor upkeep',
-    buttonText: 'Start Premium'
-  },
-  {
-    type: 'one-time',
-    title: 'One-Time Pickup',
-    price: 'From $15',
-    period: '',
-    popular: false,
-    features: ['Next-day: $15-50', 'Same-day: $25-65', 'Immediate: 50% premium', 'Flexible scheduling'],
-    buttonText: 'Book Now'
+    features: ['Twice weekly pickup', 'Up to 6 bags per pickup', '1 recycling bag per pickup', '1 furniture item per week', 'Weekly power washing', 'Monthly lawn mowing'],
+    subtitle: 'Complete property care',
+    buttonText: 'Choose Plan'
   },
   {
     type: 'cleanout',
@@ -101,6 +92,7 @@ const pricingOptions = [
     period: '',
     popular: false,
     features: ['House cleanouts', 'Basement & attic clearing', 'Estate cleanouts', 'Construction debris'],
+    subtitle: 'Custom cleaning solutions',
     buttonText: 'Call (267) 401-4292',
     isSpecial: true
   }
@@ -251,12 +243,13 @@ export default function Home() {
 
       {/* Pricing Section */}
       <MobileSection className="bg-muted/30">
-        <h2 className="text-2xl font-bold text-center mb-8">Simple Pricing</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
+        <h2 className="text-2xl font-bold text-center mb-2">Choose Your Service Plan</h2>
+        <p className="text-center text-muted-foreground mb-8">Professional trash removal for Philadelphia metro area</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-7xl mx-auto">
           {pricingOptions.map((option, index) => (
             <MobileCard 
               key={`${option.type}-${(option as any).packageType || index}`} 
-              className={`relative ${option.popular ? 'border-primary border-2' : ''} ${(option as any).isSpecial ? 'border-orange-500 border-2' : ''}`}
+              className={`relative shadow-lg hover:shadow-xl transition-all duration-300 ${option.popular ? 'border-primary border-2 shadow-primary/20' : 'border border-border'} ${(option as any).isSpecial ? 'border-orange-500 border-2' : ''}`}
             >
               {option.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -274,22 +267,22 @@ export default function Home() {
                 </div>
               )}
               
-              <div className="text-center mb-4">
-                <h3 className="text-lg font-semibold mb-1">{option.title}</h3>
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold mb-2">{option.title}</h3>
                 {(option as any).subtitle && (
-                  <p className="text-sm text-muted-foreground mb-2">{(option as any).subtitle}</p>
+                  <p className="text-sm text-muted-foreground mb-3">{(option as any).subtitle}</p>
                 )}
-                <div className="flex items-baseline justify-center">
-                  <span className="text-2xl font-bold">{option.price}</span>
+                <div className="flex items-baseline justify-center mb-4">
+                  <span className="text-3xl font-bold text-primary">{option.price}</span>
                   <span className="text-muted-foreground ml-1">{option.period}</span>
                 </div>
               </div>
               
-              <ul className="space-y-2 mb-6">
+              <ul className="space-y-3 mb-6">
                 {option.features.map((feature, index) => (
-                  <li key={index} className="flex items-center text-sm">
-                    <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                    {feature}
+                  <li key={index} className="flex items-start text-sm">
+                    <CheckCircle className="w-4 h-4 text-primary mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-left">{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -305,7 +298,7 @@ export default function Home() {
               ) : (
                 <MobileButton 
                   variant={option.popular ? 'primary' : 'outline'}
-                  className="w-full"
+                  className={`w-full ${option.popular ? 'bg-primary hover:bg-primary/90 text-white' : 'border-2 hover:border-primary hover:text-primary'}`}
                   onClick={() => handleBooking(option.type as 'subscription' | 'one-time')}
                 >
                   {option.buttonText}
