@@ -227,6 +227,8 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Validated all authentication, authorization, and role-based access control systems operational
   * Tested complete business workflows: customer registration → admin visibility → role promotion → driver assignment
   * Ready for immediate production deployment with capability to handle hundreds of signups
+  * Fixed frontend authentication routing to use proper /api/auth/* endpoints instead of incorrect /api/* paths
+  * Confirmed user registration now works seamlessly through frontend interface without HTML/JSON errors
 - ✓ Updated weekly subscription pricing from $20 to $25 per month (July 26, 2025):
   * Changed Stripe billing amount from 2000 to 2500 cents
   * Updated all customer-facing displays (homepage, dashboard, subscription page)

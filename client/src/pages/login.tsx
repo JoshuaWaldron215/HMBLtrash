@@ -28,7 +28,7 @@ export default function Login() {
   const onSubmit = async (data: LoginData) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/login", data);
+      const response = await apiRequest("POST", "/api/auth/login", data);
       const result = await response.json();
       
       setStoredToken(result.token);

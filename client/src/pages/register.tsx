@@ -32,7 +32,7 @@ export default function Register() {
   const onSubmit = async (data: RegisterData) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/register", data);
+      const response = await apiRequest("POST", "/api/auth/register", data);
       const result = await response.json();
       
       setStoredToken(result.token);
