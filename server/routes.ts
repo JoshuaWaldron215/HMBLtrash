@@ -1299,7 +1299,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       assignedPickups.forEach(pickup => {
         console.log(`🔍 Pickup ${pickup.id}: scheduledDate = ${pickup.scheduledDate}`);
         if (pickup.scheduledDate) {
-          const pickupDate = new Date(pickup.scheduledDate).toISOString().split('T')[0];
+          // Fix timezone issue by using local date calculation instead of UTC
+          const pickupDateTime = new Date(pickup.scheduledDate);
+          const pickupDate = `${pickupDateTime.getFullYear()}-${String(pickupDateTime.getMonth() + 1).padStart(2, '0')}-${String(pickupDateTime.getDate()).padStart(2, '0')}`;
           console.log(`📅 Pickup ${pickup.id}: computed date = ${pickupDate}`);
           if (schedule[pickupDate]) {
             schedule[pickupDate].pickups.push(pickup);
