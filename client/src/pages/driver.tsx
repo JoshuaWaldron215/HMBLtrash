@@ -69,6 +69,8 @@ export default function Driver() {
   console.log('📅 Looking for pickups on date:', todayDate);
   console.log('📦 Found today schedule:', todaySchedule);
   console.log('🚚 Today route pickups:', todayRoute.length);
+  console.log('🗂️ Full schedule data keys:', Object.keys(scheduleData));
+  console.log('📋 Schedule for 2025-07-29:', scheduleData['2025-07-29']);
 
   // Get all days from schedule for 7-day view
   const scheduleDays = Object.values(scheduleData).sort((a: any, b: any) => 
