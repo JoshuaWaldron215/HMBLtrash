@@ -44,7 +44,7 @@ const pricingOptions = [
   {
     type: 'subscription',
     title: 'Weekly Subscription',
-    price: '$20',
+    price: '$25',
     period: '/month',
     popular: true,
     features: ['Weekly pickup', 'Up to 6 bags', 'Priority scheduling', 'Cancel anytime'],

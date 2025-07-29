@@ -20,7 +20,11 @@ import {
   Download,
   RefreshCw,
   Navigation,
-  Edit3
+  Edit3,
+  AlertTriangle,
+  XCircle,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import MobileLayout, { 
   MobileCard, 
@@ -39,6 +43,7 @@ import type { Pickup, User, Subscription } from '@shared/schema';
 export default function Admin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showClusters, setShowClusters] = useState(false);
   const [selectedCluster, setSelectedCluster] = useState<any>(null);
   const [reschedulePickup, setReschedulePickup] = useState<{ pickup: Pickup; customer: User } | null>(null);
@@ -161,6 +166,60 @@ export default function Admin() {
 
   const handleOptimizeRoute = (routeType: 'subscription' | 'package') => {
     optimizeRouteMutation.mutate(routeType);
+  };
+
+  // Pickup completion handlers
+  const handleCompletePickup = async (pickupId: number) => {
+    try {
+      await authenticatedRequest('PATCH', `/api/admin/complete-pickup/${pickupId}`, { status: 'completed' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+      toast({
+        title: "Pickup Completed",
+        description: "Pickup has been marked as completed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to complete pickup. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMarkIssue = async (pickupId: number) => {
+    try {
+      await authenticatedRequest('PATCH', `/api/admin/pickup-issue/${pickupId}`, { status: 'issue' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+      toast({
+        title: "Issue Reported",
+        description: "Pickup has been marked with an issue.",
+        variant: "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to report issue. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMarkIncomplete = async (pickupId: number) => {
+    try {
+      await authenticatedRequest('PATCH', `/api/admin/pickup-incomplete/${pickupId}`, { status: 'incomplete' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+      toast({
+        title: "Pickup Incomplete",
+        description: "Pickup has been marked as incomplete.",
+        variant: "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark incomplete. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Cluster route creation mutation
@@ -328,38 +387,111 @@ export default function Admin() {
         </div>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        <Button 
-          variant={statusFilter === 'same-day' ? 'default' : 'outline'} 
-          size="sm"
-          onClick={() => setStatusFilter('same-day')}
-          className="flex-1"
-        >
-          Same-Day ($25-65)
-        </Button>
-        <Button 
-          variant={statusFilter === 'next-day' ? 'default' : 'outline'} 
-          size="sm"
-          onClick={() => setStatusFilter('next-day')}
-          className="flex-1"
-        >
-          Next-Day ($15-50)
-        </Button>
+      {/* Status Filter Buttons */}
+      <div className="flex flex-wrap gap-2 mb-4">
         <Button 
           variant={statusFilter === 'all' ? 'default' : 'outline'} 
           size="sm"
           onClick={() => setStatusFilter('all')}
-          className="flex-1"
+          className="h-8"
         >
-          All
+          All ({pickups.filter(p => p.serviceType !== 'subscription').length})
+        </Button>
+        <Button 
+          variant={statusFilter === 'pending' ? 'default' : 'outline'} 
+          size="sm"
+          onClick={() => setStatusFilter('pending')}
+          className="h-8"
+        >
+          Pending ({pickups.filter(p => p.serviceType !== 'subscription' && p.status === 'pending').length})
+        </Button>
+        <Button 
+          variant={statusFilter === 'assigned' ? 'default' : 'outline'} 
+          size="sm"
+          onClick={() => setStatusFilter('assigned')}
+          className="h-8"
+        >
+          Assigned ({pickups.filter(p => p.serviceType !== 'subscription' && p.status === 'assigned').length})
+        </Button>
+        <Button 
+          variant={statusFilter === 'completed' ? 'default' : 'outline'} 
+          size="sm"
+          onClick={() => setStatusFilter('completed')}
+          className="h-8"
+        >
+          Completed ({pickups.filter(p => p.serviceType !== 'subscription' && p.status === 'completed').length})
+        </Button>
+        {pickups.filter(p => p.serviceType !== 'subscription' && p.status === 'issue').length > 0 && (
+          <Button
+            variant={statusFilter === 'issue' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('issue')}
+            className="h-8 text-orange-600 border-orange-200 hover:bg-orange-50"
+          >
+            Issues ({pickups.filter(p => p.serviceType !== 'subscription' && p.status === 'issue').length})
+          </Button>
+        )}
+        {pickups.filter(p => p.serviceType !== 'subscription' && p.status === 'incomplete').length > 0 && (
+          <Button
+            variant={statusFilter === 'incomplete' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('incomplete')}
+            className="h-8 text-red-600 border-red-200 hover:bg-red-50"
+          >
+            Incomplete ({pickups.filter(p => p.serviceType !== 'subscription' && p.status === 'incomplete').length})
+          </Button>
+        )}
+      </div>
+
+      {/* Date Sort Controls */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-sm text-muted-foreground">Sort by date:</span>
+        <Button
+          variant={sortOrder === 'desc' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSortOrder('desc')}
+          className="h-8"
+        >
+          <ArrowDown className="w-3 h-3 mr-1" />
+          Newest First
+        </Button>
+        <Button
+          variant={sortOrder === 'asc' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSortOrder('asc')}
+          className="h-8"
+        >
+          <ArrowUp className="w-3 h-3 mr-1" />
+          Oldest First
         </Button>
       </div>
 
       <div className="space-y-3">
-        {filteredPickups.length > 0 ? (
-          filteredPickups.slice(0, 10).map((pickup) => {
-            const customer = users.find(u => u.id === pickup.customerId);
-            const isUrgent = pickup.serviceType === 'same-day';
+        {(() => {
+          // Filter requests based on search and status
+          const filteredPickups = pickups.filter(pickup => {
+            // Only show non-subscription pickups
+            if (pickup.serviceType === 'subscription') return false;
+            
+            const matchesSearch = searchTerm === '' || 
+              pickup.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              users.find(u => u.id === pickup.customerId)?.username?.toLowerCase().includes(searchTerm.toLowerCase());
+              
+            const matchesFilter = statusFilter === 'all' || pickup.status === statusFilter;
+              
+            return matchesSearch && matchesFilter;
+          })
+          // Sort by scheduled date
+          .sort((a, b) => {
+            const dateA = new Date(a.scheduledDate || a.createdAt || new Date()).getTime();
+            const dateB = new Date(b.scheduledDate || b.createdAt || new Date()).getTime();
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+          });
+          
+          return filteredPickups.length > 0 ? (
+            filteredPickups.slice(0, 10).map((pickup) => {
+              const customer = users.find(u => u.id === pickup.customerId);
+              const isUrgent = pickup.serviceType === 'same-day';
             
             return (
               <MobileCard key={pickup.id} className={isUrgent ? 'border-orange-200 bg-orange-50 dark:bg-orange-900/10' : ''}>
@@ -367,7 +499,14 @@ export default function Admin() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-medium">#{pickup.id}</span>
-                      <StatusBadge status={pickup.status as any}>{pickup.status}</StatusBadge>
+                      <StatusBadge status={pickup.status === 'completed' ? 'completed' : 
+                                         pickup.status === 'issue' ? 'assigned' : 
+                                         pickup.status === 'incomplete' ? 'assigned' :
+                                         pickup.status as 'pending' | 'completed' | 'assigned'}>
+                        {pickup.status === 'issue' ? 'Issue' : 
+                         pickup.status === 'incomplete' ? 'Incomplete' :
+                         pickup.status}
+                      </StatusBadge>
                       {isUrgent && (
                         <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">URGENT</span>
                       )}
@@ -384,14 +523,28 @@ export default function Admin() {
                       <div className="flex items-center text-sm text-muted-foreground">
                         <Calendar className="w-3 h-3 mr-1" />
                         <span>
-                          {pickup.scheduledDate 
+                          Scheduled: {pickup.scheduledDate 
                             ? new Date(pickup.scheduledDate).toLocaleDateString('en-US', { 
                                 weekday: 'short', 
                                 month: 'short', 
                                 day: 'numeric',
-                                year: pickup.scheduledDate.includes('2025') ? undefined : 'numeric'
+                                hour: '2-digit',
+                                minute: '2-digit'
                               })
                             : 'No date set'
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Clock className="w-3 h-3 mr-1" />
+                        <span>
+                          Created: {pickup.createdAt ? 
+                            new Date(pickup.createdAt).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : 'Unknown'
                           }
                         </span>
                       </div>
@@ -404,16 +557,51 @@ export default function Admin() {
                     <div className="text-xs text-muted-foreground">
                       {pickup.serviceType === 'same-day' ? '$25-65' : '$15-50'}
                     </div>
-                    <div className="flex gap-1 mt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setReschedulePickup({ pickup, customer: customer! })}
-                        className="text-xs h-6 px-2"
-                      >
-                        <Edit3 className="w-3 h-3 mr-1" />
-                        Reschedule
-                      </Button>
+                    <div className="flex flex-col gap-1 mt-2">
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setReschedulePickup({ pickup, customer: customer! })}
+                          className="text-xs h-6 px-2"
+                        >
+                          <Edit3 className="w-3 h-3 mr-1" />
+                          Reschedule
+                        </Button>
+                        {pickup.status === 'assigned' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCompletePickup(pickup.id)}
+                            className="text-xs h-6 px-2 text-green-600 hover:text-green-700"
+                          >
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Complete
+                          </Button>
+                        )}
+                      </div>
+                      {pickup.status === 'assigned' && (
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMarkIssue(pickup.id)}
+                            className="text-xs h-6 px-2 text-orange-600 hover:text-orange-700"
+                          >
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            Issue
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMarkIncomplete(pickup.id)}
+                            className="text-xs h-6 px-2 text-red-600 hover:text-red-700"
+                          >
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Incomplete
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -436,16 +624,17 @@ export default function Admin() {
                 )}
               </MobileCard>
             );
-          })
-        ) : (
-          <MobileCard className="text-center py-8">
-            <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">No One-Time Requests</h3>
-            <p className="text-sm text-muted-foreground">
-              {statusFilter === 'all' ? 'Package requests will appear here' : `No ${statusFilter} requests pending`}
-            </p>
-          </MobileCard>
-        )}
+            })
+          ) : (
+            <MobileCard className="text-center py-8">
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-semibold mb-2">No One-Time Requests</h3>
+              <p className="text-sm text-muted-foreground">
+                {statusFilter === 'all' ? 'Package requests will appear here' : `No ${statusFilter} requests pending`}
+              </p>
+            </MobileCard>
+          );
+        })()}
       </div>
     </MobileSection>
   );
@@ -884,7 +1073,7 @@ export default function Admin() {
                             <span>{pickup.bagCount} bags</span>
                             <span className="font-medium text-green-600">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
                             {pickup.estimatedArrival && (
-                              <span>ETA: {pickup.estimatedArrival}</span>
+                              <span>ETA: {typeof pickup.estimatedArrival === 'string' ? pickup.estimatedArrival : pickup.estimatedArrival.toLocaleTimeString()}</span>
                             )}
                           </div>
                           {pickup.specialInstructions && (

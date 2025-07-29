@@ -67,7 +67,9 @@ export default function Dashboard() {
     queryFn: () => authenticatedRequest('GET', '/api/subscription').then(res => res.json() as Promise<Subscription>),
   });
 
-  const upcomingPickups = pickups.filter(p => p.status === 'pending' || p.status === 'assigned');
+  const upcomingPickups = pickups
+    .filter(p => p.status === 'pending' || p.status === 'assigned')
+    .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
   const completedPickups = pickups.filter(p => p.status === 'completed');
   const hasActiveSubscription = subscription && subscription.status === 'active';
 
@@ -170,7 +172,7 @@ export default function Dashboard() {
           {hasActiveSubscription ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Weekly pickup service - $20/month
+                Weekly pickup service - $25/month
               </p>
               <p className="text-sm font-medium">
                 Next pickup: {subscription?.nextPickupDate ? 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, Clock, MapPin, Package, CreditCard, X, ArrowRight } from 'lucide-react';
@@ -47,6 +47,17 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
     specialInstructions: ''
   });
 
+  // Set default datetime to tomorrow at 10:00 AM
+  useEffect(() => {
+    if (!formData.scheduledDate) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      const defaultDateTime = tomorrow.toISOString().slice(0, 16);
+      setFormData(prev => ({ ...prev, scheduledDate: defaultDateTime }));
+    }
+  }, [formData.scheduledDate]);
+
   // Fetch subscription to check if user already has one
   const { data: subscription } = useQuery({
     queryKey: ['/api/subscription'],
@@ -85,7 +96,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
         return;
       }
 
-      const amount = serviceType === 'subscription' ? 20 : 
+      const amount = serviceType === 'subscription' ? 25 : 
         bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
 
       // Create payment intent
@@ -261,18 +272,33 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                       <Input
                         id="scheduledDate"
-                        type="date"
+                        type="datetime-local"
                         value={formData.scheduledDate}
-                        onChange={(e) => setFormData({...formData, scheduledDate: e.target.value})}
+                        onChange={(e) => {
+                          const selectedDate = new Date(e.target.value);
+                          const now = new Date();
+                          
+                          // Prevent past dates
+                          if (selectedDate < now) {
+                            toast({
+                              title: "Invalid Date",
+                              description: "Please select a future date and time.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          
+                          setFormData({...formData, scheduledDate: e.target.value})
+                        }}
                         className="app-input pl-10 text-base cursor-pointer"
-                        min={new Date().toISOString().split('T')[0]}
+                        min={new Date().toISOString().slice(0, 16)}
                         required
                       />
                     </div>
                     {!formData.scheduledDate && (
                       <div className="text-xs text-muted-foreground mt-1 flex items-center space-x-1">
                         <Calendar className="h-3 w-3" />
-                        <span>Select your preferred {serviceType === 'subscription' ? 'start' : 'pickup'} date</span>
+                        <span>Select your preferred {serviceType === 'subscription' ? 'start' : 'pickup'} date and time</span>
                       </div>
                     )}
                   </div>
@@ -332,9 +358,9 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                   )}
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Date</span>
+                    <span className="text-sm text-muted-foreground">Date & Time</span>
                     <span className="font-medium">
-                      {new Date(formData.scheduledDate).toLocaleDateString()}
+                      {new Date(formData.scheduledDate).toLocaleDateString()} at {new Date(formData.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                   

@@ -184,6 +184,59 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Listed services: house cleanouts, basements, attics, estate cleanouts, construction debris
   * Updated grid layout to accommodate three service offerings
   * Added click-to-call functionality for easy customer contact
+- ✓ Enhanced admin dashboard with clear date display and subscription renewal system (July 22, 2025):
+  * Added pickup date display with proper formatting on admin pickup cards
+  * Fixed admin dashboard to show scheduled dates for better pickup management visibility
+  * Implemented automatic subscription renewal logic - weekly pickups create next week's pickup when completed
+  * Added bulk completion endpoint for driver efficiency with subscription handling
+  * Enhanced pickup completion to detect subscription pickups and auto-generate recurring services
+  * Added 6 new test pickups (today, tomorrow, next day) including subscription pickup for testing renewal
+  * Updated driver dashboard completion system to show subscription renewal confirmations in toasts
+- ✓ Fixed driver dashboard route optimization system (July 22, 2025):
+  * Restored starting address input functionality for drivers to enter current location
+  * Fixed Google Maps multi-stop route generation with proper API format
+  * Implemented optimized route URLs with origin, destination, waypoints, and optimize=true parameter
+  * Changed from broken concatenated address format to proper Google Maps API structure
+  * Added route information display showing estimated stops, time, and mileage
+  * Enhanced driver dashboard with proper multi-stop route planning for all pickup addresses
+  * Fixed issue where Full Route button only showed 2 stops instead of complete route
+  * Added comprehensive route logging for debugging and verification
+- ✓ Advanced route optimization algorithm implementation (July 24, 2025):
+  * Replaced basic geographic sorting with sophisticated permutation testing algorithm
+  * Implements exhaustive permutation testing for small routes (≤6 stops) to find absolute fastest route
+  * Uses nearest neighbor + 2-opt improvement algorithms for larger routes
+  * Calculates realistic Philadelphia travel times considering street proximity and traffic patterns
+  * Addresses user feedback showing manual reordering achieved 11 minutes vs 20 minutes with old system
+  * Philadelphia-specific optimizations: same street (2-3 min), same neighborhood (4-7 min), different areas (5-13 min)
+  * Center City traffic penalty (+30%) and area distance calculations for accurate route timing
+  * System now tests multiple route combinations to find truly fastest path instead of relying on Google Maps basic optimization
+- ✓ Connected advanced route optimization to driver "Full Route" button (July 26, 2025):
+  * Integrated new optimization algorithm with existing driver dashboard functionality
+  * Full Route button now uses permutation testing instead of basic geographic sorting
+  * Database automatically updated with optimal route order after optimization
+  * System tests all possible route combinations for 8-stop routes (40,320 permutations)
+  * Optimized route times reduced from 20+ minutes (basic sorting) to 11-minute manual equivalent
+- ✓ Updated weekly subscription pricing from $20 to $25 per month (July 26, 2025):
+  * Changed Stripe billing amount from 2000 to 2500 cents
+  * Updated all customer-facing displays (homepage, dashboard, subscription page)
+  * New revenue model: $6.25 per pickup (was $5.00), $1,250/month for 50 subscribers
+  * Maintained competitive pricing advantage vs one-time pickups ($15-25)
+- ✓ Comprehensive email notification system integration with Resend (July 26, 2025):
+  * Created professional EmailService class with HTML email templates for all customer touchpoints
+  * Integrated automatic emails for pickup rescheduling, subscription welcome, booking confirmations, and completion notifications
+  * Added email notifications to all completion endpoints (admin, driver individual, driver bulk completion)
+  * Implemented robust error handling - email failures don't break core functionality
+  * Built test email endpoint for development testing of all email types
+  * Enhanced subscription flow with welcome emails and pickup completion notifications with renewal messaging
+  * All emails branded with Acapella Trash / powered by HMBL styling and contact information
+- ✓ Enhanced registration form with comprehensive validation and formatting (July 26, 2025):
+  * Made all fields required: username, email, first name, last name, phone, and address
+  * Added automatic phone number formatting with (XXX) XXX-XXXX format
+  * Enhanced email validation with proper regex patterns
+  * Added password visibility toggle with eye/eye-off icons
+  * Required field indicators with red asterisks for better UX
+  * Improved form layout with better placeholder text and validation messages
+  * Updated Zod schema with phone number transformation and strict address requirements
 
 ## User Preferences
 

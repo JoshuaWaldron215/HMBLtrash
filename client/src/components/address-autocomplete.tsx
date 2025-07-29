@@ -162,17 +162,44 @@ export default function AddressAutocomplete({
     inputRef.current?.blur();
   };
 
-  // Hide suggestions when clicking outside
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Hide suggestions when clicking outside or losing focus
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        console.log('Clicking outside - hiding suggestions');
+        setShowSuggestions(false);
+      }
+    };
+
+    const handleGlobalClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (containerRef.current && !containerRef.current.contains(target)) {
         setShowSuggestions(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleGlobalClick);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleGlobalClick);
+    };
   }, []);
+
+  // Also hide suggestions on blur
+  const handleBlur = (e: React.FocusEvent) => {
+    // Check if the focus is moving to an element within our container
+    if (containerRef.current && containerRef.current.contains(e.relatedTarget as Node)) {
+      return; // Don't hide if focus is moving within our component
+    }
+    
+    // Small delay to allow clicking on suggestions
+    setTimeout(() => {
+      setShowSuggestions(false);
+    }, 100);
+  };
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -183,7 +210,7 @@ export default function AddressAutocomplete({
         </Label>
       )}
       
-      <div className="relative">
+      <div ref={containerRef} className="relative">
         <div className="relative">
           <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -192,6 +219,12 @@ export default function AddressAutocomplete({
             type="text"
             value={value}
             onChange={(e) => handleInputChange(e.target.value)}
+            onBlur={handleBlur}
+            onFocus={() => {
+              if (suggestions.length > 0 && !hasSelected) {
+                setShowSuggestions(true);
+              }
+            }}
             placeholder={placeholder}
             className="pl-10 pr-10"
             autoComplete="street-address"

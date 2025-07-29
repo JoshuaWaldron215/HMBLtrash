@@ -7,19 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Loader2, ArrowLeft } from "lucide-react";
+import { Trash2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { registerSchema, type RegisterData } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { setStoredToken, setStoredUser } from "@/lib/auth";
+import { PhoneInput } from "@/components/phone-input";
 
 export default function Register() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
@@ -86,7 +90,7 @@ export default function Register() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">
-                Username
+                Username <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="username"
@@ -94,6 +98,7 @@ export default function Register() {
                 placeholder="Enter your username"
                 {...register("username")}
                 className="w-full"
+                required
               />
               {errors.username && (
                 <p className="text-sm text-red-500">{errors.username.message}</p>
@@ -101,14 +106,15 @@ export default function Register() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">
-                Email
+                Email <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Enter your email address"
                 {...register("email")}
                 className="w-full"
+                required
               />
               {errors.email && (
                 <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -118,14 +124,15 @@ export default function Register() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">
-                  First Name
+                  First Name <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="firstName"
                   type="text"
-                  placeholder="Enter your first name"
+                  placeholder="First name"
                   {...register("firstName")}
                   className="w-full"
+                  required
                 />
                 {errors.firstName && (
                   <p className="text-sm text-red-500">{errors.firstName.message}</p>
@@ -134,14 +141,15 @@ export default function Register() {
               
               <div className="space-y-2">
                 <Label htmlFor="lastName">
-                  Last Name
+                  Last Name <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="lastName"
                   type="text"
-                  placeholder="Enter your last name"
+                  placeholder="Last name"
                   {...register("lastName")}
                   className="w-full"
+                  required
                 />
                 {errors.lastName && (
                   <p className="text-sm text-red-500">{errors.lastName.message}</p>
@@ -150,14 +158,14 @@ export default function Register() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">
-                Phone (Optional)
+                Phone <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <PhoneInput
                 id="phone"
-                type="tel"
-                placeholder="Enter your phone number"
+                placeholder="(555) 123-4567"
                 {...register("phone")}
                 className="w-full"
+                required
               />
               {errors.phone && (
                 <p className="text-sm text-red-500">{errors.phone.message}</p>
@@ -165,14 +173,15 @@ export default function Register() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">
-                Address (Optional)
+                Address <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="address"
                 type="text"
-                placeholder="Enter your address"
+                placeholder="Enter your service address"
                 {...register("address")}
                 className="w-full"
+                required
               />
               {errors.address && (
                 <p className="text-sm text-red-500">{errors.address.message}</p>
@@ -181,15 +190,29 @@ export default function Register() {
 
             <div className="space-y-2">
               <Label htmlFor="password">
-                Password
+                Password <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                {...register("password")}
-                className="w-full"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  {...register("password")}
+                  className="w-full pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-sm text-red-500">{errors.password.message}</p>
               )}
@@ -206,15 +229,29 @@ export default function Register() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">
-                Confirm Password
+                Confirm Password <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                {...register("confirmPassword")}
-                className="w-full"
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm your password"
+                  {...register("confirmPassword")}
+                  className="w-full pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               {errors.confirmPassword && (
                 <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
               )}

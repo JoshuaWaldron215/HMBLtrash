@@ -210,10 +210,21 @@ export const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50, "First name must be less than 50 characters"),
   lastName: z.string().min(1, "Last name is required").max(50, "Last name must be less than 50 characters"),
   phone: z.string()
-    .regex(/^\+?[\d\s\-\(\)]+$/, "Please enter a valid phone number")
-    .min(10, "Phone number must be at least 10 digits")
-    .optional(),
-  address: z.string().max(255, "Address must be less than 255 characters").optional(),
+    .min(1, "Phone number is required")
+    .regex(/^\+?1?[-.\s]?(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})$/, "Please enter a valid US phone number")
+    .transform(phone => {
+      // Format phone number to (XXX) XXX-XXXX
+      const cleaned = phone.replace(/\D/g, '');
+      if (cleaned.length === 10) {
+        return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+      } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
+        return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+      }
+      return phone;
+    }),
+  address: z.string()
+    .min(1, "Address is required")
+    .max(255, "Address must be less than 255 characters"),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],

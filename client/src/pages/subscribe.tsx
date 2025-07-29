@@ -170,7 +170,7 @@ export default function Subscribe() {
                 </div>
                 <div className="flex justify-between font-semibold pt-2 border-t">
                   <span className="text-service-text">Monthly Cost:</span>
-                  <span className="text-service-primary">$20/month</span>
+                  <span className="text-service-primary">$25/month</span>
                 </div>
               </div>
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">

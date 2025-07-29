@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { authService } from "./auth";
+import { emailService } from "./emailService";
 import { 
   registerSchema, 
   loginSchema, 
@@ -41,7 +42,7 @@ class TestPaymentSimulator {
       '4000000000000317': { success: false, status: 'stolen_card', message: 'Card reported stolen' },
       '4000000000000325': { success: false, status: 'try_again_later', message: 'Try again later' },
       '4000000000000333': { success: false, status: 'online_or_offline_pin_required', message: 'PIN required' },
-      '4000000000000341': { success: false, status: 'incorrect_pin', message: 'Incorrect PIN' },
+      '4000000000000349': { success: false, status: 'incorrect_pin', message: 'Incorrect PIN' },
       '4000000000000358': { success: false, status: 'testmode_decline', message: 'Test mode decline' },
       '4000000000000366': { success: false, status: 'pickup_card', message: 'Pickup card' },
       '4000000000000374': { success: false, status: 'restricted_card', message: 'Restricted card' },
@@ -115,7 +116,7 @@ class TestPaymentSimulator {
       '6200000000000005': { success: true, status: 'succeeded', message: 'UnionPay payment successful' },
     };
 
-    return testCards[cardNumber] || { success: true, status: 'succeeded', message: 'Payment successful' };
+    return (testCards as any)[cardNumber] || { success: true, status: 'succeeded', message: 'Payment successful' };
   }
 
   // Simulate Stripe customer creation
@@ -246,70 +247,7 @@ const requireRole = (role: string) => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Route optimization helper function
-  async function optimizeRoute(pickups: any[]) {
-    // Add estimated travel times and customer names
-    const optimizedPickups = [];
-    let cumulativeTime = 0;
-    
-    for (let i = 0; i < pickups.length; i++) {
-      const pickup = pickups[i];
-      
-      // Get customer name
-      const customerName = await getCustomerName(pickup.customerId);
-      
-      // Calculate estimated travel time (mock calculation)
-      const travelTime = i === 0 ? 15 : 8; // 15 min to first stop, 8 min between stops
-      cumulativeTime += travelTime;
-      
-      // Add estimated arrival time
-      const estimatedArrival = new Date();
-      estimatedArrival.setHours(9, 0, 0, 0); // Start at 9 AM
-      estimatedArrival.setMinutes(estimatedArrival.getMinutes() + cumulativeTime);
-      
-      optimizedPickups.push({
-        ...pickup,
-        customerName,
-        estimatedArrival: estimatedArrival.toISOString(),
-        travelTime: `${travelTime} min`,
-        routeInstructions: generateRouteInstructions(pickup)
-      });
-      
-      // Add pickup duration (10 minutes per pickup)
-      cumulativeTime += 10;
-    }
-    
-    return optimizedPickups;
-  }
-  
-  // Apply geographic optimization to sort pickups by location
-  async function applyGeographicOptimization(pickups: any[]) {
-    // Simple optimization: sort by street number (crude geographic sorting)
-    return pickups.sort((a, b) => {
-      const addressA = a.address.match(/\d+/);
-      const addressB = b.address.match(/\d+/);
-      
-      if (addressA && addressB) {
-        return parseInt(addressA[0]) - parseInt(addressB[0]);
-      }
-      
-      return 0;
-    });
-  }
-  
-  // Helper to get customer name
-  async function getCustomerName(customerId: number) {
-    const customer = await storage.getUser(customerId);
-    if (customer?.firstName && customer?.lastName) {
-      return `${customer.firstName} ${customer.lastName}`;
-    }
-    return customer?.username || 'Unknown Customer';
-  }
-  
-  // Generate route instructions for a pickup
-  function generateRouteInstructions(pickup: any) {
-    return `Navigate to ${pickup.address}. ${pickup.bagCount} bags. ${pickup.specialInstructions || 'Standard pickup.'}`;
-  }
+
   
   // Enhanced Auth routes with security features
   app.post("/api/register", async (req, res) => {
@@ -675,7 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         product_data: {
           name: 'Weekly Trash Pickup',
         },
-        unit_amount: 2000, // $20 in cents
+        unit_amount: 2500, // $25 in cents
       });
 
       const subscription = await stripe.subscriptions.create({
@@ -696,6 +634,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       await storage.updateUserStripeInfo(user.id, user.stripeCustomerId!, subscription.id);
+
+      // Send welcome email for new subscription
+      try {
+        const newSubscription = await storage.getSubscriptionByCustomer(user.id);
+        if (newSubscription) {
+          await emailService.sendSubscriptionWelcomeEmail(user, newSubscription);
+        }
+      } catch (emailError) {
+        console.error('❌ Failed to send subscription welcome email:', emailError);
+        // Continue with the response even if email fails
+      }
 
       res.json({
         subscriptionId: subscription.id,
@@ -927,6 +876,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const pickup = await storage.createPickup(validatedData);
       
+      // Send pickup confirmation email
+      try {
+        const customer = await storage.getUser(pickup.customerId);
+        if (customer) {
+          await emailService.sendOneTimePickupConfirmationEmail(customer, pickup);
+        }
+      } catch (emailError) {
+        console.error('❌ Failed to send pickup confirmation email:', emailError);
+        // Continue with the response even if email fails
+      }
+      
       // Automatically assign to default driver (driver@test.com)
       const defaultDriver = await storage.getUserByEmail('driver@test.com');
       if (defaultDriver) {
@@ -1033,11 +993,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pickup = await storage.completePickup(pickupId);
       console.log(`✅ Pickup ${pickupId} completed successfully, status: ${pickup.status}`);
       
+      // Send pickup completion email
+      const customer = await storage.getUser(pickup.customerId);
+      if (customer) {
+        try {
+          await emailService.sendPickupCompletedEmail(customer, pickup);
+        } catch (emailError) {
+          console.error(`❌ Failed to send completion email for pickup #${pickupId}:`, emailError);
+        }
+      }
+      
       // If this was a subscription pickup, create next week's pickup
       if (originalPickup.serviceType === 'subscription') {
         console.log(`📅 Creating next week's subscription pickup for customer ${originalPickup.customerId}`);
         
-        const nextWeekDate = new Date(originalPickup.scheduledDate);
+        const nextWeekDate = new Date(originalPickup.scheduledDate || new Date());
         nextWeekDate.setDate(nextWeekDate.getDate() + 7);
         
         const nextPickup = await storage.createPickup({
@@ -1078,9 +1048,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const completed = await storage.completePickup(pickupId);
         completedPickups.push(completed);
         
+        // Send pickup completion email
+        const customer = await storage.getUser(completed.customerId);
+        if (customer) {
+          try {
+            await emailService.sendPickupCompletedEmail(customer, completed);
+          } catch (emailError) {
+            console.error(`❌ Failed to send completion email for pickup #${pickupId}:`, emailError);
+          }
+        }
+        
         // If this was a subscription pickup, create next week's pickup
         if (originalPickup.serviceType === 'subscription') {
-          const nextWeekDate = new Date(originalPickup.scheduledDate);
+          const nextWeekDate = new Date(originalPickup.scheduledDate || new Date());
           nextWeekDate.setDate(nextWeekDate.getDate() + 7);
           
           const nextPickup = await storage.createPickup({
@@ -1185,6 +1165,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin pickup status management endpoints
+  app.patch("/api/admin/complete-pickup/:id", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const pickupId = parseInt(req.params.id);
+      const updatedPickup = await storage.updatePickupStatus(pickupId, 'completed');
+      
+      // Send pickup completion email
+      const pickup = await storage.getPickup(pickupId);
+      if (pickup) {
+        const customer = await storage.getUser(pickup.customerId);
+        if (customer) {
+          try {
+            await emailService.sendPickupCompletedEmail(customer, pickup);
+          } catch (emailError) {
+            console.error('❌ Failed to send pickup completion email:', emailError);
+          }
+          
+          // Check if it's a subscription pickup and create next week's pickup
+          if (pickup.serviceType === 'subscription') {
+            const nextWeekDate = new Date(pickup.scheduledDate || new Date());
+            nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+            
+            const nextPickup = await storage.createPickup({
+              customerId: pickup.customerId,
+              address: pickup.address,
+              bagCount: pickup.bagCount,
+              amount: pickup.amount,
+              serviceType: 'subscription',
+              scheduledDate: nextWeekDate,
+              status: 'pending'
+            });
+            
+            console.log(`📦 Next week's pickup created: #${nextPickup.id} for ${nextWeekDate.toDateString()}`);
+          }
+        }
+      }
+      
+      res.json({ message: "Pickup completed successfully", pickup: updatedPickup });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/admin/pickup-issue/:id", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const pickupId = parseInt(req.params.id);
+      const updatedPickup = await storage.updatePickupStatus(pickupId, 'issue');
+      res.json({ message: "Pickup marked with issue", pickup: updatedPickup });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/admin/pickup-incomplete/:id", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const pickupId = parseInt(req.params.id);
+      const updatedPickup = await storage.updatePickupStatus(pickupId, 'incomplete');
+      res.json({ message: "Pickup marked as incomplete", pickup: updatedPickup });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Driver routes - get assigned pickups organized by date (7-day schedule)
   app.get("/api/driver/route", authenticateToken, requireRole('driver'), async (req, res) => {
     try {
@@ -1221,7 +1264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Group pickups by scheduled date for 7-day view
       const today = new Date();
-      const schedule = {};
+      const schedule: { [key: string]: any } = {};
       
       console.log('📅 Today:', today.toISOString().split('T')[0]);
       
@@ -1265,8 +1308,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Sort pickups within each day by route order
       Object.values(schedule).forEach((day: any) => {
-        day.pickups.sort((a, b) => (a.routeOrder || 0) - (b.routeOrder || 0));
-        day.pickups = day.pickups.map((pickup, index) => ({
+        day.pickups.sort((a: any, b: any) => (a.routeOrder || 0) - (b.routeOrder || 0));
+        day.pickups = day.pickups.map((pickup: any, index: number) => ({
           ...pickup,
           routeOrder: index + 1,
           estimatedArrival: new Date(Date.now() + (index + 1) * 18 * 60000).toLocaleTimeString('en-US', { 
@@ -1299,43 +1342,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Sort by route order
-      const sortedPickups = assignedPickups.sort((a, b) => {
-        if (a.routeOrder && b.routeOrder) {
-          return a.routeOrder - b.routeOrder;
-        }
-        return 0;
-      });
+      // Apply advanced route optimization instead of simple sorting
+      const defaultStart = "Philadelphia Museum of Art, Philadelphia, PA";
+      console.log(`🗺️ Optimizing full route for ${assignedPickups.length} pickups from ${defaultStart}`);
       
-      // Create flexible Google Maps URL - can be customized by driver
-      const pickupAddresses = sortedPickups.map(pickup => encodeURIComponent(pickup.address));
+      // Use the new advanced optimization algorithm
+      const optimizedPickups = optimizePickupRoute(assignedPickups, defaultStart);
+      const optimizedTime = calculateRouteTime([defaultStart, ...optimizedPickups.map(p => p.address)]);
+      
+      // Update route orders in database based on optimization
+      for (let i = 0; i < optimizedPickups.length; i++) {
+        await storage.updatePickup(optimizedPickups[i].id, {
+          routeOrder: i + 1,
+          updatedAt: new Date()
+        });
+      }
+      
+      // Create optimized Google Maps URL
+      const pickupAddresses = optimizedPickups.map(pickup => encodeURIComponent(pickup.address));
       const destination = pickupAddresses[pickupAddresses.length - 1];
       const waypoints = pickupAddresses.slice(0, -1).join('|');
+      const encodedStart = encodeURIComponent(defaultStart);
       
-      // Default starting point (can be overridden by driver)
-      const defaultStart = encodeURIComponent("2500 Knights Rd, Bensalem, PA 19020");
-      
-      let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${defaultStart}&destination=${destination}`;
+      let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodedStart}&destination=${destination}`;
       if (waypoints) {
         googleMapsUrl += `&waypoints=${waypoints}`;
       }
-      googleMapsUrl += '&travelmode=driving';
+      googleMapsUrl += '&travelmode=driving&optimize=true';
       
       const routeSummary = {
-        totalStops: sortedPickups.length + 1, // Include starting point
-        estimatedTime: `${Math.round(sortedPickups.length * 18 + 15)} minutes`, // Add travel time from depot
-        totalDistance: `${(sortedPickups.length * 2.3 + 8.5).toFixed(1)} miles`, // Add distance from Bensalem
+        totalStops: optimizedPickups.length + 1, // Include starting point
+        estimatedTime: `${Math.round(optimizedTime)} minutes`, // Use calculated optimized time
+        totalDistance: `${(optimizedPickups.length * 2.1).toFixed(1)} miles`, // Improved estimate
         googleMapsUrl,
-        defaultStartingPoint: "2500 Knights Rd, Bensalem, PA 19020",
+        defaultStartingPoint: defaultStart,
+        optimizationApplied: true,
         stops: [
           {
             order: 0,
-            address: "2500 Knights Rd, Bensalem, PA 19020",
-            customer: "Default Starting Point",
+            address: defaultStart,
+            customer: "Starting Point",
             bags: 0,
-            instructions: "Depot (can be changed by driver)"
+            instructions: "Driver starting location"
           },
-          ...sortedPickups.map((pickup, index) => ({
+          ...optimizedPickups.map((pickup, index) => ({
             order: index + 1,
             address: pickup.address,
             customer: pickup.customerName || 'Customer',
@@ -1344,6 +1394,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }))
         ]
       };
+      
+      console.log(`✅ Full route optimized: ${Math.round(optimizedTime)} minutes for ${optimizedPickups.length} stops`);
       
       res.json(routeSummary);
     } catch (error: any) {
@@ -1404,7 +1456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/driver/optimize-route', authenticateToken, requireRole('driver'), async (req, res) => {
     try {
       const { currentLocation } = req.body;
-      const driverId = req.user.id;
+      const driverId = req.user!.id;
       
       // Get all assigned pickups for this driver
       const allPickups = await storage.getAllPickups();
@@ -1502,13 +1554,18 @@ Acapella Trash Removal Team
         `
       };
       
-      // For now, we'll log the email content (in production, you'd send via email service)
-      console.log('📧 Email notification sent to customer:', emailContent);
+      // Send reschedule email via Resend
+      try {
+        const originalDate = pickup.scheduledDate ? new Date(pickup.scheduledDate) : new Date();
+        await emailService.sendPickupRescheduledEmail(customer, pickup, originalDate, new Date(newDate));
+      } catch (emailError) {
+        console.error('❌ Failed to send reschedule email:', emailError);
+        // Continue with the response even if email fails
+      }
       
       res.json({
         pickup: updatedPickup,
-        emailSent: true,
-        emailContent: emailContent
+        emailSent: true
       });
     } catch (error: any) {
       console.error('Reschedule error:', error);
@@ -1648,9 +1705,9 @@ Acapella Trash Removal Team
           bagCount: address.bagCount,
           serviceType: 'subscription',
           priority: 'standard',
-          amount: 5, // $5 per subscription pickup
+          amount: "5.00", // $5 per subscription pickup
           status: 'pending',
-          instructions: `Cluster: ${targetCluster.name} | Stop #${i + 1}`,
+          specialInstructions: `Cluster: ${targetCluster.name} | Stop #${i + 1}`,
           routeOrder: i + 1
         });
         
@@ -1877,7 +1934,7 @@ Acapella Trash Removal Team
     try {
       const { pickupRouteManager } = await import('./pickupRouteManager');
       const pending = await pickupRouteManager.getPendingPickups();
-      const byPriority = await pickupRouteManager.getPendingPickupsByPriority();
+      const byPriority = await pickupRouteManager.getPendingPickupsByType();
       
       res.json({
         success: true,
@@ -1885,10 +1942,9 @@ Acapella Trash Removal Team
         byPriority,
         summary: {
           total: pending.length,
-          immediate: byPriority.immediate.length,
+          subscriptions: byPriority.subscriptions.length,
           sameDay: byPriority.sameDay.length,
-          nextDay: byPriority.nextDay.length,
-          normal: byPriority.normal.length
+          nextDay: byPriority.nextDay.length
         }
       });
     } catch (error: any) {
@@ -2019,6 +2075,64 @@ Acapella Trash Removal Team
     }
   });
 
+  // Email test endpoint for development
+  app.post('/api/test/send-email', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { emailType, customerId, pickupId } = req.body;
+      
+      const customer = await storage.getUser(customerId);
+      if (!customer) {
+        return res.status(404).json({ message: 'Customer not found' });
+      }
+
+      switch (emailType) {
+        case 'reschedule':
+          if (!pickupId) return res.status(400).json({ message: 'Pickup ID required for reschedule email' });
+          const pickup = await storage.getPickup(pickupId);
+          if (!pickup) return res.status(404).json({ message: 'Pickup not found' });
+          
+          const originalDate = new Date();
+          const newDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // Tomorrow
+          await emailService.sendPickupRescheduledEmail(customer, pickup, originalDate, newDate);
+          break;
+          
+        case 'welcome':
+          const subscription = await storage.getSubscriptionByCustomer(customerId);
+          if (!subscription) return res.status(404).json({ message: 'Subscription not found' });
+          await emailService.sendSubscriptionWelcomeEmail(customer, subscription);
+          break;
+          
+        case 'confirmation':
+          if (!pickupId) return res.status(400).json({ message: 'Pickup ID required for confirmation email' });
+          const confirmPickup = await storage.getPickup(pickupId);
+          if (!confirmPickup) return res.status(404).json({ message: 'Pickup not found' });
+          await emailService.sendOneTimePickupConfirmationEmail(customer, confirmPickup);
+          break;
+          
+        case 'completion':
+          if (!pickupId) return res.status(400).json({ message: 'Pickup ID required for completion email' });
+          const completePickup = await storage.getPickup(pickupId);
+          if (!completePickup) return res.status(404).json({ message: 'Pickup not found' });
+          await emailService.sendPickupCompletedEmail(customer, completePickup);
+          break;
+          
+        default:
+          return res.status(400).json({ message: 'Invalid email type' });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `${emailType} email sent successfully to ${customer.email}` 
+      });
+    } catch (error: any) {
+      console.error('❌ Test email error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Failed to send email: ${error.message}` 
+      });
+    }
+  });
+
   // Test system endpoints
   app.post('/api/test/create-pickups', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
@@ -2078,47 +2192,212 @@ Acapella Trash Removal Team
   return httpServer;
 }
 
-// Route optimization algorithm - finds efficient path through pickup points
+// Advanced route optimization algorithm - tests multiple permutations to find fastest route
 function optimizePickupRoute(pickups: any[], startLocation: string): any[] {
   if (pickups.length <= 1) return pickups;
   
-  // Simple heuristic optimization based on geographic proximity
-  // In production, this would use Google Distance Matrix API for actual distances
+  console.log(`🗺️ Starting advanced route optimization for ${pickups.length} pickups from ${startLocation}`);
   
-  const optimized = [...pickups];
+  // For small routes (<=6 stops), test all permutations. For larger routes, use intelligent sampling
+  const shouldTestAllPermutations = pickups.length <= 6;
+  let bestRoute = [...pickups];
+  let bestTime = calculateRouteTime([startLocation, ...pickups.map(p => p.address)]);
   
-  // Sort by approximate geographic clustering
-  optimized.sort((a, b) => {
-    // Extract street information for basic geographic sorting
-    const extractLocationInfo = (addr: string) => {
-      const match = addr.match(/^(\d+)\s+([^,]+),\s*([^,]+)/);
-      if (!match) return { number: 9999, street: addr, area: '' };
+  if (shouldTestAllPermutations) {
+    // Test all possible permutations for small routes
+    const permutations = generatePermutations(pickups);
+    console.log(`🔄 Testing ${permutations.length} permutations for optimal route`);
+    
+    for (const permutation of permutations) {
+      const addresses = [startLocation, ...permutation.map(p => p.address)];
+      const routeTime = calculateRouteTime(addresses);
       
-      return {
-        number: parseInt(match[1]) || 9999,
-        street: match[2].trim(),
-        area: match[3].trim()
-      };
-    };
+      if (routeTime < bestTime) {
+        bestTime = routeTime;
+        bestRoute = [...permutation];
+        console.log(`⚡ Found faster route: ${routeTime} minutes (was ${Math.round(bestTime + 1)} minutes)`);
+      }
+    }
+  } else {
+    // For larger routes, use intelligent optimization techniques
+    console.log(`🧠 Using intelligent optimization for ${pickups.length} stops`);
+    bestRoute = optimizeLargeRoute(pickups, startLocation);
+    bestTime = calculateRouteTime([startLocation, ...bestRoute.map(p => p.address)]);
+  }
+  
+  console.log(`✅ Optimal route found: ${Math.round(bestTime)} minutes total`);
+  return bestRoute;
+}
+
+// Calculate estimated travel time for a route using realistic Philadelphia traffic patterns
+function calculateRouteTime(addresses: string[]): number {
+  if (addresses.length <= 1) return 0;
+  
+  let totalTime = 0;
+  
+  for (let i = 0; i < addresses.length - 1; i++) {
+    const from = addresses[i];
+    const to = addresses[i + 1];
+    const travelTime = estimateTravelTime(from, to);
+    totalTime += travelTime;
+  }
+  
+  return totalTime;
+}
+
+// Estimate travel time between two Philadelphia addresses
+function estimateTravelTime(from: string, to: string): number {
+  // Extract location info for both addresses
+  const fromInfo = extractLocationInfo(from);
+  const toInfo = extractLocationInfo(to);
+  
+  // Base time calculation
+  let baseTime = 3; // Minimum 3 minutes between any two points
+  
+  // Same street - much faster
+  if (fromInfo.street === toInfo.street) {
+    const streetNumberDiff = Math.abs(fromInfo.number - toInfo.number);
+    baseTime = Math.max(2, streetNumberDiff / 200); // ~30 seconds per 100 address numbers
+  }
+  // Same neighborhood - moderate time
+  else if (fromInfo.area === toInfo.area) {
+    baseTime = 4 + Math.random() * 3; // 4-7 minutes within same area
+  }
+  // Different neighborhoods - longer time
+  else {
+    const areaDistance = calculateAreaDistance(fromInfo.area, toInfo.area);
+    baseTime = 5 + areaDistance * 2 + Math.random() * 4; // 5-13 minutes between areas
+  }
+  
+  // Add Philadelphia traffic factors
+  baseTime *= getTrafficMultiplier(fromInfo.area, toInfo.area);
+  
+  return Math.round(baseTime * 10) / 10; // Round to 1 decimal place
+}
+
+// Extract detailed location information from address
+function extractLocationInfo(addr: string) {
+  const match = addr.match(/^(\d+)\s+([^,]+),\s*([^,]+)/);
+  if (!match) return { number: 9999, street: addr, area: 'Unknown' };
+  
+  return {
+    number: parseInt(match[1]) || 9999,
+    street: match[2].trim(),
+    area: match[3].trim()
+  };
+}
+
+// Calculate distance factor between Philadelphia areas
+function calculateAreaDistance(area1: string, area2: string): number {
+  const phillyAreas: { [key: string]: { x: number; y: number } } = {
+    'Philadelphia, PA 19102': { x: 0, y: 0 }, // Center City
+    'Philadelphia, PA 19103': { x: 1, y: 0 }, // Center City West
+    'Philadelphia, PA 19104': { x: -1, y: 2 }, // West Philly
+    'Philadelphia, PA 19106': { x: 2, y: -1 }, // Old City
+    'Philadelphia, PA 19107': { x: 1, y: -1 }, // Society Hill
+    'Philadelphia, PA 19147': { x: 0, y: -2 }, // South Philly
+  };
+  
+  const pos1 = phillyAreas[area1] || { x: 0, y: 0 };
+  const pos2 = phillyAreas[area2] || { x: 0, y: 0 };
+  
+  return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2));
+}
+
+// Get traffic multiplier based on Philadelphia traffic patterns
+function getTrafficMultiplier(area1: string, area2: string): number {
+  // Center City routes are typically slower due to traffic
+  const centerCityAreas = ['19102', '19103', '19106', '19107'];
+  const isCenterCityRoute = centerCityAreas.some(code => 
+    area1.includes(code) && area2.includes(code)
+  );
+  
+  if (isCenterCityRoute) return 1.3; // 30% slower in Center City
+  return 1.0; // Normal speed elsewhere
+}
+
+// Generate all permutations for small route optimization
+function generatePermutations(arr: any[]): any[][] {
+  if (arr.length <= 1) return [arr];
+  
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+    const restPermutations = generatePermutations(rest);
     
-    const aInfo = extractLocationInfo(a.address);
-    const bInfo = extractLocationInfo(b.address);
+    for (const perm of restPermutations) {
+      result.push([arr[i], ...perm]);
+    }
+  }
+  
+  return result;
+}
+
+// Optimize large routes using nearest neighbor and 2-opt improvements
+function optimizeLargeRoute(pickups: any[], startLocation: string): any[] {
+  // Start with nearest neighbor heuristic
+  let route = nearestNeighborRoute(pickups, startLocation);
+  
+  // Apply 2-opt improvements
+  route = apply2OptImprovement(route, startLocation);
+  
+  return route;
+}
+
+// Nearest neighbor algorithm for initial route
+function nearestNeighborRoute(pickups: any[], startLocation: string): any[] {
+  const unvisited = [...pickups];
+  const route = [];
+  let currentLocation = startLocation;
+  
+  while (unvisited.length > 0) {
+    let nearestIndex = 0;
+    let shortestTime = estimateTravelTime(currentLocation, unvisited[0].address);
     
-    // Group by area/neighborhood first
-    if (aInfo.area !== bInfo.area) {
-      return aInfo.area.localeCompare(bInfo.area);
+    for (let i = 1; i < unvisited.length; i++) {
+      const travelTime = estimateTravelTime(currentLocation, unvisited[i].address);
+      if (travelTime < shortestTime) {
+        shortestTime = travelTime;
+        nearestIndex = i;
+      }
     }
     
-    // Then by street name
-    if (aInfo.street !== bInfo.street) {
-      return aInfo.street.localeCompare(bInfo.street);
-    }
+    const nextPickup = unvisited.splice(nearestIndex, 1)[0];
+    route.push(nextPickup);
+    currentLocation = nextPickup.address;
+  }
+  
+  return route;
+}
+
+// Apply 2-opt improvement to reduce route time
+function apply2OptImprovement(route: any[], startLocation: string): any[] {
+  let improved = true;
+  let currentRoute = [...route];
+  
+  while (improved) {
+    improved = false;
+    const currentTime = calculateRouteTime([startLocation, ...currentRoute.map(p => p.address)]);
     
-    // Finally by street number
-    return aInfo.number - bInfo.number;
-  });
+    for (let i = 0; i < currentRoute.length - 1; i++) {
+      for (let j = i + 2; j < currentRoute.length; j++) {
+        // Try swapping segments [i, i+1] and [j, j+1]
+        const newRoute = [...currentRoute];
+        const segment = newRoute.slice(i, j + 1).reverse();
+        newRoute.splice(i, j - i + 1, ...segment);
+        
+        const newTime = calculateRouteTime([startLocation, ...newRoute.map(p => p.address)]);
+        
+        if (newTime < currentTime) {
+          currentRoute = newRoute;
+          improved = true;
+          console.log(`🔧 2-opt improvement: ${Math.round(newTime)} minutes (was ${Math.round(currentTime)})`);
+          break;
+        }
+      }
+      if (improved) break;
+    }
+  }
   
-  console.log(`🗺️ Optimized route for ${pickups.length} pickups from ${startLocation}`);
-  
-  return optimized;
+  return currentRoute;
 }
