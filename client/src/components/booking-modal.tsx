@@ -302,10 +302,16 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                   <Input
                     id="scheduledDate"
                     type="date"
-                    value={formData.scheduledDate.split('T')[0] || ''}
+                    value={formData.scheduledDate ? formData.scheduledDate.split('T')[0] : ''}
                     onChange={(e) => {
-                      const selectedDate = new Date(e.target.value);
+                      if (!e.target.value) {
+                        setFormData({...formData, scheduledDate: ''});
+                        return;
+                      }
+                      
+                      const selectedDate = new Date(e.target.value + 'T09:00:00');
                       const now = new Date();
+                      now.setHours(0, 0, 0, 0); // Reset time for date comparison
                       
                       // Prevent past dates
                       if (selectedDate < now) {
@@ -317,7 +323,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                         return;
                       }
                       
-                      setFormData({...formData, scheduledDate: e.target.value})
+                      setFormData({...formData, scheduledDate: e.target.value + 'T09:00:00'})
                     }}
                     className="app-input text-base cursor-pointer"
                     min={new Date().toISOString().split('T')[0]}
@@ -435,7 +441,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
               className="flex-1"
               disabled={
                 (currentStep === 1 && !formData.scheduledDate) ||
-                (currentStep === 2 && !formData.address)
+                (currentStep === 2 && !formData.address.trim())
               }
             >
               {currentStep === totalSteps ? (
