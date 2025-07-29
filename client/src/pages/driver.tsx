@@ -46,6 +46,7 @@ export default function Driver() {
       const data = await res.json();
       console.log('🔄 Driver dashboard received schedule data:', data);
       console.log('📋 Available schedule keys:', Object.keys(data));
+      console.log('🔍 Raw 2025-07-29 data from server:', JSON.stringify(data['2025-07-29'], null, 2));
       return data;
     },
     retry: false,
