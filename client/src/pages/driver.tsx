@@ -44,6 +44,7 @@ export default function Driver() {
     queryFn: () => authenticatedRequest('GET', '/api/driver/route').then(res => {
       const data = res.json();
       console.log('🔄 Driver dashboard received schedule data:', data);
+      console.log('📋 Available schedule keys:', Object.keys(data));
       return data;
     }),
     retry: false,
@@ -64,6 +65,9 @@ export default function Driver() {
   // Get today's data from the schedule
   const todaySchedule = scheduleData[todayDate] || { pickups: [] };
   const todayRoute = todaySchedule.pickups || [];
+  console.log('📅 Looking for pickups on date:', todayDate);
+  console.log('📦 Found today schedule:', todaySchedule);
+  console.log('🚚 Today route pickups:', todayRoute.length);
 
   // Get all days from schedule for 7-day view
   const scheduleDays = Object.values(scheduleData).sort((a: any, b: any) => 
