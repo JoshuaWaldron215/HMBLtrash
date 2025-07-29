@@ -611,7 +611,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/create-subscription', authenticateToken, async (req, res) => {
     try {
-      const { packageType, amount } = req.body;
       let user = await storage.getUser(req.user!.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -632,11 +631,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const testCustomer = await TestPaymentSimulator.createTestCustomer(user.email, userName);
         const testSubscription = await TestPaymentSimulator.createTestSubscription(testCustomer.id);
         
-        // Create subscription in database with package info
+        // Create subscription in database
         const mockSubscription = await storage.createSubscription({
           customerId: user.id,
-          packageType: packageType || 'basic',
-          amount: amount || 35,
           stripeSubscriptionId: testSubscription.id,
           status: 'active',
           nextPickupDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next week
@@ -676,9 +673,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           interval: 'month',
         },
         product_data: {
-          name: `${packageType || 'Basic'} Package - Weekly Trash Pickup`,
+          name: 'Weekly Trash Pickup',
         },
-        unit_amount: (amount || 35) * 100, // Convert to cents
+        unit_amount: 2000, // $20 in cents
       });
 
       const subscription = await stripe.subscriptions.create({

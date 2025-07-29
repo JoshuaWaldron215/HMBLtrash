@@ -18,15 +18,8 @@ import type { Subscription } from '@shared/schema';
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  serviceType?: 'basic' | 'clean-carry' | 'heavy-duty' | 'premium' | 'one-time';
+  serviceType?: 'subscription' | 'one-time';
 }
-
-const packagePricing = {
-  basic: { price: 35, features: '1x weekly, 6 bags, 1 recycling' },
-  'clean-carry': { price: 60, features: '1x weekly, 6 bags, 1 recycling, 1 furniture item, bin washing' },
-  'heavy-duty': { price: 75, features: '2x weekly, 6 bags each, 1 recycling each, 1 furniture/week, bin washing' },
-  premium: { price: 150, features: '2x weekly, 6 bags each, 1 recycling each, 1 furniture/week, bin washing, lawn mowing' }
-};
 
 const bagPricing = [
   { count: 4, price: 30 },
@@ -58,7 +51,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
   const { data: subscription } = useQuery({
     queryKey: ['/api/subscription'],
     queryFn: () => authenticatedRequest('GET', '/api/subscription').then(res => res.json() as Promise<Subscription>),
-    enabled: ['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) && isOpen,
+    enabled: serviceType === 'subscription' && isOpen,
   });
 
   const totalSteps = 3;
@@ -82,25 +75,23 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
   const handleSubmit = async () => {
     try {
       // Check if user already has an active subscription
-      const isSubscriptionService = ['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType);
-      if (isSubscriptionService && subscription && subscription.status === 'active') {
+      if (serviceType === 'subscription' && subscription && subscription.status === 'active') {
         toast({
           title: "Subscription Already Active",
-          description: "You already have an active subscription. Please manage your existing subscription instead.",
+          description: "You already have an active weekly subscription. Please manage your existing subscription instead.",
           variant: "destructive",
         });
         onClose();
         return;
       }
 
-      const amount = isSubscriptionService ? 
-        packagePricing[serviceType as keyof typeof packagePricing]?.price || 35 :
+      const amount = serviceType === 'subscription' ? 20 : 
         bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
 
       // Create payment intent
-      const endpoint = isSubscriptionService ? '/api/create-subscription' : '/api/create-payment-intent';
+      const endpoint = serviceType === 'subscription' ? '/api/create-subscription' : '/api/create-payment-intent';
       const response = await authenticatedRequest('POST', endpoint, 
-        isSubscriptionService ? { packageType: serviceType, amount } : { amount }
+        serviceType === 'subscription' ? {} : { amount }
       );
       
       const result = await response.json();
@@ -131,10 +122,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
   };
 
   const getCurrentPrice = () => {
-    const isSubscriptionService = ['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType);
-    if (isSubscriptionService) {
-      return packagePricing[serviceType as keyof typeof packagePricing]?.price || 35;
-    }
+    if (serviceType === 'subscription') return 20;
     return bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
   };
 
@@ -160,13 +148,11 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
           description: "Your pickup has been scheduled successfully.",
         });
       } else {
-        // Subscription was already created during payment - redirect with success parameter
+        // Subscription was already created during payment
         toast({
           title: "Subscription Active!",
-          description: "Your subscription is now active.",
+          description: "Your weekly subscription is now active.",
         });
-        setLocation('/dashboard?success=true');
-        return; // Early return to prevent page reload
       }
       
       // Clean up
@@ -192,9 +178,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
         <div className="app-header border-b-0 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <h2 className="text-lg font-semibold">
-              {['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) ? 
-                `${serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('-', ' & ')} Package` : 
-                'One-Time Pickup'}
+              {serviceType === 'subscription' ? 'Weekly Subscription' : 'One-Time Pickup'}
             </h2>
           </div>
           <Button
@@ -270,7 +254,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="scheduledDate" className="text-sm font-medium mb-2 block">
-                      {['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) ? 'Start Date' : 'Pickup Date'}
+                      {serviceType === 'subscription' ? 'Start Date' : 'Pickup Date'}
                       <span className="text-red-500 ml-1">*</span>
                     </Label>
                     <div className="relative">
@@ -288,7 +272,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                     {!formData.scheduledDate && (
                       <div className="text-xs text-muted-foreground mt-1 flex items-center space-x-1">
                         <Calendar className="h-3 w-3" />
-                        <span>Select your preferred {['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) ? 'start' : 'pickup'} date</span>
+                        <span>Select your preferred {serviceType === 'subscription' ? 'start' : 'pickup'} date</span>
                       </div>
                     )}
                   </div>
@@ -336,9 +320,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Service</span>
                     <span className="font-medium">
-                      {['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) ? 
-                        `${serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('-', ' & ')} Package` : 
-                        'One-Time Pickup'}
+                      {serviceType === 'subscription' ? 'Weekly Subscription' : 'One-Time Pickup'}
                     </span>
                   </div>
                   
@@ -366,7 +348,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                       <span className="font-semibold">Total</span>
                       <span className="text-2xl font-bold">
                         ${getCurrentPrice()}
-                        {['basic', 'clean-carry', 'heavy-duty', 'premium'].includes(serviceType) && <span className="text-sm font-normal">/month</span>}
+                        {serviceType === 'subscription' && <span className="text-sm font-normal">/month</span>}
                       </span>
                     </div>
                   </div>

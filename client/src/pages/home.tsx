@@ -42,40 +42,32 @@ const serviceFeatures = [
 
 const pricingOptions = [
   {
-    type: 'basic',
-    title: 'Basic Package',
-    price: '$35',
+    type: 'subscription',
+    title: 'Weekly Subscription',
+    price: '$20',
     period: '/month',
     popular: true,
-    features: ['1x per week pickup', 'Up to 6 trash bags', '1 bag recycling', 'Non-commercial only'],
-    buttonText: 'Choose Basic'
+    features: ['Weekly pickup', 'Up to 6 bags', 'Priority scheduling', 'Cancel anytime'],
+    buttonText: 'Start Subscription'
   },
   {
-    type: 'clean-carry',
-    title: 'Clean & Carry',
-    price: '$60',
-    period: '/month',
+    type: 'one-time',
+    title: 'One-Time Pickup',
+    price: 'From $30',
+    period: '',
     popular: false,
-    features: ['1x per week pickup', 'Up to 6 trash bags', '1 bag recycling', '1 furniture item', 'Bin power washing'],
-    buttonText: 'Choose Clean & Carry'
+    features: ['4 bags - $30', '8 bags - $45', '10 bags - $50', '25 bags - $100'],
+    buttonText: 'Book Now'
   },
   {
-    type: 'heavy-duty',
-    title: 'Heavy Duty',
-    price: '$75',
-    period: '/month',
+    type: 'cleanout',
+    title: 'Cleanout Services',
+    price: 'Call for Quote',
+    period: '',
     popular: false,
-    features: ['2x per week pickup', 'Up to 6 bags per pickup', '1 bag recycling per pickup', '1 furniture item/week', 'Bin power washing'],
-    buttonText: 'Choose Heavy Duty'
-  },
-  {
-    type: 'premium',
-    title: 'Premium Property',
-    price: '$150',
-    period: '/month',
-    popular: false,
-    features: ['2x per week pickup', 'Up to 6 bags per pickup', '1 bag recycling per pickup', '1 furniture item/week', 'Bin power washing', 'Monthly lawn mowing'],
-    buttonText: 'Choose Premium'
+    features: ['House cleanouts', 'Basement & attic clearing', 'Estate cleanouts', 'Garage cleanouts'],
+    buttonText: 'Call (267) 401-4292',
+    isSpecial: true
   }
 ];
 
@@ -83,7 +75,7 @@ const pricingOptions = [
 
 export default function Home() {
   const [, setLocation] = useLocation();
-  const [selectedService, setSelectedService] = useState<'basic' | 'clean-carry' | 'heavy-duty' | 'premium' | 'one-time' | null>(null);
+  const [selectedService, setSelectedService] = useState<'subscription' | 'one-time' | null>(null);
   const { user, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
@@ -102,7 +94,7 @@ export default function Home() {
     }
   }, [isAuthenticated, isLoading, user, setLocation]);
 
-  const handleBooking = (serviceType: 'basic' | 'clean-carry' | 'heavy-duty' | 'premium' | 'one-time') => {
+  const handleBooking = (serviceType: 'subscription' | 'one-time') => {
     setSelectedService(serviceType);
     setLocation('/register');
   };
@@ -191,7 +183,7 @@ export default function Home() {
             <MobileButton 
               variant="primary" 
               className="bg-white text-black hover:bg-white hover:bg-opacity-90"
-              onClick={() => handleBooking('basic')}
+              onClick={() => handleBooking('subscription')}
             >
               Start Weekly Service
             </MobileButton>
@@ -224,8 +216,8 @@ export default function Home() {
 
       {/* Pricing Section */}
       <MobileSection className="bg-muted/30">
-        <h2 className="text-2xl font-bold text-center mb-8">Choose Your Service Package</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        <h2 className="text-2xl font-bold text-center mb-8">Simple Pricing</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {pricingOptions.map((option) => (
             <MobileCard 
               key={option.type} 
@@ -276,7 +268,7 @@ export default function Home() {
                 <MobileButton 
                   variant={option.popular ? 'primary' : 'outline'}
                   className="w-full"
-                  onClick={() => handleBooking(option.type as 'basic' | 'clean-carry' | 'heavy-duty' | 'premium' | 'one-time')}
+                  onClick={() => handleBooking(option.type as 'subscription' | 'one-time')}
                 >
                   {option.buttonText}
                 </MobileButton>
@@ -285,7 +277,6 @@ export default function Home() {
           ))}
         </div>
       </MobileSection>
-
 
       {/* How It Works */}
       <MobileSection>
@@ -335,7 +326,7 @@ export default function Home() {
           <MobileButton 
             variant="primary" 
             className="w-full"
-            onClick={() => handleBooking('basic')}
+            onClick={() => handleBooking('subscription')}
           >
             Start Weekly Service
           </MobileButton>
