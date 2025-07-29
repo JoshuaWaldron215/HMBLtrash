@@ -299,7 +299,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                     {serviceType === 'subscription' ? 'Start Date' : 'Pickup Date'}
                     <span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <Input
+                  <input
                     id="scheduledDate"
                     type="date"
                     value={formData.scheduledDate ? formData.scheduledDate.split('T')[0] : ''}
@@ -325,7 +325,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                       
                       setFormData({...formData, scheduledDate: e.target.value + 'T09:00:00'})
                     }}
-                    className="app-input text-base cursor-pointer"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base cursor-pointer"
                     min={new Date().toISOString().split('T')[0]}
                     required
                   />
