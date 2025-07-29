@@ -41,12 +41,13 @@ export default function Driver() {
   // Fetch 7-day schedule (primary data source)
   const { data: scheduleData = {}, isLoading: routeLoading, error: routeError } = useQuery({
     queryKey: ['/api/driver/route'],
-    queryFn: () => authenticatedRequest('GET', '/api/driver/route').then(res => {
-      const data = res.json();
+    queryFn: async () => {
+      const res = await authenticatedRequest('GET', '/api/driver/route');
+      const data = await res.json();
       console.log('🔄 Driver dashboard received schedule data:', data);
       console.log('📋 Available schedule keys:', Object.keys(data));
       return data;
-    }),
+    },
     retry: false,
   });
 

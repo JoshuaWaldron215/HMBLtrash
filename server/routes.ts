@@ -1334,6 +1334,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       console.log('🎯 Returning 7-day schedule with pickups');
+      console.log('📋 Schedule structure:', Object.keys(schedule));
+      console.log('📅 2025-07-29 pickups:', schedule['2025-07-29']?.pickups?.length || 0);
       
       res.json(schedule);
     } catch (error: any) {
