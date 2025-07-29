@@ -76,11 +76,11 @@ export default function PackageSelection({ selectedPackage, onPackageSelect }: P
         </p>
       </div>
 
-      <div className="grid gap-4">
+      <div className="space-y-3">
         {packageOptions.map((pkg) => (
           <div
             key={pkg.type}
-            className={`relative cursor-pointer transition-all p-4 rounded-lg border ${
+            className={`relative cursor-pointer transition-all p-3 sm:p-4 rounded-lg border ${
               selectedPackage === pkg.type 
                 ? `${pkg.color} border-2 bg-opacity-5` 
                 : 'border hover:shadow-md'
@@ -109,21 +109,21 @@ export default function PackageSelection({ selectedPackage, onPackageSelect }: P
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">{pkg.title}</h3>
-                    <p className="text-sm text-muted-foreground">{pkg.subtitle}</p>
+                    <h3 className="text-base sm:text-lg font-semibold">{pkg.title}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{pkg.subtitle}</p>
                   </div>
                 </div>
                 
-                <div className="flex items-baseline mb-3 ml-7">
-                  <span className="text-2xl font-bold">{pkg.priceDisplay}</span>
-                  <span className="text-muted-foreground ml-1">{pkg.period}</span>
+                <div className="flex items-baseline mb-2 ml-7">
+                  <span className="text-xl sm:text-2xl font-bold">{pkg.priceDisplay}</span>
+                  <span className="text-muted-foreground ml-1 text-sm">{pkg.period}</span>
                 </div>
                 
                 <ul className="space-y-1 ml-7">
                   {pkg.features.map((feature, index) => (
-                    <li key={index} className="flex items-center text-sm">
-                      <CheckCircle className="w-3 h-3 text-green-500 mr-2 flex-shrink-0" />
-                      {feature}
+                    <li key={index} className="flex items-start text-xs sm:text-sm">
+                      <CheckCircle className="w-3 h-3 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span className="leading-tight">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -133,11 +133,10 @@ export default function PackageSelection({ selectedPackage, onPackageSelect }: P
         ))}
       </div>
       
-      <div className="bg-blue-50 p-4 rounded-lg mt-6">
-        <p className="text-sm text-blue-700">
+      <div className="bg-blue-50 p-3 sm:p-4 rounded-lg mt-4">
+        <p className="text-xs sm:text-sm text-blue-700">
           <strong>Note:</strong> All packages include professional pickup service, 
-          email confirmations, and the ability to cancel anytime. Additional services 
-          like furniture removal and power washing are included as specified.
+          email confirmations, and ability to cancel anytime.
         </p>
       </div>
     </div>

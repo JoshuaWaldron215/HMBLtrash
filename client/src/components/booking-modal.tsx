@@ -206,8 +206,8 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-background rounded-t-3xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden animate-slide-up">
+    <div className="mobile-modal-overlay">
+      <div className="mobile-modal-content animate-slide-up">
         {/* Header */}
         <div className="app-header border-b-0 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -251,7 +251,8 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
         </div>
 
         {/* Content */}
-        <div className="p-6 flex-1 overflow-y-auto">
+        <div className="mobile-scrollable">
+          <div className="p-4 sm:p-6">
           {currentStep === 1 && (
             <div className="space-y-6">
               {serviceType === 'subscription' ? (
@@ -421,10 +422,11 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t bg-muted/20">
+        <div className="mobile-footer p-4 sm:p-6">
           <div className="flex gap-3">
             {currentStep > 1 && (
               <MobileButton

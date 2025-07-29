@@ -222,6 +222,41 @@
     background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
     pointer-events: none;
   }
+
+  /* Mobile modal optimization */
+  .mobile-modal-overlay {
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4;
+  }
+
+  .mobile-modal-content {
+    @apply bg-background rounded-t-3xl sm:rounded-2xl w-full max-w-md h-[90vh] sm:max-h-[90vh] flex flex-col;
+  }
+
+  .mobile-scrollable {
+    @apply flex-1 overflow-y-auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .mobile-footer {
+    @apply flex-shrink-0 border-t bg-background;
+  }
+
+  /* Touch-friendly sizing */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Safe area handling for mobile devices */
+  @supports (padding: env(safe-area-inset-bottom)) {
+    .mobile-footer {
+      padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    }
+    
+    .mobile-modal-content {
+      height: calc(90vh - env(safe-area-inset-top));
+    }
+  }
   
   .app-bottom-nav {
     @apply fixed bottom-0 left-0 right-0 bg-background bg-opacity-95 backdrop-blur-sm border-t border-border px-4 py-2 safe-area-inset-bottom;
