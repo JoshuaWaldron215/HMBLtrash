@@ -90,11 +90,29 @@ export class MemStorage implements IStorage {
       id: this.userIdCounter++,
       username: 'admin',
       email: 'admin@test.com',
-      password: '$2a$10$hashed', // hashed version of 'password123'
+      password: '$2a$10$hashed',
+      passwordHash: null,
       role: 'admin',
-      createdAt: new Date(),
+      phone: null,
+      address: null,
       stripeCustomerId: null,
-      stripeSubscriptionId: null
+      stripeSubscriptionId: null,
+      firstName: 'Admin',
+      lastName: 'User',
+      profileImageUrl: null,
+      isActive: true,
+      lastLoginAt: null,
+      emailVerified: true,
+      emailVerificationToken: null,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      twoFactorSecret: null,
+      twoFactorEnabled: false,
+      loginHistory: null,
+      createdAt: new Date(),
+      updatedAt: null
     };
 
     const driverUser: User = {
@@ -102,10 +120,28 @@ export class MemStorage implements IStorage {
       username: 'driver1',
       email: 'driver@test.com',
       password: '$2a$10$hashed',
+      passwordHash: null,
       role: 'driver',
-      createdAt: new Date(),
+      phone: null,
+      address: null,
       stripeCustomerId: null,
-      stripeSubscriptionId: null
+      stripeSubscriptionId: null,
+      firstName: 'Driver',
+      lastName: 'One',
+      profileImageUrl: null,
+      isActive: true,
+      lastLoginAt: null,
+      emailVerified: true,
+      emailVerificationToken: null,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      twoFactorSecret: null,
+      twoFactorEnabled: false,
+      loginHistory: null,
+      createdAt: new Date(),
+      updatedAt: null
     };
 
     const customerUser: User = {
@@ -113,10 +149,28 @@ export class MemStorage implements IStorage {
       username: 'customer1',
       email: 'customer@test.com',
       password: '$2a$10$hashed',
+      passwordHash: null,
       role: 'customer',
-      createdAt: new Date(),
+      phone: null,
+      address: null,
       stripeCustomerId: null,
-      stripeSubscriptionId: null
+      stripeSubscriptionId: null,
+      firstName: 'Customer',
+      lastName: 'One',
+      profileImageUrl: null,
+      isActive: true,
+      lastLoginAt: null,
+      emailVerified: true,
+      emailVerificationToken: null,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      twoFactorSecret: null,
+      twoFactorEnabled: false,
+      loginHistory: null,
+      createdAt: new Date(),
+      updatedAt: null
     };
 
     this.users.set(adminUser.id, adminUser);
@@ -141,8 +195,18 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id: this.userIdCounter++, 
       createdAt: new Date(),
+      updatedAt: null,
       stripeCustomerId: null,
-      stripeSubscriptionId: null
+      stripeSubscriptionId: null,
+      lastLoginAt: null,
+      emailVerificationToken: null,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      twoFactorSecret: null,
+      twoFactorEnabled: false,
+      loginHistory: null
     };
     this.users.set(user.id, user);
     return user;
@@ -215,6 +279,15 @@ export class MemStorage implements IStorage {
       ...insertPickup, 
       id: this.pickupIdCounter++, 
       createdAt: new Date(),
+      updatedAt: null,
+      completedAt: null,
+      actualDuration: null,
+      customerRating: null,
+      driverNotes: null,
+      beforePhotoUrl: null,
+      afterPhotoUrl: null,
+      cancellationReason: null,
+      estimatedDuration: null,
       driverId: insertPickup.driverId || null
     };
     this.pickups.set(pickup.id, pickup);
@@ -268,7 +341,8 @@ export class MemStorage implements IStorage {
     const route: Route = { 
       ...insertRoute, 
       id: this.routeIdCounter++, 
-      createdAt: new Date()
+      createdAt: new Date(),
+      updatedAt: null
     };
     this.routes.set(route.id, route);
     return route;
@@ -301,7 +375,9 @@ export class MemStorage implements IStorage {
       ...insertSubscription, 
       id,
       createdAt: new Date(),
-      nextPickupDate: insertSubscription.nextPickupDate || null
+      updatedAt: null,
+      nextPickupDate: insertSubscription.nextPickupDate || null,
+      cancellationDate: null
     };
     this.subscriptions.set(id, subscription);
     return subscription;
@@ -327,6 +403,32 @@ export class MemStorage implements IStorage {
 
   async getActiveSubscriptions(): Promise<Subscription[]> {
     return Array.from(this.subscriptions.values()).filter(sub => sub.status === 'active');
+  }
+
+  // Additional methods for admin dashboard
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async getAllPickups(): Promise<Pickup[]> {
+    return Array.from(this.pickups.values());
+  }
+
+  async getAllRoutes(): Promise<Route[]> {
+    return Array.from(this.routes.values());
+  }
+
+  async getAllSubscriptions(): Promise<Subscription[]> {
+    return Array.from(this.subscriptions.values());
+  }
+
+  async updatePickup(id: number, updates: Partial<Pickup>): Promise<Pickup> {
+    const pickup = this.pickups.get(id);
+    if (!pickup) throw new Error('Pickup not found');
+    
+    const updatedPickup = { ...pickup, ...updates };
+    this.pickups.set(id, updatedPickup);
+    return updatedPickup;
   }
 }
 
