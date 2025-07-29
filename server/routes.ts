@@ -1274,16 +1274,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('✅ Assigned pickups:', assignedPickups.length);
       
       // Group pickups by scheduled date for 7-day view
+      // Use Eastern Time (Philadelphia timezone) for consistency with frontend
       const today = new Date();
+      const easternToday = new Date(today.toLocaleString("en-US", {timeZone: "America/New_York"}));
       const schedule: { [key: string]: any } = {};
       
-      const todayDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      console.log('📅 Today:', todayDateString);
+      const todayDateString = `${easternToday.getFullYear()}-${String(easternToday.getMonth() + 1).padStart(2, '0')}-${String(easternToday.getDate()).padStart(2, '0')}`;
+      console.log('📅 Today (Eastern):', todayDateString);
+      console.log('📅 Server timezone date:', `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
       
       // Initialize 7-day window (today + next 6 days since old pickups are auto-completed)
       for (let i = 0; i < 7; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
+        const date = new Date(easternToday);
+        date.setDate(easternToday.getDate() + i);
         const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
         console.log(`📅 Day ${i}: ${dateKey} (${date.toLocaleDateString('en-US', { weekday: 'long' })})`);
         schedule[dateKey] = {
@@ -1300,10 +1303,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       assignedPickups.forEach(pickup => {
         console.log(`🔍 Pickup ${pickup.id}: scheduledDate = ${pickup.scheduledDate}`);
         if (pickup.scheduledDate) {
-          // Fix timezone issue by using local date calculation instead of UTC
+          // Fix timezone issue by using Eastern Time (Philadelphia timezone) for consistency
           const pickupDateTime = new Date(pickup.scheduledDate);
-          const pickupDate = `${pickupDateTime.getFullYear()}-${String(pickupDateTime.getMonth() + 1).padStart(2, '0')}-${String(pickupDateTime.getDate()).padStart(2, '0')}`;
-          console.log(`📅 Pickup ${pickup.id}: computed date = ${pickupDate}`);
+          const easternPickupTime = new Date(pickupDateTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
+          const pickupDate = `${easternPickupTime.getFullYear()}-${String(easternPickupTime.getMonth() + 1).padStart(2, '0')}-${String(easternPickupTime.getDate()).padStart(2, '0')}`;
+          console.log(`📅 Pickup ${pickup.id}: computed date (Eastern) = ${pickupDate}`);
           if (schedule[pickupDate]) {
             schedule[pickupDate].pickups.push(pickup);
             console.log(`✅ Added pickup ${pickup.id} to ${pickupDate}`);

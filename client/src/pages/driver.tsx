@@ -60,9 +60,12 @@ export default function Driver() {
   });
 
   // Handle new organized-by-date format - fix timezone issue
+  // Use Eastern Time (Philadelphia timezone) for consistency
   const today = new Date();
-  const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  console.log('📅 Driver dashboard - Today\'s date:', todayDate);
+  const easternToday = new Date(today.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  const todayDate = `${easternToday.getFullYear()}-${String(easternToday.getMonth() + 1).padStart(2, '0')}-${String(easternToday.getDate()).padStart(2, '0')}`;
+  console.log('📅 Driver dashboard - Today\'s date (Eastern):', todayDate);
+  console.log('📅 Browser timezone date:', `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
   
   // Get today's data from the schedule
   const todaySchedule = scheduleData[todayDate] || { pickups: [] };
