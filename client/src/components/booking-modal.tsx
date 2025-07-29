@@ -299,37 +299,33 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                     {serviceType === 'subscription' ? 'Start Date' : 'Pickup Date'}
                     <span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      id="scheduledDate"
-                      type="datetime-local"
-                      value={formData.scheduledDate}
-                      onChange={(e) => {
-                        const selectedDate = new Date(e.target.value);
-                        const now = new Date();
-                        
-                        // Prevent past dates
-                        if (selectedDate < now) {
-                          toast({
-                            title: "Invalid Date",
-                            description: "Please select a future date and time.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        
-                        setFormData({...formData, scheduledDate: e.target.value})
-                      }}
-                      className="app-input pl-10 text-base cursor-pointer"
-                      min={new Date().toISOString().slice(0, 16)}
-                      required
-                    />
-                  </div>
+                  <Input
+                    id="scheduledDate"
+                    type="date"
+                    value={formData.scheduledDate.split('T')[0] || ''}
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value);
+                      const now = new Date();
+                      
+                      // Prevent past dates
+                      if (selectedDate < now) {
+                        toast({
+                          title: "Invalid Date",
+                          description: "Please select a future date.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      setFormData({...formData, scheduledDate: e.target.value})
+                    }}
+                    className="app-input text-base cursor-pointer"
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
                   {!formData.scheduledDate && (
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center space-x-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>Select your preferred {serviceType === 'subscription' ? 'start' : 'pickup'} date and time</span>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      <span>Select your preferred {serviceType === 'subscription' ? 'start' : 'pickup'} date</span>
                     </div>
                   )}
                 </div>
@@ -395,9 +391,9 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                   )}
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Date & Time</span>
+                    <span className="text-sm text-muted-foreground">Date</span>
                     <span className="font-medium">
-                      {new Date(formData.scheduledDate).toLocaleDateString()} at {new Date(formData.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(formData.scheduledDate).toLocaleDateString()}
                     </span>
                   </div>
                   

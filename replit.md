@@ -237,6 +237,16 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Required field indicators with red asterisks for better UX
   * Improved form layout with better placeholder text and validation messages
   * Updated Zod schema with phone number transformation and strict address requirements
+- ✓ Implemented 4-tier subscription package system (July 29, 2025):
+  * Updated pricing structure from single $25 subscription to 4 packages ($35-$150)
+  * Created new package selection interface with detailed feature breakdown
+  * Basic Package: $35/month (6 bags weekly, recycling)
+  * Clean & Carry: $60/month (adds furniture pickup, power washing)
+  * Heavy Duty: $75/month (2x weekly pickup, more bags)
+  * Premium Property: $150/month (includes lawn mowing)
+  * Integrated package selection into subscription booking flow
+  * Updated Stripe payment processing to handle new pricing tiers
+  * Fixed date picker to show only date (no time) with single calendar interface
 
 ## User Preferences
 
