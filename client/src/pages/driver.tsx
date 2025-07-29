@@ -56,8 +56,10 @@ export default function Driver() {
     retry: false,
   });
 
-  // Handle new organized-by-date format
-  const todayDate = new Date().toISOString().split('T')[0];
+  // Handle new organized-by-date format - fix timezone issue
+  const today = new Date();
+  const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  console.log('📅 Driver dashboard - Today\'s date:', todayDate);
   
   // Get today's data from the schedule
   const todaySchedule = scheduleData[todayDate] || { pickups: [] };

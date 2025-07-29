@@ -228,8 +228,11 @@ export default function AdminRedesigned() {
               <div>
                 <p className="text-sm text-muted-foreground">Today's Pickups</p>
                 <p className="text-2xl font-bold">{pickups.filter(p => {
-                  const today = new Date().toISOString().split('T')[0];
-                  return p.scheduledDate && new Date(p.scheduledDate).toISOString().split('T')[0] === today;
+                  const today = new Date();
+                  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                  const pickupDate = new Date(p.scheduledDate);
+                  const pickupDateString = `${pickupDate.getFullYear()}-${String(pickupDate.getMonth() + 1).padStart(2, '0')}-${String(pickupDate.getDate()).padStart(2, '0')}`;
+                  return p.scheduledDate && pickupDateString === todayString;
                 }).length}</p>
               </div>
             </div>

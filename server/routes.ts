@@ -1277,13 +1277,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = new Date();
       const schedule: { [key: string]: any } = {};
       
-      console.log('📅 Today:', today.toISOString().split('T')[0]);
+      const todayDateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      console.log('📅 Today:', todayDateString);
       
       // Initialize 7-day window (today + next 6 days since old pickups are auto-completed)
       for (let i = 0; i < 7; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
-        const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
         console.log(`📅 Day ${i}: ${dateKey} (${date.toLocaleDateString('en-US', { weekday: 'long' })})`);
         schedule[dateKey] = {
           date: dateKey,
@@ -1312,7 +1313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           console.log(`⚠️ Pickup ${pickup.id} has no scheduledDate - assigning to today`);
           // If no scheduled date, assign to today
-          const todayKey = today.toISOString().split('T')[0];
+          const todayKey = todayDateString;
           if (schedule[todayKey]) {
             schedule[todayKey].pickups.push(pickup);
           }

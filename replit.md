@@ -247,6 +247,8 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Integrated package selection into subscription booking flow
   * Updated Stripe payment processing to handle new pricing tiers
   * Fixed date picker to show only date (no time) with single calendar interface
+  * Resolved timezone inconsistency causing customer bookings to show wrong dates in driver dashboard
+  * Updated all date handling to use local time calculation instead of UTC conversion
 
 ## User Preferences
 
