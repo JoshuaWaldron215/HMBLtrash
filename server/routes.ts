@@ -549,6 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/create-subscription', authenticateToken, async (req, res) => {
     try {
+      const { packageType = 'basic' } = req.body; // Get package type from request
       let user = await storage.getUser(req.user!.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -559,6 +560,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingSubscription && existingSubscription.status === 'active') {
         return res.status(400).json({ message: "User already has an active subscription" });
       }
+
+      // Package pricing
+      const packagePricing = {
+        'basic': 3500,      // $35 in cents
+        'clean-carry': 6000, // $60 in cents
+        'heavy-duty': 7500,  // $75 in cents
+        'premium': 15000     // $150 in cents
+      };
+      
+      const packageAmount = packagePricing[packageType as keyof typeof packagePricing] || 3500;
 
       if (!stripe) {
         // Enhanced test payment simulation for development
@@ -613,7 +624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         product_data: {
           name: 'Weekly Trash Pickup',
         },
-        unit_amount: 2500, // $25 in cents
+        unit_amount: packageAmount,
       });
 
       const subscription = await stripe.subscriptions.create({

@@ -69,7 +69,7 @@ export default function Dashboard() {
 
   const upcomingPickups = pickups
     .filter(p => p.status === 'pending' || p.status === 'assigned')
-    .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+    .sort((a, b) => new Date(a.scheduledDate || 0).getTime() - new Date(b.scheduledDate || 0).getTime());
   const completedPickups = pickups.filter(p => p.status === 'completed');
   const hasActiveSubscription = subscription && subscription.status === 'active';
 
@@ -165,14 +165,14 @@ export default function Dashboard() {
               <h3 className="font-semibold text-lg">Subscription Status</h3>
             </div>
             {hasActiveSubscription && (
-              <StatusBadge status="active">Active</StatusBadge>
+              <StatusBadge status="completed">Active</StatusBadge>
             )}
           </div>
           
           {hasActiveSubscription ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Weekly pickup service - $25/month
+                Weekly pickup service - $35/month
               </p>
               <p className="text-sm font-medium">
                 Next pickup: {subscription?.nextPickupDate ? 
@@ -283,7 +283,7 @@ export default function Dashboard() {
                         {pickup.bagCount} bags • {pickup.serviceType}
                       </p>
                     </div>
-                    <StatusBadge status={pickup.status}>
+                    <StatusBadge status={pickup.status as 'pending' | 'assigned' | 'completed'}>
                       {pickup.status === 'assigned' ? 'Scheduled' : pickup.status}
                     </StatusBadge>
                   </div>

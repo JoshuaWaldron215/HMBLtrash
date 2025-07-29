@@ -43,20 +43,55 @@ const serviceFeatures = [
 const pricingOptions = [
   {
     type: 'subscription',
-    title: 'Weekly Subscription',
-    price: '$25',
+    packageType: 'basic',
+    title: '🟢 Basic Package',
+    price: '$35',
     period: '/month',
     popular: true,
-    features: ['Weekly pickup', 'Up to 6 bags', 'Priority scheduling', 'Cancel anytime'],
-    buttonText: 'Start Subscription'
+    features: ['1x per week trash pickup', 'Up to 6 trash bags', '1 bag of recycling', 'Non-commercial trash only'],
+    subtitle: 'Ideal for small households',
+    buttonText: 'Start Basic'
+  },
+  {
+    type: 'subscription',
+    packageType: 'clean-carry',
+    title: '🔵 Clean & Carry Package',
+    price: '$60',
+    period: '/month',
+    popular: false,
+    features: ['1x per week trash pickup', 'Up to 6 trash bags', '1 bag of recycling', '1 furniture item included', 'Weekly trash can power washing'],
+    subtitle: 'Great for families or shared homes',
+    buttonText: 'Start Clean & Carry'
+  },
+  {
+    type: 'subscription',
+    packageType: 'heavy-duty',
+    title: '🟣 Heavy Duty Package',
+    price: '$75',
+    period: '/month',
+    popular: false,
+    features: ['2x per week trash pickup', 'Up to 6 bags per pickup', '1 bag recycling per pickup', '1 furniture item per week', 'Weekly power washing'],
+    subtitle: 'Ideal for larger homes or heavy waste output',
+    buttonText: 'Start Heavy Duty'
+  },
+  {
+    type: 'subscription',
+    packageType: 'premium',
+    title: '🔴 Premium Property Package',
+    price: '$150',
+    period: '/month',
+    popular: false,
+    features: ['2x per week trash pickup', 'Up to 6 bags per pickup', '1 bag recycling per pickup', '1 furniture item per week', 'Weekly power washing', 'Monthly lawn mowing (¼ acre)'],
+    subtitle: 'Perfect for homeowners wanting full outdoor upkeep',
+    buttonText: 'Start Premium'
   },
   {
     type: 'one-time',
     title: 'One-Time Pickup',
-    price: 'From $30',
+    price: 'From $15',
     period: '',
     popular: false,
-    features: ['4 bags - $30', '8 bags - $45', '10 bags - $50', '25 bags - $100'],
+    features: ['Next-day: $15-50', 'Same-day: $25-65', 'Immediate: 50% premium', 'Flexible scheduling'],
     buttonText: 'Book Now'
   },
   {
@@ -65,7 +100,7 @@ const pricingOptions = [
     price: 'Call for Quote',
     period: '',
     popular: false,
-    features: ['House cleanouts', 'Basement & attic clearing', 'Estate cleanouts', 'Garage cleanouts'],
+    features: ['House cleanouts', 'Basement & attic clearing', 'Estate cleanouts', 'Construction debris'],
     buttonText: 'Call (267) 401-4292',
     isSpecial: true
   }
@@ -217,10 +252,10 @@ export default function Home() {
       {/* Pricing Section */}
       <MobileSection className="bg-muted/30">
         <h2 className="text-2xl font-bold text-center mb-8">Simple Pricing</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {pricingOptions.map((option) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          {pricingOptions.map((option, index) => (
             <MobileCard 
-              key={option.type} 
+              key={`${option.type}-${(option as any).packageType || index}`} 
               className={`relative ${option.popular ? 'border-primary border-2' : ''} ${(option as any).isSpecial ? 'border-orange-500 border-2' : ''}`}
             >
               {option.popular && (
@@ -240,9 +275,12 @@ export default function Home() {
               )}
               
               <div className="text-center mb-4">
-                <h3 className="text-xl font-semibold mb-2">{option.title}</h3>
+                <h3 className="text-lg font-semibold mb-1">{option.title}</h3>
+                {(option as any).subtitle && (
+                  <p className="text-sm text-muted-foreground mb-2">{(option as any).subtitle}</p>
+                )}
                 <div className="flex items-baseline justify-center">
-                  <span className="text-3xl font-bold">{option.price}</span>
+                  <span className="text-2xl font-bold">{option.price}</span>
                   <span className="text-muted-foreground ml-1">{option.period}</span>
                 </div>
               </div>

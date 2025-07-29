@@ -13,6 +13,7 @@ import { authenticatedRequest } from '@/lib/auth';
 import { MobileButton, MobileCard, MobileInput } from '@/components/mobile-layout';
 import TestPaymentModal from '@/components/test-payment-modal';
 import AddressAutocomplete from '@/components/address-autocomplete';
+import PackageSelection from '@/components/package-selection';
 import type { Subscription } from '@shared/schema';
 
 interface BookingModalProps {
@@ -44,7 +45,8 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
     bagCount: 4,
     scheduledDate: '',
     address: '',
-    specialInstructions: ''
+    specialInstructions: '',
+    packageType: 'basic' // Default to basic package for subscriptions
   });
 
   // Set default datetime to tomorrow at 10:00 AM
@@ -96,8 +98,21 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
         return;
       }
 
-      const amount = serviceType === 'subscription' ? 25 : 
-        bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
+      // Calculate amount based on service type and package
+      let amount = 30; // Default one-time price
+      
+      if (serviceType === 'subscription') {
+        // Package-based pricing
+        const packagePricing = {
+          'basic': 35,
+          'clean-carry': 60,
+          'heavy-duty': 75,
+          'premium': 150
+        };
+        amount = packagePricing[formData.packageType as keyof typeof packagePricing] || 35;
+      } else {
+        amount = bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
+      }
 
       // Create payment intent
       const endpoint = serviceType === 'subscription' ? '/api/create-subscription' : '/api/create-payment-intent';
@@ -133,7 +148,15 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
   };
 
   const getCurrentPrice = () => {
-    if (serviceType === 'subscription') return 20;
+    if (serviceType === 'subscription') {
+      const packagePricing = {
+        'basic': 35,
+        'clean-carry': 60,
+        'heavy-duty': 75,
+        'premium': 150
+      };
+      return packagePricing[formData.packageType as keyof typeof packagePricing] || 35;
+    }
     return bagPricing.find(p => p.count === formData.bagCount)?.price || 30;
   };
 
@@ -221,7 +244,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
             ))}
           </div>
           <div className="flex justify-between text-xs text-muted-foreground mt-2">
-            <span>Service</span>
+            <span>{serviceType === 'subscription' ? 'Package' : 'Service'}</span>
             <span>Details</span>
             <span>Confirm</span>
           </div>
@@ -231,10 +254,17 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
         <div className="p-6 flex-1 overflow-y-auto">
           {currentStep === 1 && (
             <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-4">Service Details</h3>
-                
-                {serviceType === 'one-time' && (
+              {serviceType === 'subscription' ? (
+                <PackageSelection 
+                  selectedPackage={formData.packageType}
+                  onPackageSelect={(packageType, price) => 
+                    setFormData({...formData, packageType})
+                  }
+                />
+              ) : (
+                <div>
+                  <h3 className="font-semibold mb-4">Service Details</h3>
+                  
                   <div className="space-y-4">
                     <div>
                       <Label className="text-sm font-medium mb-2 block">Number of Bags</Label>
@@ -260,48 +290,48 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="scheduledDate" className="text-sm font-medium mb-2 block">
-                      {serviceType === 'subscription' ? 'Start Date' : 'Pickup Date'}
-                      <span className="text-red-500 ml-1">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      <Input
-                        id="scheduledDate"
-                        type="datetime-local"
-                        value={formData.scheduledDate}
-                        onChange={(e) => {
-                          const selectedDate = new Date(e.target.value);
-                          const now = new Date();
-                          
-                          // Prevent past dates
-                          if (selectedDate < now) {
-                            toast({
-                              title: "Invalid Date",
-                              description: "Please select a future date and time.",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          
-                          setFormData({...formData, scheduledDate: e.target.value})
-                        }}
-                        className="app-input pl-10 text-base cursor-pointer"
-                        min={new Date().toISOString().slice(0, 16)}
-                        required
-                      />
-                    </div>
-                    {!formData.scheduledDate && (
-                      <div className="text-xs text-muted-foreground mt-1 flex items-center space-x-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>Select your preferred {serviceType === 'subscription' ? 'start' : 'pickup'} date and time</span>
-                      </div>
-                    )}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="scheduledDate" className="text-sm font-medium mb-2 block">
+                    {serviceType === 'subscription' ? 'Start Date' : 'Pickup Date'}
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      id="scheduledDate"
+                      type="datetime-local"
+                      value={formData.scheduledDate}
+                      onChange={(e) => {
+                        const selectedDate = new Date(e.target.value);
+                        const now = new Date();
+                        
+                        // Prevent past dates
+                        if (selectedDate < now) {
+                          toast({
+                            title: "Invalid Date",
+                            description: "Please select a future date and time.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        
+                        setFormData({...formData, scheduledDate: e.target.value})
+                      }}
+                      className="app-input pl-10 text-base cursor-pointer"
+                      min={new Date().toISOString().slice(0, 16)}
+                      required
+                    />
                   </div>
+                  {!formData.scheduledDate && (
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center space-x-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>Select your preferred {serviceType === 'subscription' ? 'start' : 'pickup'} date and time</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -354,6 +384,13 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Bags</span>
                       <span className="font-medium">{formData.bagCount} bags</span>
+                    </div>
+                  )}
+                  
+                  {serviceType === 'subscription' && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Package</span>
+                      <span className="font-medium capitalize">{formData.packageType.replace('-', ' ')} Package</span>
                     </div>
                   )}
                   

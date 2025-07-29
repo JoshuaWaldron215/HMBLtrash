@@ -291,18 +291,30 @@ export class PickupRouteManager {
 
   /**
    * Calculate pricing for pickup requests
-   * Based on standard waste removal industry pricing
+   * Based on new 4-tier subscription package structure
    */
-  calculatePickupPricing(serviceType: string, priority: string, bagCount: number): number {
-    // Industry-standard pricing structure
+  calculatePickupPricing(serviceType: string, priority: string, bagCount: number, packageType?: string): number {
     let totalPrice = 0;
     
     if (serviceType === 'subscription') {
-      // Subscription pricing: $8-12 per bag based on bag count
-      const subscriptionRates = {
-        1: 12.00, 2: 20.00, 3: 25.00, 4: 30.00, 5: 35.00
-      };
-      totalPrice = subscriptionRates[Math.min(bagCount, 5) as keyof typeof subscriptionRates] || (bagCount * 7);
+      // New 4-tier subscription pricing structure
+      switch (packageType) {
+        case 'basic':
+          totalPrice = 35.00; // Basic Package - 1x/week, up to 6 bags + recycling
+          break;
+        case 'clean-carry':
+          totalPrice = 60.00; // Clean & Carry - includes furniture + power washing
+          break;
+        case 'heavy-duty':
+          totalPrice = 75.00; // Heavy Duty - 2x/week pickup
+          break;
+        case 'premium':
+          totalPrice = 150.00; // Premium Property - includes lawn mowing
+          break;
+        default:
+          // Legacy support - Basic package
+          totalPrice = 35.00;
+      }
     } else {
       // One-time pickup pricing - base rates for next-day service
       if (bagCount === 1) {
