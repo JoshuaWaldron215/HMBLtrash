@@ -151,25 +151,24 @@ export class AuthService {
   /**
    * Authenticate user with enhanced security checks - accepts email or username
    */
-  async authenticate(emailOrUsername: string, password: string, ip: string, userAgent: string): Promise<AuthResult> {
+  async authenticate(usernameOrEmail: string, password: string, ip: string, userAgent: string): Promise<AuthResult> {
     try {
-      // Validate input
-      const validation = loginSchema.safeParse({ emailOrUsername, password });
-      if (!validation.success) {
+      // Basic input validation - no schema validation needed
+      if (!usernameOrEmail || !password || usernameOrEmail.trim() === '' || password.trim() === '') {
         return {
           success: false,
-          error: "Invalid credentials format"
+          error: "Username/email and password are required"
         };
       }
 
       // Determine if input is email or username and find user accordingly
-      const isEmail = emailOrUsername.includes('@');
+      const isEmail = usernameOrEmail.includes('@');
       let user;
       
       if (isEmail) {
-        user = await storage.getUserByEmail(emailOrUsername.toLowerCase());
+        user = await storage.getUserByEmail(usernameOrEmail.toLowerCase());
       } else {
-        user = await storage.getUserByUsername(emailOrUsername);
+        user = await storage.getUserByUsername(usernameOrEmail);
       }
       
       if (!user) {
