@@ -1,36 +1,399 @@
 import type { User, Pickup, Subscription } from '@shared/schema';
+import { Resend } from 'resend';
 
-// Mock Resend implementation for development
-const mockResend = {
-  emails: {
-    send: async (emailData: any) => {
-      console.log('📧 Mock Email Sent:', {
-        from: emailData.from,
-        to: emailData.to,
-        subject: emailData.subject,
-        htmlLength: emailData.html?.length || 0
-      });
-      
-      // Simulate API response
-      return {
-        data: { id: 'mock-email-' + Date.now() },
-        error: null
-      };
-    }
-  }
-};
-
-const resend = mockResend;
+// Initialize Resend with API key or use mock for development
+const resend = process.env.RESEND_API_KEY 
+  ? new Resend(process.env.RESEND_API_KEY)
+  : {
+      emails: {
+        send: async (emailData: any) => {
+          console.log('📧 Mock Email Sent:', {
+            from: emailData.from,
+            to: emailData.to,
+            subject: emailData.subject,
+            htmlLength: emailData.html?.length || 0
+          });
+          return {
+            data: { id: 'mock-email-' + Date.now() },
+            error: null
+          };
+        }
+      }
+    };
 
 export class EmailService {
   private static instance: EmailService;
   private fromEmail = 'Acapella Trash <noreply@acapellatrashremoval.com>';
+  private supportEmail = 'acapellatrashhmbl@gmail.com';
+  private supportPhone = '(267) 401-4292';
 
   static getInstance(): EmailService {
     if (!EmailService.instance) {
       EmailService.instance = new EmailService();
     }
     return EmailService.instance;
+  }
+
+  private getEmailTemplate(content: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Acapella Trash Removal</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8fafc;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 30px 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Acapella Trash</h1>
+            <p style="color: #e2e8f0; margin: 5px 0 0 0; font-size: 14px;">Powered by HMBL</p>
+          </div>
+          
+          <!-- Content -->
+          <div style="padding: 30px 20px;">
+            ${content}
+          </div>
+          
+          <!-- Footer -->
+          <div style="background-color: #f1f5f9; padding: 20px; border-top: 1px solid #e2e8f0;">
+            <div style="text-align: center; color: #64748b; font-size: 14px;">
+              <p style="margin: 0 0 10px 0;">Need help? Contact us:</p>
+              <p style="margin: 0 0 5px 0;">
+                📧 <a href="mailto:${this.supportEmail}" style="color: #1e3a8a; text-decoration: none;">${this.supportEmail}</a>
+              </p>
+              <p style="margin: 0 0 15px 0;">
+                📞 <a href="tel:+12674014292" style="color: #1e3a8a; text-decoration: none;">${this.supportPhone}</a>
+              </p>
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+              <p style="margin: 0; font-size: 12px;">
+                © 2025 Acapella Trash Removal. All rights reserved.<br>
+                Professional waste management services powered by HMBL.
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  async sendPickupConfirmationEmail(customer: User, pickup: Pickup): Promise<void> {
+    try {
+      const scheduledDate = new Date(pickup.scheduledDate!);
+      const formattedDate = scheduledDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const content = `
+        <div style="text-align: center; margin-bottom: 30px;">
+          <div style="background-color: #10b981; color: white; padding: 15px; border-radius: 50px; display: inline-block; margin-bottom: 20px;">
+            <span style="font-size: 24px;">✅</span>
+          </div>
+          <h2 style="color: #1e3a8a; margin: 0; font-size: 24px;">Pickup Confirmed!</h2>
+          <p style="color: #64748b; font-size: 16px; margin: 10px 0 0 0;">Your trash pickup has been successfully scheduled.</p>
+        </div>
+
+        <div style="background-color: #f8fafc; padding: 25px; border-radius: 8px; border-left: 4px solid #1e3a8a; margin: 20px 0;">
+          <h3 style="color: #1e3a8a; margin: 0 0 15px 0; font-size: 18px;">Pickup Details</h3>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">📅 Scheduled Date:</strong>
+            <span style="color: #1f2937; margin-left: 8px;">${formattedDate}</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">📍 Address:</strong>
+            <span style="color: #1f2937; margin-left: 8px;">${pickup.address}</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">🗑️ Bag Count:</strong>
+            <span style="color: #1f2937; margin-left: 8px;">${pickup.bagCount} bags</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">🏷️ Service Type:</strong>
+            <span style="color: #1f2937; margin-left: 8px; text-transform: capitalize;">${pickup.serviceType}</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">💰 Total Amount:</strong>
+            <span style="color: #059669; font-weight: bold; margin-left: 8px; font-size: 18px;">$${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
+          </div>
+          
+          ${pickup.specialInstructions ? `
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">📝 Special Instructions:</strong>
+            <span style="color: #1f2937; margin-left: 8px;">${pickup.specialInstructions}</span>
+          </div>
+          ` : ''}
+        </div>
+
+        <div style="background-color: #eff6ff; padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="color: #1e3a8a; margin: 0 0 15px 0; font-size: 16px;">What happens next?</h3>
+          <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.6;">
+            <li>We'll send you a reminder 24 hours before your pickup</li>
+            <li>Our driver will arrive during your scheduled time window</li>
+            <li>Please have your bags ready at the pickup location</li>
+            <li>You'll receive a notification when the pickup is complete</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <p style="color: #64748b; font-size: 14px; margin: 0;">
+            Thank you for choosing Acapella Trash for your waste removal needs!
+          </p>
+        </div>
+      `;
+
+      const { data, error } = await resend.emails.send({
+        from: this.fromEmail,
+        to: [customer.email],
+        subject: `Pickup Confirmed - ${formattedDate}`,
+        html: this.getEmailTemplate(content),
+      });
+
+      if (error) {
+        console.error('❌ Failed to send pickup confirmation email:', error);
+        throw error;
+      }
+
+      console.log('✅ Pickup confirmation email sent successfully:', data?.id);
+    } catch (error) {
+      console.error('❌ Error sending pickup confirmation email:', error);
+      throw error;
+    }
+  }
+
+  async sendSubscriptionConfirmationEmail(customer: User, subscription: Subscription): Promise<void> {
+    try {
+      const nextPickupDate = subscription.nextPickupDate 
+        ? new Date(subscription.nextPickupDate).toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric'
+          })
+        : 'To be scheduled';
+
+      const monthlyAmount = subscription.pricePerMonth 
+        ? parseFloat(subscription.pricePerMonth.toString()).toFixed(2)
+        : '0.00';
+
+      const content = `
+        <div style="text-align: center; margin-bottom: 30px;">
+          <div style="background-color: #8b5cf6; color: white; padding: 15px; border-radius: 50px; display: inline-block; margin-bottom: 20px;">
+            <span style="font-size: 24px;">🎉</span>
+          </div>
+          <h2 style="color: #1e3a8a; margin: 0; font-size: 24px;">Welcome to Acapella Trash!</h2>
+          <p style="color: #64748b; font-size: 16px; margin: 10px 0 0 0;">Your subscription is now active and ready to go.</p>
+        </div>
+
+        <div style="background-color: #f8fafc; padding: 25px; border-radius: 8px; border-left: 4px solid #8b5cf6; margin: 20px 0;">
+          <h3 style="color: #1e3a8a; margin: 0 0 15px 0; font-size: 18px;">Subscription Details</h3>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">📋 Plan:</strong>
+            <span style="color: #1f2937; margin-left: 8px; text-transform: capitalize;">${subscription.frequency || 'weekly'} Service</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">💰 Monthly Rate:</strong>
+            <span style="color: #059669; font-weight: bold; margin-left: 8px; font-size: 18px;">$${monthlyAmount}</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">🗑️ Bag Limit:</strong>
+            <span style="color: #1f2937; margin-left: 8px;">${subscription.bagCountLimit || 5} bags per pickup</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">📅 Next Pickup:</strong>
+            <span style="color: #1f2937; margin-left: 8px;">${nextPickupDate}</span>
+          </div>
+          
+          ${subscription.preferredDay ? `
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">🗓️ Preferred Day:</strong>
+            <span style="color: #1f2937; margin-left: 8px; text-transform: capitalize;">${subscription.preferredDay}</span>
+          </div>
+          ` : ''}
+          
+          ${subscription.preferredTime ? `
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">⏰ Preferred Time:</strong>
+            <span style="color: #1f2937; margin-left: 8px; text-transform: capitalize;">${subscription.preferredTime}</span>
+          </div>
+          ` : ''}
+        </div>
+
+        <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="color: #059669; margin: 0 0 15px 0; font-size: 16px;">Your Subscription Benefits</h3>
+          <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.6;">
+            <li><strong>Automatic Scheduling:</strong> Your pickups are scheduled automatically</li>
+            <li><strong>Priority Service:</strong> Guaranteed pickup within your time window</li>
+            <li><strong>Flexible Management:</strong> Pause, modify, or cancel anytime</li>
+            <li><strong>Better Rates:</strong> Save money with subscription pricing</li>
+            <li><strong>Consistent Service:</strong> Same reliable pickup every ${subscription.frequency || 'week'}</li>
+          </ul>
+        </div>
+
+        <div style="background-color: #eff6ff; padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="color: #1e3a8a; margin: 0 0 15px 0; font-size: 16px;">Managing Your Subscription</h3>
+          <p style="color: #374151; margin: 0 0 10px 0; line-height: 1.6;">
+            Log into your dashboard anytime to:
+          </p>
+          <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.6;">
+            <li>View upcoming pickups and payment history</li>
+            <li>Update your preferences or pickup instructions</li>
+            <li>Pause your subscription for vacations</li>
+            <li>Contact our support team for assistance</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <p style="color: #64748b; font-size: 14px; margin: 0 0 10px 0;">
+            Thank you for choosing Acapella Trash as your trusted waste management partner!
+          </p>
+          <p style="color: #64748b; font-size: 14px; margin: 0;">
+            We're committed to keeping your community clean and beautiful.
+          </p>
+        </div>
+      `;
+
+      const { data, error } = await resend.emails.send({
+        from: this.fromEmail,
+        to: [customer.email],
+        subject: 'Welcome to Acapella Trash - Subscription Confirmed! 🎉',
+        html: this.getEmailTemplate(content),
+      });
+
+      if (error) {
+        console.error('❌ Failed to send subscription confirmation email:', error);
+        throw error;
+      }
+
+      console.log('✅ Subscription confirmation email sent successfully:', data?.id);
+    } catch (error) {
+      console.error('❌ Error sending subscription confirmation email:', error);
+      throw error;
+    }
+  }
+
+  async sendPickupCompletedEmail(customer: User, pickup: Pickup): Promise<void> {
+    try {
+      const completedDate = pickup.completedAt 
+        ? new Date(pickup.completedAt).toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        : new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+      const content = `
+        <div style="text-align: center; margin-bottom: 30px;">
+          <div style="background-color: #059669; color: white; padding: 15px; border-radius: 50px; display: inline-block; margin-bottom: 20px;">
+            <span style="font-size: 24px;">🎉</span>
+          </div>
+          <h2 style="color: #1e3a8a; margin: 0; font-size: 24px;">Pickup Completed!</h2>
+          <p style="color: #64748b; font-size: 16px; margin: 10px 0 0 0;">Your trash pickup has been successfully completed.</p>
+        </div>
+
+        <div style="background-color: #f8fafc; padding: 25px; border-radius: 8px; border-left: 4px solid #059669; margin: 20px 0;">
+          <h3 style="color: #1e3a8a; margin: 0 0 15px 0; font-size: 18px;">Service Summary</h3>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">✅ Completed:</strong>
+            <span style="color: #1f2937; margin-left: 8px;">${completedDate}</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">📍 Address:</strong>
+            <span style="color: #1f2937; margin-left: 8px;">${pickup.address}</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">🗑️ Bags Collected:</strong>
+            <span style="color: #1f2937; margin-left: 8px;">${pickup.bagCount} bags</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">🏷️ Service Type:</strong>
+            <span style="color: #1f2937; margin-left: 8px; text-transform: capitalize;">${pickup.serviceType}</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #374151;">💰 Amount:</strong>
+            <span style="color: #059669; font-weight: bold; margin-left: 8px; font-size: 18px;">$${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
+          </div>
+        </div>
+
+        ${pickup.serviceType === 'subscription' ? `
+        <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="color: #059669; margin: 0 0 15px 0; font-size: 16px;">Your Next Pickup</h3>
+          <p style="color: #374151; margin: 0; line-height: 1.6;">
+            As a subscription customer, your next pickup has been automatically scheduled for next week. 
+            You'll receive a confirmation email with the details shortly.
+          </p>
+        </div>
+        ` : `
+        <div style="background-color: #eff6ff; padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="color: #1e3a8a; margin: 0 0 15px 0; font-size: 16px;">Need Another Pickup?</h3>
+          <p style="color: #374151; margin: 0 0 10px 0; line-height: 1.6;">
+            Schedule your next pickup anytime through your dashboard or consider our subscription service for:
+          </p>
+          <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.6;">
+            <li>Automatic weekly pickups</li>
+            <li>Better pricing than one-time services</li>
+            <li>Priority scheduling and support</li>
+          </ul>
+        </div>
+        `}
+
+        <div style="text-align: center; margin: 30px 0;">
+          <p style="color: #64748b; font-size: 14px; margin: 0 0 10px 0;">
+            Thank you for choosing Acapella Trash for your waste removal needs!
+          </p>
+          <p style="color: #64748b; font-size: 14px; margin: 0;">
+            Your satisfaction and our community's cleanliness are our top priorities.
+          </p>
+        </div>
+      `;
+
+      const { data, error } = await resend.emails.send({
+        from: this.fromEmail,
+        to: [customer.email],
+        subject: `Pickup Complete - Thank You! 🎉`,
+        html: this.getEmailTemplate(content),
+      });
+
+      if (error) {
+        console.error('❌ Failed to send pickup completion email:', error);
+        throw error;
+      }
+
+      console.log('✅ Pickup completion email sent successfully:', data?.id);
+    } catch (error) {
+      console.error('❌ Error sending pickup completion email:', error);
+      throw error;
+    }
   }
 
   async sendPickupRescheduledEmail(customer: User, pickup: Pickup, originalDate: Date, newDate: Date): Promise<void> {

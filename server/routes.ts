@@ -659,10 +659,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const newSubscription = await storage.getSubscriptionByCustomer(user.id);
         if (newSubscription) {
-          await emailService.sendSubscriptionWelcomeEmail(user, newSubscription);
+          await emailService.sendSubscriptionConfirmationEmail(user, newSubscription);
         }
       } catch (emailError) {
-        console.error('❌ Failed to send subscription welcome email:', emailError);
+        console.error('❌ Failed to send subscription confirmation email:', emailError);
         // Continue with the response even if email fails
       }
 
@@ -900,7 +900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const customer = await storage.getUser(pickup.customerId);
         if (customer) {
-          await emailService.sendOneTimePickupConfirmationEmail(customer, pickup);
+          await emailService.sendPickupConfirmationEmail(customer, pickup);
         }
       } catch (emailError) {
         console.error('❌ Failed to send pickup confirmation email:', emailError);
