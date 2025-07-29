@@ -1,13 +1,13 @@
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 async function migrateSecurityFields() {
   try {
     console.log("🔄 Starting security migration...");
     
     // Add new security columns to users table
-    await db.execute(`
+    await db.execute(sql`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS password_hash TEXT,
       ADD COLUMN IF NOT EXISTS email_verification_token TEXT,
@@ -21,7 +21,7 @@ async function migrateSecurityFields() {
     `);
 
     // Copy existing password data to password_hash if it exists
-    await db.execute(`
+    await db.execute(sql`
       UPDATE users 
       SET password_hash = password 
       WHERE password_hash IS NULL AND password IS NOT NULL;
