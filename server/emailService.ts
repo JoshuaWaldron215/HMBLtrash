@@ -1,7 +1,26 @@
-import { Resend } from 'resend';
 import type { User, Pickup, Subscription } from '@shared/schema';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Mock Resend implementation for development
+const mockResend = {
+  emails: {
+    send: async (emailData: any) => {
+      console.log('📧 Mock Email Sent:', {
+        from: emailData.from,
+        to: emailData.to,
+        subject: emailData.subject,
+        htmlLength: emailData.html?.length || 0
+      });
+      
+      // Simulate API response
+      return {
+        data: { id: 'mock-email-' + Date.now() },
+        error: null
+      };
+    }
+  }
+};
+
+const resend = mockResend;
 
 export class EmailService {
   private static instance: EmailService;
@@ -60,7 +79,7 @@ export class EmailService {
 
       if (error) {
         console.error('❌ Email send error:', error);
-        throw new Error(`Failed to send reschedule email: ${error.message}`);
+        throw new Error(`Failed to send reschedule email: ${error}`);
       }
 
       console.log('📧 Reschedule email sent successfully:', {
@@ -114,7 +133,7 @@ export class EmailService {
 
       if (error) {
         console.error('❌ Email send error:', error);
-        throw new Error(`Failed to send welcome email: ${error.message}`);
+        throw new Error(`Failed to send welcome email: ${error}`);
       }
 
       console.log('📧 Subscription welcome email sent successfully:', {
@@ -180,7 +199,7 @@ export class EmailService {
 
       if (error) {
         console.error('❌ Email send error:', error);
-        throw new Error(`Failed to send pickup confirmation email: ${error.message}`);
+        throw new Error(`Failed to send pickup confirmation email: ${error}`);
       }
 
       console.log('📧 Pickup confirmation email sent successfully:', {
@@ -240,7 +259,7 @@ export class EmailService {
 
       if (error) {
         console.error('❌ Email send error:', error);
-        throw new Error(`Failed to send completion email: ${error.message}`);
+        throw new Error(`Failed to send completion email: ${error}`);
       }
 
       console.log('📧 Pickup completion email sent successfully:', {
