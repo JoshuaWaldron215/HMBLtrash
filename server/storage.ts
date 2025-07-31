@@ -557,39 +557,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPickupsByDriver(driverId: number): Promise<any[]> {
-    return await db
-      .select({
-        // Pickup fields
-        id: pickups.id,
-        customerId: pickups.customerId,
-        driverId: pickups.driverId,
-        address: pickups.address,
-        fullAddress: pickups.fullAddress,
-        coordinates: pickups.coordinates,
-        bagCount: pickups.bagCount,
-        amount: pickups.amount,
-        serviceType: pickups.serviceType,
-        status: pickups.status,
-        scheduledDate: pickups.scheduledDate,
-        specialInstructions: pickups.specialInstructions,
-        priority: pickups.priority,
-        routeOrder: pickups.routeOrder,
-        estimatedDuration: pickups.estimatedDuration,
-        estimatedArrival: pickups.estimatedArrival,
-        paymentStatus: pickups.paymentStatus,
-        createdAt: pickups.createdAt,
-        updatedAt: pickups.updatedAt,
-        
-        // Customer fields
-        customerFirstName: users.firstName,
-        customerLastName: users.lastName,
-        customerEmail: users.email,
-        customerPhone: users.phone,
-        customerName: users.username
-      })
-      .from(pickups)
-      .leftJoin(users, eq(pickups.customerId, users.id))
-      .where(eq(pickups.driverId, driverId));
+    // Get pickups first
+    const driverPickups = await db.select().from(pickups).where(eq(pickups.driverId, driverId));
+    
+    // Get customer data for each pickup
+    const pickupsWithCustomers = [];
+    for (const pickup of driverPickups) {
+      const customer = await this.getUser(pickup.customerId);
+      pickupsWithCustomers.push({
+        ...pickup,
+        customerFirstName: customer?.firstName || null,
+        customerLastName: customer?.lastName || null,
+        customerEmail: customer?.email || null,
+        customerPhone: customer?.phone || null,
+        customerName: customer?.username || null
+      });
+    }
+    
+    return pickupsWithCustomers;
   }
 
   async getPickupsByStatus(status: string): Promise<Pickup[]> {
