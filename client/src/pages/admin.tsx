@@ -412,15 +412,67 @@ export default function Admin() {
 
   // Helper function to get pickup day of week
   const getPickupDayOfWeek = (subscription: any) => {
-    const relatedPickups = pickups.filter(p => 
+    // First check if subscription has nextPickupDate
+    if (subscription.nextPickupDate) {
+      const nextDate = new Date(subscription.nextPickupDate);
+      return nextDate.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+    
+    // Otherwise check for upcoming subscription pickups
+    const upcomingPickups = pickups.filter(p => 
+      p.customerId === subscription.customerId && 
+      p.serviceType === 'subscription' && 
+      p.scheduledDate &&
+      new Date(p.scheduledDate) >= new Date()
+    ).sort((a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime());
+    
+    if (upcomingPickups.length > 0) {
+      const scheduledDate = new Date(upcomingPickups[0].scheduledDate!);
+      return scheduledDate.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+    
+    // Fall back to any subscription pickup to get the day pattern
+    const anySubscriptionPickup = pickups.find(p => 
       p.customerId === subscription.customerId && 
       p.serviceType === 'subscription' && 
       p.scheduledDate
     );
     
-    if (relatedPickups.length > 0) {
-      const scheduledDate = new Date(relatedPickups[0].scheduledDate!);
+    if (anySubscriptionPickup) {
+      const scheduledDate = new Date(anySubscriptionPickup.scheduledDate!);
       return scheduledDate.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+    
+    return 'Not scheduled';
+  };
+
+  // Helper function to get next pickup date display
+  const getNextPickupDate = (subscription: any) => {
+    // First check if subscription has nextPickupDate
+    if (subscription.nextPickupDate) {
+      const nextDate = new Date(subscription.nextPickupDate);
+      return nextDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
+    
+    // Otherwise check for upcoming subscription pickups
+    const upcomingPickups = pickups.filter(p => 
+      p.customerId === subscription.customerId && 
+      p.serviceType === 'subscription' && 
+      p.scheduledDate &&
+      new Date(p.scheduledDate) >= new Date()
+    ).sort((a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime());
+    
+    if (upcomingPickups.length > 0) {
+      const scheduledDate = new Date(upcomingPickups[0].scheduledDate!);
+      return scheduledDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'short', 
+        day: 'numeric' 
+      });
     }
     
     return 'Not scheduled';
@@ -572,7 +624,6 @@ export default function Admin() {
           <div className="space-y-3">
             {filteredSubscriptions.map((subscription: Subscription) => {
               const customer = users.find(u => u.id === subscription.customerId);
-              const pickupDay = getPickupDayOfWeek(subscription);
               const relatedPickups = pickups.filter(p => p.customerId === subscription.customerId);
               const price = parseFloat(subscription.pricePerMonth?.toString() || '35');
               const packageType = price <= 35 ? 'basic' :
@@ -607,7 +658,7 @@ export default function Admin() {
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground">
                           <Calendar className="w-3 h-3 mr-1" />
-                          <span>Pickup Day: {pickupDay}</span>
+                          <span>Next Pickup: {getNextPickupDate(subscription)}</span>
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground">
                           <Package className="w-3 h-3 mr-1" />
@@ -744,8 +795,8 @@ export default function Admin() {
                       </StatusBadge>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Pickup Day:</span>
-                      <p className="font-medium">{getPickupDayOfWeek(selectedSubscriber.subscriber)}</p>
+                      <span className="text-muted-foreground">Next Pickup:</span>
+                      <p className="font-medium">{getNextPickupDate(selectedSubscriber.subscriber)}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Bag Limit:</span>
