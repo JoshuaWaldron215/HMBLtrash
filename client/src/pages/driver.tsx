@@ -72,22 +72,38 @@ export default function Driver() {
   console.log('📅 Driver dashboard - Today\'s date (Eastern):', todayDate);
   console.log('📅 Browser timezone date:', `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
   
-  // Get today's data from the schedule
-  const todaySchedule = scheduleData[todayDate] || { pickups: [] };
-  const todayRoute = todaySchedule.pickups || [];
   console.log('📅 Looking for pickups on date:', todayDate);
-  console.log('📦 Found today schedule:', todaySchedule);
-  console.log('🚚 Today route pickups:', todayRoute.length);
   console.log('🗂️ Full schedule data keys:', Object.keys(scheduleData));
   console.log('📋 Schedule for 2025-07-29:', scheduleData['2025-07-29']);
 
-  // Get all days from schedule for 7-day view
-  const scheduleDays = Object.values(scheduleData).sort((a: any, b: any) => 
-    a.date.localeCompare(b.date)
-  );
+  // Separate overdue, today's, and upcoming pickups
+  const overduePickups: any[] = [];
+  const upcomingDays: any[] = [];
+  
+  Object.values(scheduleData).forEach((day: any) => {
+    if (day.date < todayDate) {
+      // Past dates with pending pickups are overdue
+      const pendingPickups = (day.pickups || []).filter((p: any) => p.status === 'assigned');
+      if (pendingPickups.length > 0) {
+        overduePickups.push(...pendingPickups.map((p: any) => ({ ...p, originalDate: day.date, dayName: day.dayName })));
+      }
+    } else if (day.date > todayDate) {
+      // Future dates for upcoming schedule
+      upcomingDays.push(day);
+    }
+  });
+
+  // Get today's data from the schedule
+  const todaySchedule = scheduleData[todayDate] || { pickups: [] };
+  const todayRoute = todaySchedule.pickups || [];
+  console.log('📦 Found today schedule:', todaySchedule);
+  console.log('🚚 Today route pickups:', todayRoute.length);
+  
+  // Sort upcoming days by date
+  upcomingDays.sort((a: any, b: any) => a.date.localeCompare(b.date));
 
   // Calculate totals from all schedule days for proper summary
-  const allPickups = scheduleDays.flatMap((day: any) => day.pickups || []);
+  const allPickups = Object.values(scheduleData).flatMap((day: any) => day.pickups || []);
   const allPendingPickups = allPickups.filter((p: any) => p.status === 'assigned');
   const allCompletedPickups = allPickups.filter((p: any) => p.status === 'completed');
 
@@ -364,6 +380,92 @@ export default function Driver() {
           </div>
         </MobileCard>
 
+        {/* Overdue Pickups - Highest Priority */}
+        {overduePickups.length > 0 && (
+          <MobileCard className="mb-6 border-2 border-red-500 bg-red-50 dark:bg-red-950/20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  OVERDUE
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-red-600 dark:text-red-400">Overdue Pickups</h3>
+                  <p className="text-sm text-red-600/70 dark:text-red-400/70">
+                    Complete these pickups immediately
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{overduePickups.length}</div>
+                <div className="text-xs text-red-600/70 dark:text-red-400/70">overdue</div>
+              </div>
+            </div>
+
+            {/* Overdue Pickup List */}
+            <div className="space-y-3">
+              {overduePickups.map((pickup: any) => (
+                <div 
+                  key={pickup.id}
+                  className="p-4 rounded-lg border-2 border-red-200 dark:border-red-800 bg-white dark:bg-gray-800"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-full">
+                          <Package className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-red-600 dark:text-red-400">
+                            {pickup.customerFirstName} {pickup.customerLastName}
+                          </div>
+                          <div className="text-sm text-red-600/70 dark:text-red-400/70">
+                            Due: {pickup.dayName}, {new Date(pickup.originalDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-red-600 dark:text-red-400">{pickup.bagCount} bags</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center text-sm text-red-600/70 dark:text-red-400/70">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      <span>{pickup.address}</span>
+                    </div>
+
+                    {pickup.specialInstructions && (
+                      <div className="text-sm text-red-600/70 dark:text-red-400/70 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                        {pickup.specialInstructions}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleNavigate(pickup.address)}
+                        className="flex-1 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                      >
+                        <Navigation className="w-4 h-4 mr-2" />
+                        Navigate
+                      </Button>
+                      <Button
+                        onClick={() => completePickupsMutation.mutate([pickup.id])}
+                        disabled={completePickupsMutation.isPending}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                        size="sm"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Complete
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </MobileCard>
+        )}
+
         {/* Today's Pickups - Primary Focus */}
         {todayRoute.length > 0 ? (
           <MobileCard className="mb-6 border-2 border-primary bg-primary/5">
@@ -598,14 +700,14 @@ export default function Driver() {
         )}
 
         {/* Upcoming Schedule Preview */}
-        {scheduleDays.length > 0 && (
+        {upcomingDays.length > 0 && (
           <div className="space-y-4">
             <h3 className="font-semibold text-lg flex items-center space-x-2">
               <Calendar className="w-5 h-5 text-muted-foreground" />
               <span>Upcoming Schedule</span>
             </h3>
 
-            {scheduleDays.filter((day: any) => !day.isToday).map((day: any) => {
+            {upcomingDays.map((day: any) => {
               const dayPickups = day.pickups || [];
 
               return (
