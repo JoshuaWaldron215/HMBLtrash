@@ -227,8 +227,8 @@ export class AuthService {
         success: true,
         user: {
           ...user,
-          passwordHash: undefined // Don't send password hash to client
-        } as User,
+          password: undefined // Don't send password hash to client
+        } as any,
         token
       };
 
@@ -291,9 +291,7 @@ export class AuthService {
         phone: validatedData.phone,
         address: validatedData.address,
         role: 'customer', // All new users start as customers
-        emailVerificationToken,
-        isActive: true, // Set to false if you want email verification before activation
-        loginHistory: []
+        isActive: true // Set to false if you want email verification before activation
       });
 
       // Record initial login attempt
@@ -306,8 +304,8 @@ export class AuthService {
         success: true,
         user: {
           ...newUser,
-          passwordHash: undefined
-        } as User,
+          password: undefined
+        } as any,
         token
       };
 
@@ -334,7 +332,7 @@ export class AuthService {
       }
 
       // Verify current password
-      const passwordValid = await this.verifyPassword(currentPassword, user.passwordHash);
+      const passwordValid = await this.verifyPassword(currentPassword, user.password);
       if (!passwordValid) {
         return {
           success: false,
@@ -346,7 +344,7 @@ export class AuthService {
       const newPasswordHash = await this.hashPassword(newPassword);
 
       // Update password
-      await storage.updateUser(userId, { passwordHash: newPasswordHash });
+      await storage.updateUser(userId, { password: newPasswordHash });
 
       return {
         success: true,
