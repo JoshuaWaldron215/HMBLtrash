@@ -575,66 +575,6 @@ export class EmailService {
       throw error;
     }
   }
-
-  async sendPickupCompletedEmail(customer: User, pickup: Pickup): Promise<void> {
-    try {
-      const { data, error } = await resend.emails.send({
-        from: this.fromEmail,
-        to: [customer.email],
-        subject: 'Pickup Completed - Thank You!',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #16a34a;">Pickup Completed! ✅</h2>
-            <p>Dear ${customer.username || 'valued customer'},</p>
-            
-            <p>Your trash pickup has been completed successfully.</p>
-            
-            <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
-              <h3 style="color: #16a34a; margin-top: 0;">Pickup Summary</h3>
-              <p><strong>Completed:</strong> ${new Date().toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric'
-              })}</p>
-              <p><strong>Address:</strong> ${pickup.address}</p>
-              <p><strong>Bags Collected:</strong> ${pickup.bagCount}</p>
-              <p><strong>Service Type:</strong> ${pickup.serviceType === 'subscription' ? 'Weekly Subscription' : 
-                pickup.serviceType === 'same-day' ? 'Same-Day Pickup' : 'Next-Day Pickup'}</p>
-            </div>
-            
-            ${pickup.serviceType === 'subscription' ? `
-              <div style="background-color: #fefce8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="color: #a16207; margin: 0;"><strong>📅 Next Pickup:</strong> Your next weekly pickup is automatically scheduled for next week!</p>
-              </div>
-            ` : ''}
-            
-            <p>Thank you for choosing Acapella Trash Removal. We appreciate your business!</p>
-            
-            <p>Questions or feedback? Contact us at <a href="mailto:acapellatrashhmbl@gmail.com">acapellatrashhmbl@gmail.com</a> or <a href="tel:+12674014292">(267) 401-4292</a>.</p>
-            
-            <p>Best regards,<br>
-            <strong>Acapella Trash Removal Team</strong><br>
-            Powered by HMBL</p>
-          </div>
-        `,
-      });
-
-      if (error) {
-        console.error('❌ Email send error:', error);
-        throw new Error(`Failed to send completion email: ${error}`);
-      }
-
-      console.log('📧 Pickup completion email sent successfully:', {
-        id: data?.id,
-        to: customer.email,
-        subject: 'Pickup Completed - Thank You!'
-      });
-    } catch (error: any) {
-      console.error('❌ Email service error:', error);
-      throw error;
-    }
-  }
 }
 
 export const emailService = EmailService.getInstance();
