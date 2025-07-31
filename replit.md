@@ -294,8 +294,9 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Added checkbox option in reschedule modal allowing admins to choose whether to email customers
   * Updated both pickup and subscription reschedule API endpoints to accept shouldEmailCustomer parameter
   * Email notification defaults to checked (true) but can be unchecked to reschedule without notifying customer
-  * Toast notifications now indicate whether customer was notified via email or not
+  * Enhanced toast notifications to distinguish between: email sent, email failed (domain verification), or email not attempted
   * Provides admin flexibility to handle internal rescheduling without unnecessary customer communication
+  * Graceful handling of Resend domain verification issues with clear user feedback
 
 ## User Preferences
 

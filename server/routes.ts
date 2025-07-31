@@ -1682,6 +1682,7 @@ Acapella Trash Removal Team
       
       // Send reschedule email via Resend if requested
       let emailSent = false;
+      let emailAttempted = shouldEmailCustomer;
       if (shouldEmailCustomer) {
         try {
           const originalDate = pickup.scheduledDate ? new Date(pickup.scheduledDate) : new Date();
@@ -1695,7 +1696,8 @@ Acapella Trash Removal Team
       
       res.json({
         pickup: updatedPickup,
-        emailSent
+        emailSent,
+        emailAttempted
       });
     } catch (error: any) {
       console.error('Reschedule error:', error);
@@ -1728,6 +1730,7 @@ Acapella Trash Removal Team
       
       // Send email notification for subscription pickup reschedule if requested
       let emailSent = false;
+      let emailAttempted = shouldEmailCustomer;
       if (shouldEmailCustomer) {
         try {
         const mockPickup = {
@@ -1761,7 +1764,8 @@ Acapella Trash Removal Team
       
       res.json({
         subscription: updatedSubscription,
-        emailSent
+        emailSent,
+        emailAttempted
       });
     } catch (error: any) {
       console.error('❌ Error rescheduling subscription pickup:', error);

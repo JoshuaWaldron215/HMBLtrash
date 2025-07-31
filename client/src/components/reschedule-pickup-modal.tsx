@@ -50,14 +50,24 @@ export default function ReschedulePickupModal({
     onSuccess: (data) => {
       if (isSubscription) {
         queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] });
-        const emailStatus = data.emailSent ? "Customer has been notified via email." : "Customer was not notified via email.";
+        let emailStatus = "";
+        if (data.emailAttempted) {
+          emailStatus = data.emailSent ? "Customer has been notified via email." : "Email notification failed (domain verification needed).";
+        } else {
+          emailStatus = "Customer was not notified via email.";
+        }
         toast({
           title: "Subscription Pickup Rescheduled Successfully",
           description: `Next pickup moved to ${new Date(data.subscription.nextPickupDate).toLocaleDateString()}. ${emailStatus}`,
         });
       } else {
         queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
-        const emailStatus = data.emailSent ? "Customer has been notified via email." : "Customer was not notified via email.";
+        let emailStatus = "";
+        if (data.emailAttempted) {
+          emailStatus = data.emailSent ? "Customer has been notified via email." : "Email notification failed (domain verification needed).";
+        } else {
+          emailStatus = "Customer was not notified via email.";
+        }
         toast({
           title: "Pickup Rescheduled Successfully",
           description: `Pickup moved to ${new Date(data.pickup.scheduledDate).toLocaleDateString()}. ${emailStatus}`,
