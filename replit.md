@@ -298,8 +298,8 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Provides admin flexibility to handle internal rescheduling without unnecessary customer communication
   * Graceful handling of Resend domain verification issues with clear user feedback
   * Successfully verified acapellatrashremoval.com domain with Resend for professional email delivery
-  * Updated production admin credentials (admin@test.com / AdminPass123!) for secure deployment access
-  * Streamlined production accounts to single admin (admin@test.com) and single driver (driver@test.com) with secure passwords
+  * Updated production admin credentials for secure deployment access
+  * Streamlined production accounts to single admin and single driver with secure passwords
   * All pickups automatically assigned to single driver for simplified operations
 
 ## User Preferences
