@@ -24,7 +24,13 @@ import {
   AlertTriangle,
   XCircle,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Eye,
+  Trash2,
+  Phone,
+  Mail,
+  X,
+  Save
 } from 'lucide-react';
 import MobileLayout, { 
   MobileCard, 
@@ -35,6 +41,9 @@ import MobileLayout, {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { authenticatedRequest } from '@/lib/auth';
 import ReschedulePickupModal from '@/components/reschedule-pickup-modal';
@@ -47,6 +56,14 @@ export default function Admin() {
   const [showClusters, setShowClusters] = useState(false);
   const [selectedCluster, setSelectedCluster] = useState<any>(null);
   const [reschedulePickup, setReschedulePickup] = useState<{ pickup: Pickup; customer: User } | null>(null);
+  
+  // Enhanced subscriber management state
+  const [selectedSubscriber, setSelectedSubscriber] = useState<{subscriber: any; customer: User; pickups: Pickup[]} | null>(null);
+  const [editingSubscriber, setEditingSubscriber] = useState<any>(null);
+  const [subscriberFilter, setSubscriberFilter] = useState<string>('all');
+  const [subscriberSearch, setSubscriberSearch] = useState('');
+  const [packageFilter, setPackageFilter] = useState<string>('all');
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location] = useLocation();
@@ -107,6 +124,12 @@ export default function Admin() {
     queryKey: ['/api/admin/routes'],
     queryFn: () => authenticatedRequest('GET', '/api/admin/routes').then(res => res.json()),
     enabled: currentSection === 'routes',
+  });
+
+  // Fetch subscription data for enhanced subscriber management  
+  const { data: adminSubscriptions = [] } = useQuery({
+    queryKey: ['/api/admin/subscriptions'],
+    queryFn: () => authenticatedRequest('GET', '/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
   });
 
   // Extract users from the response structure
@@ -277,10 +300,7 @@ export default function Admin() {
     createDemoMutation.mutate();
   };
 
-  const { data: subscriptions = [] } = useQuery({
-    queryKey: ['/api/admin/subscriptions'],
-    queryFn: () => authenticatedRequest('GET', '/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
-  });
+
 
   // Assign pickup mutation
   const assignPickupMutation = useMutation({
@@ -308,7 +328,7 @@ export default function Admin() {
   const totalRevenue = pickups.reduce((sum, p) => sum + (parseFloat(p.amount?.toString() || '0') || 0), 0);
   const pendingPickups = pickups.filter(p => p.status === 'pending');
   const completedPickups = pickups.filter(p => p.status === 'completed');
-  const activeSubscriptions = subscriptions.filter(s => s.status === 'active');
+  const activeSubscriptions = adminSubscriptions.filter(s => s.status === 'active');
 
   // Filter pickups for one-time requests
   const oneTimePickups = pickups.filter(p => p.serviceType !== 'subscription');
@@ -321,57 +341,549 @@ export default function Admin() {
     assignPickupMutation.mutate({ pickupId, driverId });
   };
 
-  // Section rendering functions
-  const renderSubscribersSection = () => (
-    <MobileSection className="bg-muted/20">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Active Subscribers</h2>
-        <Button variant="ghost" size="sm" className="text-primary">
-          <RefreshCw className="w-4 h-4 mr-1" />
-          Refresh
-        </Button>
-      </div>
+  // Enhanced subscriber management mutations
+  const updateSubscriberMutation = useMutation({
+    mutationFn: async ({ subscriptionId, updates }: { subscriptionId: number; updates: any }) => {
+      const response = await authenticatedRequest('PATCH', `/api/admin/subscriptions/${subscriptionId}`, updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({
+        title: "Subscriber Updated",
+        description: "Subscriber information has been updated successfully.",
+      });
+      setEditingSubscriber(null);
+    },
+    onError: () => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update subscriber. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
-      {activeSubscriptions.length > 0 ? (
-        <div className="space-y-3">
-          {activeSubscriptions.map((subscription) => {
-            const customer = users.find(u => u.id === subscription.customerId);
-            return (
-              <MobileCard key={subscription.id}>
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{customer?.username || 'Unknown'}</span>
-                      <StatusBadge status="completed">Active</StatusBadge>
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async (subscriptionId: number) => {
+      const response = await authenticatedRequest('DELETE', `/api/admin/subscriptions/${subscriptionId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+      toast({
+        title: "Subscription Cancelled",
+        description: "Subscription has been cancelled successfully.",
+      });
+      setSelectedSubscriber(null);
+    },
+    onError: () => {
+      toast({
+        title: "Cancellation Failed",
+        description: "Failed to cancel subscription. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const cancelPickupMutation = useMutation({
+    mutationFn: async (pickupId: number) => {
+      const response = await authenticatedRequest('DELETE', `/api/admin/pickups/${pickupId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+      toast({
+        title: "Pickup Cancelled",
+        description: "One-time pickup has been cancelled successfully.",
+      });
+      setSelectedSubscriber(null);
+    },
+    onError: () => {
+      toast({
+        title: "Cancellation Failed",
+        description: "Failed to cancel pickup. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Helper function to get pickup day of week
+  const getPickupDayOfWeek = (subscription: any) => {
+    const relatedPickups = pickups.filter(p => 
+      p.customerId === subscription.customerId && 
+      p.serviceType === 'subscription' && 
+      p.scheduledDate
+    );
+    
+    if (relatedPickups.length > 0) {
+      const scheduledDate = new Date(relatedPickups[0].scheduledDate);
+      return scheduledDate.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+    
+    return 'Not scheduled';
+  };
+
+  // Section rendering functions
+  const renderSubscribersSection = () => {
+    // Filter and search subscribers
+    const filteredSubscriptions = activeSubscriptions.filter(subscription => {
+      const customer = users.find(u => u.id === subscription.customerId);
+      
+      // Search filter
+      const matchesSearch = subscriberSearch === '' || 
+        customer?.username?.toLowerCase().includes(subscriberSearch.toLowerCase()) ||
+        customer?.email?.toLowerCase().includes(subscriberSearch.toLowerCase()) ||
+        customer?.address?.toLowerCase().includes(subscriberSearch.toLowerCase());
+      
+      // Package filter
+      const matchesPackage = packageFilter === 'all' || subscription.packageType === packageFilter;
+      
+      // Status filter
+      const matchesStatus = subscriberFilter === 'all' || subscription.status === subscriberFilter;
+      
+      return matchesSearch && matchesPackage && matchesStatus;
+    });
+
+    return (
+      <MobileSection className="bg-muted/20">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Active Subscribers</h2>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-primary"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] })}
+          >
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Search and Filter Controls */}
+        <div className="space-y-3 mb-6">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Input
+                type="text"
+                placeholder="Search customers..."
+                value={subscriberSearch}
+                onChange={(e) => setSubscriberSearch(e.target.value)}
+                className="h-8"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+            >
+              <Search className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Filter buttons */}
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant={subscriberFilter === 'all' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setSubscriberFilter('all')}
+              className="h-8"
+            >
+              All ({activeSubscriptions.length})
+            </Button>
+            <Button 
+              variant={subscriberFilter === 'active' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setSubscriberFilter('active')}
+              className="h-8"
+            >
+              Active ({activeSubscriptions.filter(s => s.status === 'active').length})
+            </Button>
+            <Button 
+              variant={subscriberFilter === 'paused' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setSubscriberFilter('paused')}
+              className="h-8"
+            >
+              Paused ({activeSubscriptions.filter(s => s.status === 'paused').length})
+            </Button>
+          </div>
+
+          {/* Package type filters */}
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant={packageFilter === 'all' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setPackageFilter('all')}
+              className="h-8"
+            >
+              All Packages
+            </Button>
+            <Button 
+              variant={packageFilter === 'basic' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setPackageFilter('basic')}
+              className="h-8 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+            >
+              Basic ($35)
+            </Button>
+            <Button 
+              variant={packageFilter === 'clean-carry' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setPackageFilter('clean-carry')}
+              className="h-8 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+            >
+              Clean & Carry ($60)
+            </Button>
+            <Button 
+              variant={packageFilter === 'heavy-duty' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setPackageFilter('heavy-duty')}
+              className="h-8 bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+            >
+              Heavy Duty ($75)
+            </Button>
+            <Button 
+              variant={packageFilter === 'premium' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setPackageFilter('premium')}
+              className="h-8 bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+            >
+              Premium ($150)
+            </Button>
+          </div>
+        </div>
+
+        {filteredSubscriptions.length > 0 ? (
+          <div className="space-y-3">
+            {filteredSubscriptions.map((subscription) => {
+              const customer = users.find(u => u.id === subscription.customerId);
+              const pickupDay = getPickupDayOfWeek(subscription);
+              const relatedPickups = pickups.filter(p => p.customerId === subscription.customerId);
+              
+              return (
+                <MobileCard key={subscription.id} className="relative">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-medium">{customer?.username || 'Unknown'}</span>
+                        <StatusBadge status={subscription.status === 'active' ? 'completed' : 'pending'}>
+                          {subscription.status}
+                        </StatusBadge>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          subscription.packageType === 'basic' ? 'bg-blue-100 text-blue-700' :
+                          subscription.packageType === 'clean-carry' ? 'bg-green-100 text-green-700' :
+                          subscription.packageType === 'heavy-duty' ? 'bg-orange-100 text-orange-700' :
+                          'bg-purple-100 text-purple-700'
+                        }`}>
+                          {subscription.packageType === 'clean-carry' ? 'Clean & Carry' : 
+                           subscription.packageType === 'heavy-duty' ? 'Heavy Duty' :
+                           subscription.packageType === 'premium' ? 'Premium' : 'Basic'}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <div className="flex items-center text-sm">
+                          <MapPin className="w-3 h-3 text-muted-foreground mr-1" />
+                          <span className="truncate">{customer?.address || 'No address'}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          <span>Pickup Day: {pickupDay}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Package className="w-3 h-3 mr-1" />
+                          <span>{subscription.bagCountLimit || 6} bags • {subscription.frequency || 'weekly'}</span>
+                        </div>
+                        {customer?.phone && (
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Phone className="w-3 h-3 mr-1" />
+                            <span>{customer.phone}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      ${subscription.pricePerMonth}/month • {subscription.frequency} pickup
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {customer?.address || 'No address'}
+                    
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-green-600">
+                        ${subscription.pricePerMonth || 35}/month
+                      </div>
+                      <div className="text-xs text-muted-foreground mb-2">
+                        {relatedPickups.length} total pickups
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedSubscriber({
+                              subscriber: subscription,
+                              customer: customer!,
+                              pickups: relatedPickups
+                            });
+                          }}
+                          className="text-xs h-6 px-2"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          View
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-green-600">$20/month</div>
-                    <div className="text-xs text-muted-foreground">{subscription.bagCountLimit} bags</div>
+                </MobileCard>
+              );
+            })}
+          </div>
+        ) : (
+          <MobileCard className="text-center py-8">
+            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">No Subscribers Found</h3>
+            <p className="text-sm text-muted-foreground">
+              {subscriberSearch || packageFilter !== 'all' || subscriberFilter !== 'all' 
+                ? 'Try adjusting your search filters' 
+                : 'Subscribers will appear here when they sign up for subscription service'
+              }
+            </p>
+          </MobileCard>
+        )}
+
+        {/* Subscriber Detail Modal */}
+        {selectedSubscriber && (
+          <Dialog open={!!selectedSubscriber} onOpenChange={() => setSelectedSubscriber(null)}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  {selectedSubscriber.customer.username} - Subscriber Details
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                {/* Customer Information */}
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Customer Information
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Name:</span>
+                      <p className="font-medium">{selectedSubscriber.customer.username}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Email:</span>
+                      <p className="font-medium flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        {selectedSubscriber.customer.email}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Phone:</span>
+                      <p className="font-medium flex items-center gap-1">
+                        <Phone className="w-3 h-3" />
+                        {selectedSubscriber.customer.phone || 'Not provided'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Address:</span>
+                      <p className="font-medium flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {selectedSubscriber.customer.address}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </MobileCard>
-            );
-          })}
-        </div>
-      ) : (
-        <MobileCard className="text-center py-8">
-          <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="font-semibold mb-2">No Active Subscriptions</h3>
-          <p className="text-sm text-muted-foreground mb-3">Subscribers will appear here when they sign up for $20/month service</p>
-          <div className="text-xs text-muted-foreground">
-            Debug: Found {subscriptions.length} total subscriptions, {activeSubscriptions.length} active
-          </div>
-        </MobileCard>
-      )}
-    </MobileSection>
-  );
+
+                {/* Subscription Details */}
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Subscription Details
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Package:</span>
+                      <p className="font-medium">
+                        {selectedSubscriber.subscriber.packageType === 'clean-carry' ? 'Clean & Carry' : 
+                         selectedSubscriber.subscriber.packageType === 'heavy-duty' ? 'Heavy Duty' :
+                         selectedSubscriber.subscriber.packageType === 'premium' ? 'Premium Property' : 'Basic'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Price:</span>
+                      <p className="font-medium text-green-600">${selectedSubscriber.subscriber.pricePerMonth}/month</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Status:</span>
+                      <StatusBadge status={selectedSubscriber.subscriber.status === 'active' ? 'completed' : 'pending'}>
+                        {selectedSubscriber.subscriber.status}
+                      </StatusBadge>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Pickup Day:</span>
+                      <p className="font-medium">{getPickupDayOfWeek(selectedSubscriber.subscriber)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Bag Limit:</span>
+                      <p className="font-medium">{selectedSubscriber.subscriber.bagCountLimit || 6} bags</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Frequency:</span>
+                      <p className="font-medium">{selectedSubscriber.subscriber.frequency || 'Weekly'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Pickups */}
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Recent Pickups ({selectedSubscriber.pickups.length})
+                  </h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {selectedSubscriber.pickups.slice(0, 5).map((pickup) => (
+                      <div key={pickup.id} className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm">
+                        <div>
+                          <span className="font-medium">#{pickup.id}</span>
+                          <span className="mx-2">•</span>
+                          <span>{pickup.bagCount} bags</span>
+                          <span className="mx-2">•</span>
+                          <StatusBadge status={pickup.status as any} className="text-xs">
+                            {pickup.status}
+                          </StatusBadge>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {pickup.scheduledDate ? new Date(pickup.scheduledDate).toLocaleDateString() : 'No date'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {selectedSubscriber.pickups.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-2">No pickups yet</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingSubscriber(selectedSubscriber.subscriber)}
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit Details
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (confirm('Are you sure you want to cancel this subscription? This action cannot be undone.')) {
+                      cancelSubscriptionMutation.mutate(selectedSubscriber.subscriber.id);
+                    }
+                  }}
+                  disabled={cancelSubscriptionMutation.isPending}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Cancel Subscription'}
+                </Button>
+                <Button onClick={() => setSelectedSubscriber(null)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Edit Subscriber Modal */}
+        {editingSubscriber && (
+          <Dialog open={!!editingSubscriber} onOpenChange={() => setEditingSubscriber(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Subscription</DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="packageType">Package Type</Label>
+                  <Select 
+                    value={editingSubscriber.packageType}
+                    onValueChange={(value) => setEditingSubscriber({...editingSubscriber, packageType: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="basic">Basic - $35/month</SelectItem>
+                      <SelectItem value="clean-carry">Clean & Carry - $60/month</SelectItem>
+                      <SelectItem value="heavy-duty">Heavy Duty - $75/month</SelectItem>
+                      <SelectItem value="premium">Premium Property - $150/month</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select 
+                    value={editingSubscriber.status}
+                    onValueChange={(value) => setEditingSubscriber({...editingSubscriber, status: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="bagCountLimit">Bag Count Limit</Label>
+                  <Input
+                    id="bagCountLimit"
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={editingSubscriber.bagCountLimit || 6}
+                    onChange={(e) => setEditingSubscriber({...editingSubscriber, bagCountLimit: parseInt(e.target.value)})}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditingSubscriber(null)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    updateSubscriberMutation.mutate({
+                      subscriptionId: editingSubscriber.id,
+                      updates: {
+                        packageType: editingSubscriber.packageType,
+                        status: editingSubscriber.status,
+                        bagCountLimit: editingSubscriber.bagCountLimit,
+                        pricePerMonth: editingSubscriber.packageType === 'basic' ? 35 :
+                                      editingSubscriber.packageType === 'clean-carry' ? 60 :
+                                      editingSubscriber.packageType === 'heavy-duty' ? 75 : 150
+                      }
+                    });
+                  }}
+                  disabled={updateSubscriberMutation.isPending}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {updateSubscriberMutation.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </MobileSection>
+    );
+  };;
 
   const renderRequestsSection = () => (
     <MobileSection className="bg-muted/20">

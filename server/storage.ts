@@ -694,16 +694,7 @@ export class DatabaseStorage implements IStorage {
     return subscription;
   }
 
-  async updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription> {
-    const [updated] = await db
-      .update(subscriptions)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(subscriptions.id, id))
-      .returning();
-    
-    if (!updated) throw new Error('Subscription not found');
-    return updated;
-  }
+
 
   async getActiveSubscriptions(): Promise<Subscription[]> {
     return await db.select().from(subscriptions).where(eq(subscriptions.status, 'active'));
@@ -724,6 +715,38 @@ export class DatabaseStorage implements IStorage {
 
   async getAllSubscriptions(): Promise<Subscription[]> {
     return await db.select().from(subscriptions);
+  }
+
+  async updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription> {
+    const [subscription] = await db.update(subscriptions).set(updates).where(eq(subscriptions.id, id)).returning();
+    if (!subscription) {
+      throw new Error('Subscription not found');
+    }
+    return subscription;
+  }
+
+  async cancelSubscription(id: number): Promise<void> {
+    // Update subscription status to cancelled
+    await db.update(subscriptions).set({ status: 'cancelled' }).where(eq(subscriptions.id, id));
+    
+    // Get subscription details to find related pickups
+    const subscription = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    if (subscription.length > 0) {
+      // Cancel all pending subscription pickups for this customer
+      await db.update(pickups)
+        .set({ status: 'cancelled' })
+        .where(
+          and(
+            eq(pickups.customerId, subscription[0].customerId),
+            eq(pickups.serviceType, 'subscription'),
+            eq(pickups.status, 'pending')
+          )
+        );
+    }
+  }
+
+  async cancelPickup(id: number): Promise<void> {
+    await db.update(pickups).set({ status: 'cancelled' }).where(eq(pickups.id, id));
   }
 }
 

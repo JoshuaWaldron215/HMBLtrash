@@ -1122,6 +1122,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin subscription management endpoints
+  app.patch("/api/admin/subscriptions/:id", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const subscriptionId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const updatedSubscription = await storage.updateSubscription(subscriptionId, updates);
+      res.json(updatedSubscription);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/admin/subscriptions/:id", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const subscriptionId = parseInt(req.params.id);
+      
+      // Cancel subscription and related pending pickups
+      await storage.cancelSubscription(subscriptionId);
+      
+      res.json({ message: "Subscription cancelled successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/admin/pickups/:id", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const pickupId = parseInt(req.params.id);
+      
+      await storage.cancelPickup(pickupId);
+      
+      res.json({ message: "Pickup cancelled successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Admin routes
   app.get("/api/admin/stats", authenticateToken, requireRole('admin'), async (req, res) => {
     try {
