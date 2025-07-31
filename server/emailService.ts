@@ -23,7 +23,7 @@ const resend = process.env.RESEND_API_KEY
 
 export class EmailService {
   private static instance: EmailService;
-  private fromEmail = 'Acapella Trash <noreply@acapellatrashremoval.com>';
+  private fromEmail = 'Acapella Trash <jshawnwaldron@gmail.com>';
   private supportEmail = 'acapellatrashhmbl@gmail.com';
   private supportPhone = '(267) 401-4292';
 
