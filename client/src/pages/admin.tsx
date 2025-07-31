@@ -419,7 +419,7 @@ export default function Admin() {
     );
     
     if (relatedPickups.length > 0) {
-      const scheduledDate = new Date(relatedPickups[0].scheduledDate);
+      const scheduledDate = new Date(relatedPickups[0].scheduledDate!);
       return scheduledDate.toLocaleDateString('en-US', { weekday: 'long' });
     }
     
@@ -438,8 +438,12 @@ export default function Admin() {
         customer?.email?.toLowerCase().includes(subscriberSearch.toLowerCase()) ||
         customer?.address?.toLowerCase().includes(subscriberSearch.toLowerCase());
       
-      // Package filter
-      const matchesPackage = packageFilter === 'all' || subscription.packageType === packageFilter;
+      // Package filter - use pricePerMonth to determine package type
+      const price = parseFloat(subscription.pricePerMonth?.toString() || '35');
+      const packageType = price <= 35 ? 'basic' :
+                         price <= 60 ? 'clean-carry' :
+                         price <= 75 ? 'heavy-duty' : 'premium';
+      const matchesPackage = packageFilter === 'all' || packageType === packageFilter;
       
       // Status filter
       const matchesStatus = subscriberFilter === 'all' || subscription.status === subscriberFilter;
@@ -562,6 +566,10 @@ export default function Admin() {
               const customer = users.find(u => u.id === subscription.customerId);
               const pickupDay = getPickupDayOfWeek(subscription);
               const relatedPickups = pickups.filter(p => p.customerId === subscription.customerId);
+              const price = parseFloat(subscription.pricePerMonth?.toString() || '35');
+              const packageType = price <= 35 ? 'basic' :
+                                 price <= 60 ? 'clean-carry' :
+                                 price <= 75 ? 'heavy-duty' : 'premium';
               
               return (
                 <MobileCard key={subscription.id} className="relative">
@@ -573,14 +581,14 @@ export default function Admin() {
                           {subscription.status}
                         </StatusBadge>
                         <span className={`text-xs px-2 py-1 rounded ${
-                          subscription.packageType === 'basic' ? 'bg-blue-100 text-blue-700' :
-                          subscription.packageType === 'clean-carry' ? 'bg-green-100 text-green-700' :
-                          subscription.packageType === 'heavy-duty' ? 'bg-orange-100 text-orange-700' :
+                          packageType === 'basic' ? 'bg-blue-100 text-blue-700' :
+                          packageType === 'clean-carry' ? 'bg-green-100 text-green-700' :
+                          packageType === 'heavy-duty' ? 'bg-orange-100 text-orange-700' :
                           'bg-purple-100 text-purple-700'
                         }`}>
-                          {subscription.packageType === 'clean-carry' ? 'Clean & Carry' : 
-                           subscription.packageType === 'heavy-duty' ? 'Heavy Duty' :
-                           subscription.packageType === 'premium' ? 'Premium' : 'Basic'}
+                          {packageType === 'clean-carry' ? 'Clean & Carry' : 
+                           packageType === 'heavy-duty' ? 'Heavy Duty' :
+                           packageType === 'premium' ? 'Premium' : 'Basic'}
                         </span>
                       </div>
                       
@@ -706,9 +714,15 @@ export default function Admin() {
                     <div>
                       <span className="text-muted-foreground">Package:</span>
                       <p className="font-medium">
-                        {selectedSubscriber.subscriber.packageType === 'clean-carry' ? 'Clean & Carry' : 
-                         selectedSubscriber.subscriber.packageType === 'heavy-duty' ? 'Heavy Duty' :
-                         selectedSubscriber.subscriber.packageType === 'premium' ? 'Premium Property' : 'Basic'}
+                        {(() => {
+                          const price = parseFloat(selectedSubscriber.subscriber.pricePerMonth?.toString() || '35');
+                          const packageType = price <= 35 ? 'basic' :
+                                             price <= 60 ? 'clean-carry' :
+                                             price <= 75 ? 'heavy-duty' : 'premium';
+                          return packageType === 'clean-carry' ? 'Clean & Carry' : 
+                                 packageType === 'heavy-duty' ? 'Heavy Duty' :
+                                 packageType === 'premium' ? 'Premium Property' : 'Basic';
+                        })()}
                       </p>
                     </div>
                     <div>
@@ -750,7 +764,7 @@ export default function Admin() {
                           <span className="mx-2">•</span>
                           <span>{pickup.bagCount} bags</span>
                           <span className="mx-2">•</span>
-                          <StatusBadge status={pickup.status as any} className="text-xs">
+                          <StatusBadge status={pickup.status as any}>
                             {pickup.status}
                           </StatusBadge>
                         </div>
@@ -807,19 +821,19 @@ export default function Admin() {
               
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="packageType">Package Type</Label>
+                  <Label htmlFor="pricePerMonth">Package Type</Label>
                   <Select 
-                    value={editingSubscriber.packageType}
-                    onValueChange={(value) => setEditingSubscriber({...editingSubscriber, packageType: value})}
+                    value={editingSubscriber.pricePerMonth?.toString()}
+                    onValueChange={(value) => setEditingSubscriber({...editingSubscriber, pricePerMonth: value})}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="basic">Basic - $35/month</SelectItem>
-                      <SelectItem value="clean-carry">Clean & Carry - $60/month</SelectItem>
-                      <SelectItem value="heavy-duty">Heavy Duty - $75/month</SelectItem>
-                      <SelectItem value="premium">Premium Property - $150/month</SelectItem>
+                      <SelectItem value="35">Basic - $35/month</SelectItem>
+                      <SelectItem value="60">Clean & Carry - $60/month</SelectItem>
+                      <SelectItem value="75">Heavy Duty - $75/month</SelectItem>
+                      <SelectItem value="150">Premium Property - $150/month</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -863,12 +877,9 @@ export default function Admin() {
                     updateSubscriberMutation.mutate({
                       subscriptionId: editingSubscriber.id,
                       updates: {
-                        packageType: editingSubscriber.packageType,
                         status: editingSubscriber.status,
                         bagCountLimit: editingSubscriber.bagCountLimit,
-                        pricePerMonth: editingSubscriber.packageType === 'basic' ? 35 :
-                                      editingSubscriber.packageType === 'clean-carry' ? 60 :
-                                      editingSubscriber.packageType === 'heavy-duty' ? 75 : 150
+                        pricePerMonth: editingSubscriber.pricePerMonth
                       }
                     });
                   }}

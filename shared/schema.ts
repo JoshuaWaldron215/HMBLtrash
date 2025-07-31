@@ -100,6 +100,7 @@ export const subscriptions = pgTable("subscriptions", {
   preferredTime: text("preferred_time"), // morning, afternoon, evening
   bagCountLimit: integer("bag_count_limit").default(5),
   pricePerMonth: decimal("price_per_month", { precision: 10, scale: 2 }),
+
   pausedUntil: timestamp("paused_until"),
   cancellationDate: timestamp("cancellation_date"),
   cancellationReason: text("cancellation_reason"),
