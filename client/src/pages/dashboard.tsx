@@ -174,15 +174,24 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground">
                   Weekly pickup service - $35/month
                 </p>
-                <p className="text-sm font-medium">
-                  Next pickup: {subscription?.nextPickupDate ? 
-                    new Date(subscription.nextPickupDate).toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    }) : 'Scheduling...'
-                  }
-                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-3">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">Next Pickup</span>
+                  </div>
+                  <p className="text-xl font-bold text-blue-900">
+                    {subscription?.nextPickupDate ? 
+                      new Date(subscription.nextPickupDate).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      }) : 'Scheduling...'
+                    }
+                  </p>
+                  <p className="text-sm text-blue-600 mt-1">
+                    Weekly service • We'll be there!
+                  </p>
+                </div>
                 <div className="flex space-x-2">
                   <MobileButton 
                     variant="outline" 
