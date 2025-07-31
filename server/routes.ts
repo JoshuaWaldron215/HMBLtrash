@@ -1197,6 +1197,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin all members endpoint - returns all users with basic info and stats
+  app.get('/api/admin/all-members', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      
+      // Get subscription and pickup counts for each user
+      const membersWithStats = await Promise.all(users.map(async (user) => {
+        try {
+          const subscription = await storage.getSubscriptionByCustomer(user.id);
+          const pickups = await storage.getPickupsByCustomer(user.id);
+          
+          return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            createdAt: user.createdAt,
+            lastLoginAt: user.lastLoginAt,
+            hasSubscription: !!subscription && subscription.status === 'active',
+            totalPickups: pickups.length,
+            subscriptionStatus: subscription?.status || 'none'
+          };
+        } catch (error) {
+          // If there's an error getting stats for a user, return basic info
+          return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            createdAt: user.createdAt,
+            lastLoginAt: user.lastLoginAt,
+            hasSubscription: false,
+            totalPickups: 0,
+            subscriptionStatus: 'none'
+          };
+        }
+      }));
+      
+      res.json(membersWithStats);
+    } catch (error: any) {
+      console.error('Error fetching all members:', error);
+      res.status(500).json({ message: "Failed to fetch all members" });
+    }
+  });
+
   app.get("/api/admin/pickups", authenticateToken, requireRole('admin'), async (req, res) => {
     try {
       const pickups = await storage.getAllPickups();

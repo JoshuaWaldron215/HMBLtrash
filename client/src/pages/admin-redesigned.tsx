@@ -66,6 +66,7 @@ export default function AdminRedesigned() {
     if (location === '/admin/subscribers') return 'subscribers';
     if (location === '/admin/requests') return 'requests';  
     if (location === '/admin/routes') return 'routes';
+    if (location === '/admin/members') return 'members';
     if (location === '/admin/drivers') return 'drivers';
     if (location === '/admin/reports') return 'reports';
     if (location === '/admin/settings') return 'settings';
@@ -79,6 +80,15 @@ export default function AdminRedesigned() {
     queryKey: ['/api/admin/users'],
     queryFn: async () => {
       const res = await authenticatedRequest('GET', '/api/admin/users');
+      return res.json();
+    }
+  });
+
+  // All members data with stats
+  const { data: allMembers = [] } = useQuery({
+    queryKey: ['/api/admin/all-members'],
+    queryFn: async () => {
+      const res = await authenticatedRequest('GET', '/api/admin/all-members');
       return res.json();
     }
   });
@@ -585,10 +595,170 @@ export default function AdminRedesigned() {
     </div>
   );
 
+  // All Members View
+  const renderAllMembers = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">All Members</h2>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Search members..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-64"
+          />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Filter by role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="customer">Customers</SelectItem>
+              <SelectItem value="driver">Drivers</SelectItem>
+              <SelectItem value="admin">Admins</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Members Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Members</p>
+                <p className="text-2xl font-bold">{allMembers.length}</p>
+              </div>
+              <User className="w-8 h-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Customers</p>
+                <p className="text-2xl font-bold">{allMembers.filter(m => m.role === 'customer').length}</p>
+              </div>
+              <Users className="w-8 h-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Drivers</p>
+                <p className="text-2xl font-bold">{allMembers.filter(m => m.role === 'driver').length}</p>
+              </div>
+              <Truck className="w-8 h-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">With Subscriptions</p>
+                <p className="text-2xl font-bold">{allMembers.filter(m => m.hasSubscription).length}</p>
+              </div>
+              <Package className="w-8 h-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Members List */}
+      <div className="space-y-4">
+        {allMembers
+          .filter(member => {
+            const matchesSearch = searchTerm === '' || 
+              member.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              (member.firstName && member.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+              (member.lastName && member.lastName.toLowerCase().includes(searchTerm.toLowerCase()));
+            
+            const matchesRole = statusFilter === 'all' || member.role === statusFilter;
+            
+            return matchesSearch && matchesRole;
+          })
+          .map((member) => (
+            <Card key={member.id}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold">{member.username}</span>
+                      <StatusBadge status={member.role as any}>{member.role}</StatusBadge>
+                      {member.hasSubscription && (
+                        <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                          SUBSCRIBED
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-sm text-muted-foreground">
+                        📧 {member.email}
+                      </div>
+                      {(member.firstName || member.lastName) && (
+                        <div className="text-sm text-muted-foreground">
+                          👤 {member.firstName} {member.lastName}
+                        </div>
+                      )}
+                      <div className="text-sm text-muted-foreground">
+                        📅 Joined: {new Date(member.createdAt).toLocaleDateString()}
+                      </div>
+                      {member.lastLoginAt && (
+                        <div className="text-sm text-muted-foreground">
+                          🕒 Last login: {new Date(member.lastLoginAt).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-muted-foreground mb-1">
+                      📦 {member.totalPickups} pickups
+                    </div>
+                    {member.subscriptionStatus !== 'none' && (
+                      <div className="text-sm">
+                        Status: <span className={member.hasSubscription ? 'text-green-600' : 'text-red-600'}>
+                          {member.subscriptionStatus}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        }
+      </div>
+      
+      {allMembers.filter(member => {
+        const matchesSearch = searchTerm === '' || 
+          member.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (member.firstName && member.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (member.lastName && member.lastName.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        const matchesRole = statusFilter === 'all' || member.role === statusFilter;
+        
+        return matchesSearch && matchesRole;
+      }).length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          No members found matching your search criteria.
+        </div>
+      )}
+    </div>
+  );
+
   const renderContent = () => {
     switch (currentSection) {
       case 'subscribers':
         return renderSubscribers();
+      case 'members':
+        return renderAllMembers();
       case 'requests':
         return renderRequests();
       case 'routes':
@@ -608,6 +778,7 @@ export default function AdminRedesigned() {
       sidebarNavItems={[
         { name: 'Dashboard', path: '/admin', icon: BarChart3 },
         { name: 'Subscribers', path: '/admin/subscribers', icon: Users },
+        { name: 'All Members', path: '/admin/members', icon: User },
         { name: 'One-Time Requests', path: '/admin/requests', icon: Package },
         { name: 'Route Optimization', path: '/admin/routes', icon: Navigation },
         { name: 'Reports', path: '/admin/reports', icon: FileText },
