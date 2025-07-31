@@ -272,6 +272,89 @@ export default function Driver() {
           </MobileCard>
         </div>
 
+        {/* Route Optimization Section - Moved above Today's Route */}
+        <MobileCard className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">Route Optimization</h2>
+          
+          {/* Starting Address Input */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Starting Address</label>
+            <input
+              type="text"
+              value={startingAddress}
+              onChange={(e) => setStartingAddress(e.target.value)}
+              placeholder="Enter your current location (e.g., 1234 Main St, Philadelphia, PA)"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              This will be your starting point for the optimized route
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <MobileButton 
+              variant="outline"
+              className="flex flex-col items-center space-y-2 h-auto py-4"
+              onClick={() => {
+                if (todayRoute.length > 0) {
+                  // Create optimized multi-stop route with all pickup addresses
+                  const pickupAddresses = todayRoute.map((p: any) => p.address);
+                  
+                  if (startingAddress.trim()) {
+                    // Create route with starting point and all pickup addresses as waypoints
+                    const destination = pickupAddresses[pickupAddresses.length - 1];
+                    const waypoints = pickupAddresses.slice(0, -1).join('|');
+                    
+                    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(startingAddress)}&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving&optimize=true`;
+                    
+                    console.log('🗺️ Opening optimized route with:', {
+                      start: startingAddress,
+                      destination,
+                      waypoints: waypoints.split('|'),
+                      totalStops: pickupAddresses.length + 1
+                    });
+                    
+                    window.open(googleMapsUrl, '_blank');
+                  } else {
+                    // Fallback: route without starting point
+                    const destination = pickupAddresses[0];
+                    const waypoints = pickupAddresses.slice(1).join('|');
+                    
+                    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving&optimize=true`;
+                    
+                    window.open(googleMapsUrl, '_blank');
+                  }
+                } else {
+                  toast({
+                    title: "No Route Available",
+                    description: "You don't have any pickups scheduled for today.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              disabled={todayRoute.length === 0}
+            >
+              <Route className="w-6 h-6" />
+              <span>Full Route ({todayRoute.length} stops)</span>
+            </MobileButton>
+            
+            <MobileButton 
+              variant="outline"
+              className="flex flex-col items-center space-y-2 h-auto py-4"
+              onClick={() => {
+                // Show estimated route info
+                toast({
+                  title: "Route Info",
+                  description: `${todayRoute.length} stops • Est. ${Math.round(todayRoute.length * 20)} minutes • ${Math.round(todayRoute.length * 2.5)} miles`,
+                });
+              }}
+            >
+              <Navigation className="w-6 h-6" />
+              <span>Route Info</span>
+            </MobileButton>
+          </div>
+        </MobileCard>
+
         {/* Today's Pickups - Primary Focus */}
         {todayRoute.length > 0 ? (
           <MobileCard className="mb-6 border-2 border-primary bg-primary/5">

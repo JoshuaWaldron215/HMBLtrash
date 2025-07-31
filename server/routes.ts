@@ -1409,12 +1409,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       assignedPickups.forEach(pickup => {
         console.log(`🔍 Pickup ${pickup.id}: scheduledDate = ${pickup.scheduledDate}`);
         if (pickup.scheduledDate) {
-          // Convert pickup date to Eastern Time date string
+          // For date-only comparisons, use the UTC date as-is
+          // The date is stored as UTC midnight which represents the intended date
           const pickupDateTime = new Date(pickup.scheduledDate);
-          // Create date in Eastern Time zone directly
-          const easternDate = new Date(pickupDateTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
-          const pickupDate = `${easternDate.getFullYear()}-${String(easternDate.getMonth() + 1).padStart(2, '0')}-${String(easternDate.getDate()).padStart(2, '0')}`;
-          console.log(`📅 Pickup ${pickup.id}: computed date (Eastern) = ${pickupDate}`);
+          const pickupDate = `${pickupDateTime.getUTCFullYear()}-${String(pickupDateTime.getUTCMonth() + 1).padStart(2, '0')}-${String(pickupDateTime.getUTCDate()).padStart(2, '0')}`;
+          console.log(`📅 Pickup ${pickup.id}: computed date (UTC date-only) = ${pickupDate}`);
           if (schedule[pickupDate]) {
             schedule[pickupDate].pickups.push(pickup);
             console.log(`✅ Added pickup ${pickup.id} to ${pickupDate}`);
