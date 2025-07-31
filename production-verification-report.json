@@ -1,0 +1,106 @@
+{
+  "timestamp": "2025-07-31T02:15:59.595Z",
+  "overallScore": 33.3,
+  "passedTests": 4,
+  "totalTests": 12,
+  "categories": {
+    "Database": {
+      "passed": 1,
+      "total": 3,
+      "score": "33.3"
+    },
+    "Authentication": {
+      "passed": 3,
+      "total": 3,
+      "score": "100.0"
+    },
+    "Payments": {
+      "passed": 1,
+      "total": 4,
+      "score": "25.0"
+    },
+    "Email": {
+      "passed": 1,
+      "total": 3,
+      "score": "33.3"
+    },
+    "User Flow": {
+      "passed": 0,
+      "total": 0,
+      "score": "0.0"
+    }
+  },
+  "allResults": [
+    {
+      "test": "Database Connection",
+      "success": false,
+      "details": "PostgreSQL responding",
+      "timestamp": "2025-07-31T02:15:57.366Z"
+    },
+    {
+      "test": "API Health Status",
+      "success": true,
+      "details": "All systems operational",
+      "timestamp": "2025-07-31T02:15:57.367Z"
+    },
+    {
+      "test": "Database Integrity Check",
+      "success": false,
+      "details": "API returned HTML instead of JSON - routing issue detected",
+      "timestamp": "2025-07-31T02:15:58.052Z"
+    },
+    {
+      "test": "User Registration Complete",
+      "success": true,
+      "details": "User ID: 63",
+      "timestamp": "2025-07-31T02:15:58.609Z"
+    },
+    {
+      "test": "End-to-End User Flow",
+      "success": false,
+      "details": "API returned HTML instead of JSON - routing issue detected",
+      "timestamp": "2025-07-31T02:15:58.661Z"
+    },
+    {
+      "test": "Admin Authentication for Email Test",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-07-31T02:15:58.837Z"
+    },
+    {
+      "test": "Email Service Integration",
+      "details": "Resend API working",
+      "timestamp": "2025-07-31T02:15:58.915Z"
+    },
+    {
+      "test": "Email Template Generation",
+      "success": false,
+      "details": "HTML templates rendered",
+      "timestamp": "2025-07-31T02:15:58.916Z"
+    },
+    {
+      "test": "Customer Authentication for Payment Test",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-07-31T02:15:59.127Z"
+    },
+    {
+      "test": "Stripe Payment Intent Creation",
+      "success": false,
+      "details": "Live Stripe integration active",
+      "timestamp": "2025-07-31T02:15:59.468Z"
+    },
+    {
+      "test": "Payment Amount Calculation",
+      "success": false,
+      "details": "Amount: $NaN",
+      "timestamp": "2025-07-31T02:15:59.469Z"
+    },
+    {
+      "test": "Stripe Subscription Creation",
+      "success": false,
+      "details": "Live subscription billing enabled",
+      "timestamp": "2025-07-31T02:15:59.593Z"
+    }
+  ]
+}
