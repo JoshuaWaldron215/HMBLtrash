@@ -1,0 +1,1347 @@
+{
+  "testParameters": {
+    "totalUsers": 100,
+    "subscriptionUsers": 50,
+    "oneTimeUsers": 50,
+    "timestamp": "2025-07-31T02:21:21.351Z"
+  },
+  "performanceMetrics": {
+    "registrations": [
+      {
+        "userId": 0,
+        "success": true,
+        "responseTime": 980,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 1,
+        "success": true,
+        "responseTime": 485,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 2,
+        "success": true,
+        "responseTime": 473,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 3,
+        "success": true,
+        "responseTime": 483,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 4,
+        "success": true,
+        "responseTime": 476,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 5,
+        "success": true,
+        "responseTime": 476,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 6,
+        "success": true,
+        "responseTime": 470,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 7,
+        "success": true,
+        "responseTime": 537,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 8,
+        "success": true,
+        "responseTime": 467,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 9,
+        "success": true,
+        "responseTime": 468,
+        "timestamp": "2025-07-31T02:18:34.911Z"
+      },
+      {
+        "userId": 10,
+        "success": true,
+        "responseTime": 531,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 11,
+        "success": true,
+        "responseTime": 564,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 12,
+        "success": true,
+        "responseTime": 557,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 13,
+        "success": true,
+        "responseTime": 517,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 14,
+        "success": true,
+        "responseTime": 492,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 15,
+        "success": true,
+        "responseTime": 502,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 16,
+        "success": true,
+        "responseTime": 479,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 17,
+        "success": true,
+        "responseTime": 487,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 18,
+        "success": true,
+        "responseTime": 497,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 19,
+        "success": true,
+        "responseTime": 498,
+        "timestamp": "2025-07-31T02:19:01.208Z"
+      },
+      {
+        "userId": 20,
+        "success": true,
+        "responseTime": 491,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 21,
+        "success": true,
+        "responseTime": 512,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 22,
+        "success": true,
+        "responseTime": 488,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 23,
+        "success": true,
+        "responseTime": 460,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 24,
+        "success": true,
+        "responseTime": 469,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 25,
+        "success": true,
+        "responseTime": 478,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 26,
+        "success": true,
+        "responseTime": 469,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 27,
+        "success": true,
+        "responseTime": 476,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 28,
+        "success": true,
+        "responseTime": 469,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 29,
+        "success": true,
+        "responseTime": 462,
+        "timestamp": "2025-07-31T02:19:27.624Z"
+      },
+      {
+        "userId": 30,
+        "success": true,
+        "responseTime": 583,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 31,
+        "success": true,
+        "responseTime": 521,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 32,
+        "success": true,
+        "responseTime": 516,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 33,
+        "success": true,
+        "responseTime": 535,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 34,
+        "success": true,
+        "responseTime": 574,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 35,
+        "success": true,
+        "responseTime": 593,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 36,
+        "success": true,
+        "responseTime": 548,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 37,
+        "success": true,
+        "responseTime": 494,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 38,
+        "success": true,
+        "responseTime": 500,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 39,
+        "success": true,
+        "responseTime": 553,
+        "timestamp": "2025-07-31T02:19:54.261Z"
+      },
+      {
+        "userId": 40,
+        "success": true,
+        "responseTime": 494,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 41,
+        "success": true,
+        "responseTime": 478,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 42,
+        "success": true,
+        "responseTime": 482,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 43,
+        "success": true,
+        "responseTime": 498,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 44,
+        "success": true,
+        "responseTime": 515,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 45,
+        "success": true,
+        "responseTime": 474,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 46,
+        "success": true,
+        "responseTime": 534,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 47,
+        "success": true,
+        "responseTime": 514,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 48,
+        "success": true,
+        "responseTime": 547,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 49,
+        "success": true,
+        "responseTime": 505,
+        "timestamp": "2025-07-31T02:20:20.387Z"
+      },
+      {
+        "userId": 50,
+        "success": true,
+        "responseTime": 458,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 51,
+        "success": true,
+        "responseTime": 490,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 52,
+        "success": true,
+        "responseTime": 468,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 53,
+        "success": true,
+        "responseTime": 465,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 54,
+        "success": true,
+        "responseTime": 476,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 55,
+        "success": true,
+        "responseTime": 461,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 56,
+        "success": true,
+        "responseTime": 477,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 57,
+        "success": true,
+        "responseTime": 493,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 58,
+        "success": true,
+        "responseTime": 491,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 59,
+        "success": true,
+        "responseTime": 528,
+        "timestamp": "2025-07-31T02:20:45.912Z"
+      },
+      {
+        "userId": 60,
+        "success": true,
+        "responseTime": 518,
+        "timestamp": "2025-07-31T02:20:53.883Z"
+      },
+      {
+        "userId": 61,
+        "success": true,
+        "responseTime": 511,
+        "timestamp": "2025-07-31T02:20:53.883Z"
+      },
+      {
+        "userId": 62,
+        "success": true,
+        "responseTime": 500,
+        "timestamp": "2025-07-31T02:20:53.883Z"
+      },
+      {
+        "userId": 63,
+        "success": true,
+        "responseTime": 550,
+        "timestamp": "2025-07-31T02:20:53.883Z"
+      },
+      {
+        "userId": 64,
+        "success": true,
+        "responseTime": 545,
+        "timestamp": "2025-07-31T02:20:53.883Z"
+      },
+      {
+        "userId": 65,
+        "success": true,
+        "responseTime": 556,
+        "timestamp": "2025-07-31T02:20:53.883Z"
+      },
+      {
+        "userId": 66,
+        "success": true,
+        "responseTime": 576,
+        "timestamp": "2025-07-31T02:20:53.884Z"
+      },
+      {
+        "userId": 67,
+        "success": true,
+        "responseTime": 532,
+        "timestamp": "2025-07-31T02:20:53.884Z"
+      },
+      {
+        "userId": 68,
+        "success": true,
+        "responseTime": 469,
+        "timestamp": "2025-07-31T02:20:53.884Z"
+      },
+      {
+        "userId": 69,
+        "success": true,
+        "responseTime": 507,
+        "timestamp": "2025-07-31T02:20:53.884Z"
+      },
+      {
+        "userId": 70,
+        "success": true,
+        "responseTime": 537,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 71,
+        "success": true,
+        "responseTime": 542,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 72,
+        "success": true,
+        "responseTime": 556,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 73,
+        "success": true,
+        "responseTime": 530,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 74,
+        "success": true,
+        "responseTime": 510,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 75,
+        "success": true,
+        "responseTime": 519,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 76,
+        "success": true,
+        "responseTime": 486,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 77,
+        "success": true,
+        "responseTime": 500,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 78,
+        "success": true,
+        "responseTime": 496,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 79,
+        "success": true,
+        "responseTime": 515,
+        "timestamp": "2025-07-31T02:21:01.645Z"
+      },
+      {
+        "userId": 80,
+        "success": true,
+        "responseTime": 484,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 81,
+        "success": true,
+        "responseTime": 461,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 82,
+        "success": true,
+        "responseTime": 475,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 83,
+        "success": true,
+        "responseTime": 494,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 84,
+        "success": true,
+        "responseTime": 464,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 85,
+        "success": true,
+        "responseTime": 476,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 86,
+        "success": true,
+        "responseTime": 507,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 87,
+        "success": true,
+        "responseTime": 530,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 88,
+        "success": true,
+        "responseTime": 533,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 89,
+        "success": true,
+        "responseTime": 523,
+        "timestamp": "2025-07-31T02:21:09.265Z"
+      },
+      {
+        "userId": 90,
+        "success": true,
+        "responseTime": 546,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      },
+      {
+        "userId": 91,
+        "success": true,
+        "responseTime": 560,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      },
+      {
+        "userId": 92,
+        "success": true,
+        "responseTime": 543,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      },
+      {
+        "userId": 93,
+        "success": true,
+        "responseTime": 796,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      },
+      {
+        "userId": 94,
+        "success": true,
+        "responseTime": 652,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      },
+      {
+        "userId": 95,
+        "success": true,
+        "responseTime": 634,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      },
+      {
+        "userId": 96,
+        "success": true,
+        "responseTime": 771,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      },
+      {
+        "userId": 97,
+        "success": true,
+        "responseTime": 741,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      },
+      {
+        "userId": 98,
+        "success": true,
+        "responseTime": 701,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      },
+      {
+        "userId": 99,
+        "success": true,
+        "responseTime": 533,
+        "timestamp": "2025-07-31T02:21:18.389Z"
+      }
+    ],
+    "subscriptions": [
+      {
+        "userId": 0,
+        "success": true,
+        "responseTime": 2484,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 1,
+        "success": true,
+        "responseTime": 2124,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 2,
+        "success": true,
+        "responseTime": 1975,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 3,
+        "success": true,
+        "responseTime": 2000,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 4,
+        "success": true,
+        "responseTime": 2009,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 5,
+        "success": true,
+        "responseTime": 1898,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 6,
+        "success": true,
+        "responseTime": 2179,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 7,
+        "success": true,
+        "responseTime": 2004,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 8,
+        "success": true,
+        "responseTime": 1964,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 9,
+        "success": true,
+        "responseTime": 2034,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:18:55.583Z"
+      },
+      {
+        "userId": 10,
+        "success": true,
+        "responseTime": 2313,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 11,
+        "success": true,
+        "responseTime": 2020,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 12,
+        "success": true,
+        "responseTime": 2037,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 13,
+        "success": true,
+        "responseTime": 2128,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 14,
+        "success": true,
+        "responseTime": 2115,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 15,
+        "success": true,
+        "responseTime": 2305,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 16,
+        "success": true,
+        "responseTime": 2096,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 17,
+        "success": true,
+        "responseTime": 2081,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 18,
+        "success": true,
+        "responseTime": 2006,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 19,
+        "success": true,
+        "responseTime": 2039,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:19:22.348Z"
+      },
+      {
+        "userId": 20,
+        "success": true,
+        "responseTime": 2124,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 21,
+        "success": true,
+        "responseTime": 2071,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 22,
+        "success": true,
+        "responseTime": 2060,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 23,
+        "success": true,
+        "responseTime": 2055,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 24,
+        "success": true,
+        "responseTime": 2192,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 25,
+        "success": true,
+        "responseTime": 1940,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 26,
+        "success": true,
+        "responseTime": 2026,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 27,
+        "success": true,
+        "responseTime": 2128,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 28,
+        "success": true,
+        "responseTime": 2144,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 29,
+        "success": true,
+        "responseTime": 1978,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:19:48.342Z"
+      },
+      {
+        "userId": 30,
+        "success": true,
+        "responseTime": 2180,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 31,
+        "success": true,
+        "responseTime": 2081,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 32,
+        "success": true,
+        "responseTime": 2008,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 33,
+        "success": true,
+        "responseTime": 2046,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 34,
+        "success": true,
+        "responseTime": 2053,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 35,
+        "success": true,
+        "responseTime": 1944,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 36,
+        "success": true,
+        "responseTime": 2259,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 37,
+        "success": true,
+        "responseTime": 1992,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 38,
+        "success": true,
+        "responseTime": 2106,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 39,
+        "success": true,
+        "responseTime": 1915,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:20:14.845Z"
+      },
+      {
+        "userId": 40,
+        "success": true,
+        "responseTime": 2133,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      },
+      {
+        "userId": 41,
+        "success": true,
+        "responseTime": 2012,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      },
+      {
+        "userId": 42,
+        "success": true,
+        "responseTime": 1990,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      },
+      {
+        "userId": 43,
+        "success": true,
+        "responseTime": 1965,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      },
+      {
+        "userId": 44,
+        "success": true,
+        "responseTime": 2154,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      },
+      {
+        "userId": 45,
+        "success": true,
+        "responseTime": 1917,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      },
+      {
+        "userId": 46,
+        "success": true,
+        "responseTime": 1947,
+        "packageType": "heavy_duty",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      },
+      {
+        "userId": 47,
+        "success": true,
+        "responseTime": 1961,
+        "packageType": "premium",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      },
+      {
+        "userId": 48,
+        "success": true,
+        "responseTime": 2014,
+        "packageType": "basic",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      },
+      {
+        "userId": 49,
+        "success": true,
+        "responseTime": 2122,
+        "packageType": "clean_carry",
+        "timestamp": "2025-07-31T02:20:40.603Z"
+      }
+    ],
+    "oneTimePickups": [
+      {
+        "userId": 50,
+        "success": true,
+        "responseTime": 226,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 51,
+        "success": true,
+        "responseTime": 220,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 52,
+        "success": true,
+        "responseTime": 216,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 53,
+        "success": true,
+        "responseTime": 213,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 54,
+        "success": true,
+        "responseTime": 209,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 55,
+        "success": true,
+        "responseTime": 244,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 56,
+        "success": true,
+        "responseTime": 213,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 57,
+        "success": true,
+        "responseTime": 224,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 58,
+        "success": true,
+        "responseTime": 225,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 59,
+        "success": true,
+        "responseTime": 215,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:20:48.118Z"
+      },
+      {
+        "userId": 60,
+        "success": true,
+        "responseTime": 206,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 61,
+        "success": true,
+        "responseTime": 207,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 62,
+        "success": true,
+        "responseTime": 200,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 63,
+        "success": true,
+        "responseTime": 202,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 64,
+        "success": true,
+        "responseTime": 205,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 65,
+        "success": true,
+        "responseTime": 218,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 66,
+        "success": true,
+        "responseTime": 206,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 67,
+        "success": true,
+        "responseTime": 202,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 68,
+        "success": true,
+        "responseTime": 221,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 69,
+        "success": true,
+        "responseTime": 202,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:20:55.953Z"
+      },
+      {
+        "userId": 70,
+        "success": true,
+        "responseTime": 212,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 71,
+        "success": true,
+        "responseTime": 216,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 72,
+        "success": true,
+        "responseTime": 213,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 73,
+        "success": true,
+        "responseTime": 228,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 74,
+        "success": true,
+        "responseTime": 230,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 75,
+        "success": true,
+        "responseTime": 219,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 76,
+        "success": true,
+        "responseTime": 225,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 77,
+        "success": true,
+        "responseTime": 203,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 78,
+        "success": true,
+        "responseTime": 200,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 79,
+        "success": true,
+        "responseTime": 224,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:21:03.816Z"
+      },
+      {
+        "userId": 80,
+        "success": true,
+        "responseTime": 208,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 81,
+        "success": true,
+        "responseTime": 210,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 82,
+        "success": true,
+        "responseTime": 202,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 83,
+        "success": true,
+        "responseTime": 217,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 84,
+        "success": true,
+        "responseTime": 212,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 85,
+        "success": true,
+        "responseTime": 198,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 86,
+        "success": true,
+        "responseTime": 233,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 87,
+        "success": true,
+        "responseTime": 214,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 88,
+        "success": true,
+        "responseTime": 216,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 89,
+        "success": true,
+        "responseTime": 234,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:21:11.411Z"
+      },
+      {
+        "userId": 90,
+        "success": true,
+        "responseTime": 244,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      },
+      {
+        "userId": 91,
+        "success": true,
+        "responseTime": 255,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      },
+      {
+        "userId": 92,
+        "success": true,
+        "responseTime": 258,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      },
+      {
+        "userId": 93,
+        "success": true,
+        "responseTime": 227,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      },
+      {
+        "userId": 94,
+        "success": true,
+        "responseTime": 250,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      },
+      {
+        "userId": 95,
+        "success": true,
+        "responseTime": 283,
+        "bagCount": 1,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      },
+      {
+        "userId": 96,
+        "success": true,
+        "responseTime": 270,
+        "bagCount": 2,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      },
+      {
+        "userId": 97,
+        "success": true,
+        "responseTime": 209,
+        "bagCount": 3,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      },
+      {
+        "userId": 98,
+        "success": true,
+        "responseTime": 231,
+        "bagCount": 4,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      },
+      {
+        "userId": 99,
+        "success": true,
+        "responseTime": 226,
+        "bagCount": 5,
+        "timestamp": "2025-07-31T02:21:20.847Z"
+      }
+    ],
+    "errors": [],
+    "startTime": 1753928309595,
+    "endTime": 1753928481348
+  },
+  "statistics": {
+    "registrations": {
+      "total": 100,
+      "successful": 100,
+      "averageTime": 524,
+      "maxTime": 980,
+      "minTime": 458
+    },
+    "subscriptions": {
+      "total": 50,
+      "successful": 50,
+      "averageTime": 2067,
+      "maxTime": 2484,
+      "minTime": 1898
+    },
+    "oneTimePickups": {
+      "total": 50,
+      "successful": 50,
+      "averageTime": 221,
+      "maxTime": 283,
+      "minTime": 198
+    },
+    "overall": {
+      "totalErrors": 0,
+      "totalDuration": 171753
+    }
+  },
+  "canHandleLoad": true
+}
