@@ -1389,8 +1389,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📅 Today (Eastern):', todayDateString);
       console.log('📅 Server timezone date:', `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
       
-      // Initialize 7-day window (today + next 6 days since old pickups are auto-completed)
-      for (let i = 0; i < 7; i++) {
+      // Initialize 8-day window (yesterday + today + next 6 days to catch uncompleted pickups)
+      for (let i = -1; i < 7; i++) {
         const date = new Date(easternToday);
         date.setDate(easternToday.getDate() + i);
         const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
