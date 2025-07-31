@@ -577,7 +577,6 @@ export class DatabaseStorage implements IStorage {
         estimatedDuration: pickups.estimatedDuration,
         estimatedArrival: pickups.estimatedArrival,
         paymentStatus: pickups.paymentStatus,
-        packageType: pickups.packageType,
         createdAt: pickups.createdAt,
         updatedAt: pickups.updatedAt,
         
