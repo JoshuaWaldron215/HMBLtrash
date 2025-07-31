@@ -556,8 +556,25 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(pickups).where(eq(pickups.customerId, customerId));
   }
 
-  async getPickupsByDriver(driverId: number): Promise<Pickup[]> {
-    return await db.select().from(pickups).where(eq(pickups.driverId, driverId));
+  async getPickupsByDriver(driverId: number): Promise<any[]> {
+    // Get pickups first
+    const driverPickups = await db.select().from(pickups).where(eq(pickups.driverId, driverId));
+    
+    // Get customer data for each pickup
+    const pickupsWithCustomers = [];
+    for (const pickup of driverPickups) {
+      const customer = await this.getUser(pickup.customerId);
+      pickupsWithCustomers.push({
+        ...pickup,
+        customerFirstName: customer?.firstName || null,
+        customerLastName: customer?.lastName || null,
+        customerEmail: customer?.email || null,
+        customerPhone: customer?.phone || null,
+        customerName: customer?.username || null
+      });
+    }
+    
+    return pickupsWithCustomers;
   }
 
   async getPickupsByStatus(status: string): Promise<Pickup[]> {

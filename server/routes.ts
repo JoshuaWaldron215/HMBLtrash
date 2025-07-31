@@ -1197,6 +1197,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin all members endpoint - returns all users with basic info and stats
+  app.get('/api/admin/all-members', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      
+      // Get subscription and pickup counts for each user
+      const membersWithStats = await Promise.all(users.map(async (user) => {
+        try {
+          const subscription = await storage.getSubscriptionByCustomer(user.id);
+          const pickups = await storage.getPickupsByCustomer(user.id);
+          
+          return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            createdAt: user.createdAt,
+            lastLoginAt: user.lastLoginAt,
+            hasSubscription: !!subscription && subscription.status === 'active',
+            totalPickups: pickups.length,
+            subscriptionStatus: subscription?.status || 'none'
+          };
+        } catch (error) {
+          // If there's an error getting stats for a user, return basic info
+          return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            createdAt: user.createdAt,
+            lastLoginAt: user.lastLoginAt,
+            hasSubscription: false,
+            totalPickups: 0,
+            subscriptionStatus: 'none'
+          };
+        }
+      }));
+      
+      res.json(membersWithStats);
+    } catch (error: any) {
+      console.error('Error fetching all members:', error);
+      res.status(500).json({ message: "Failed to fetch all members" });
+    }
+  });
+
   app.get("/api/admin/pickups", authenticateToken, requireRole('admin'), async (req, res) => {
     try {
       const pickups = await storage.getAllPickups();
@@ -1340,8 +1389,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📅 Today (Eastern):', todayDateString);
       console.log('📅 Server timezone date:', `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
       
-      // Initialize 7-day window (today + next 6 days since old pickups are auto-completed)
-      for (let i = 0; i < 7; i++) {
+      // Initialize 8-day window (yesterday + today + next 6 days to catch uncompleted pickups)
+      for (let i = -1; i < 7; i++) {
         const date = new Date(easternToday);
         date.setDate(easternToday.getDate() + i);
         const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
@@ -1360,12 +1409,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       assignedPickups.forEach(pickup => {
         console.log(`🔍 Pickup ${pickup.id}: scheduledDate = ${pickup.scheduledDate}`);
         if (pickup.scheduledDate) {
-          // Convert pickup date to Eastern Time date string
+          // For date-only comparisons, use the UTC date as-is
+          // The date is stored as UTC midnight which represents the intended date
           const pickupDateTime = new Date(pickup.scheduledDate);
-          // Create date in Eastern Time zone directly
-          const easternDate = new Date(pickupDateTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
-          const pickupDate = `${easternDate.getFullYear()}-${String(easternDate.getMonth() + 1).padStart(2, '0')}-${String(easternDate.getDate()).padStart(2, '0')}`;
-          console.log(`📅 Pickup ${pickup.id}: computed date (Eastern) = ${pickupDate}`);
+          const pickupDate = `${pickupDateTime.getUTCFullYear()}-${String(pickupDateTime.getUTCMonth() + 1).padStart(2, '0')}-${String(pickupDateTime.getUTCDate()).padStart(2, '0')}`;
+          console.log(`📅 Pickup ${pickup.id}: computed date (UTC date-only) = ${pickupDate}`);
           if (schedule[pickupDate]) {
             schedule[pickupDate].pickups.push(pickup);
             console.log(`✅ Added pickup ${pickup.id} to ${pickupDate}`);

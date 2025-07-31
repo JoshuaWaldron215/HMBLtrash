@@ -30,7 +30,8 @@ import {
   Phone,
   Mail,
   X,
-  Save
+  Save,
+  User as UserIcon
 } from 'lucide-react';
 import MobileLayout, { 
   MobileCard, 
@@ -71,6 +72,7 @@ export default function Admin() {
   // Determine which section to show based on route
   const getCurrentSection = () => {
     if (location === '/admin/subscribers') return 'subscribers';
+    if (location === '/admin/members') return 'members';
     if (location === '/admin/requests') return 'requests';  
     if (location === '/admin/routes') return 'routes';
     if (location === '/admin/drivers') return 'drivers';
@@ -86,6 +88,8 @@ export default function Admin() {
     switch (currentSection) {
       case 'subscribers':
         return renderSubscribersSection();
+      case 'members':
+        return renderMembersSection();
       case 'requests':
         return renderRequestsSection();
       case 'routes':
@@ -130,6 +134,13 @@ export default function Admin() {
   const { data: subscriptions = [] } = useQuery({
     queryKey: ['/api/admin/subscriptions'],
     queryFn: () => authenticatedRequest('GET', '/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
+  });
+
+  // Fetch all members data for members section
+  const { data: allMembersData = [] } = useQuery({
+    queryKey: ['/api/admin/all-members'],
+    queryFn: () => authenticatedRequest('GET', '/api/admin/all-members').then(res => res.json()),
+    enabled: currentSection === 'members',
   });
 
   // Extract users from the response structure
@@ -988,6 +999,156 @@ export default function Admin() {
     );
   };;
 
+  // All Members Section
+  const renderMembersSection = () => (
+    <MobileSection className="pt-4">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">All Members</h2>
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search members..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-48"
+            />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="customer">Customers</SelectItem>
+                <SelectItem value="driver">Drivers</SelectItem>
+                <SelectItem value="admin">Admins</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Members Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <MobileCard className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{allMembersData.length}</div>
+                <div className="text-sm text-blue-600/80 dark:text-blue-400/80">Total</div>
+              </div>
+              <UserIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            </div>
+          </MobileCard>
+          <MobileCard className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {allMembersData.filter((m: any) => m.role === 'customer').length}
+                </div>
+                <div className="text-sm text-green-600/80 dark:text-green-400/80">Customers</div>
+              </div>
+              <Users className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+          </MobileCard>
+          <MobileCard className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  {allMembersData.filter((m: any) => m.role === 'driver').length}
+                </div>
+                <div className="text-sm text-orange-600/80 dark:text-orange-400/80">Drivers</div>
+              </div>
+              <Truck className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+            </div>
+          </MobileCard>
+          <MobileCard className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  {allMembersData.filter((m: any) => m.hasSubscription).length}
+                </div>
+                <div className="text-sm text-purple-600/80 dark:text-purple-400/80">Subscribed</div>
+              </div>
+              <Package className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            </div>
+          </MobileCard>
+        </div>
+
+        {/* Members List */}
+        <div className="space-y-3">
+          {allMembersData
+            .filter((member: any) => {
+              const matchesSearch = searchTerm === '' || 
+                member.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (member.firstName && member.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (member.lastName && member.lastName.toLowerCase().includes(searchTerm.toLowerCase()));
+              
+              const matchesRole = statusFilter === 'all' || member.role === statusFilter;
+              
+              return matchesSearch && matchesRole;
+            })
+            .map((member: any) => (
+              <MobileCard key={member.id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold">{member.username}</span>
+                      <StatusBadge status={member.role === 'admin' ? 'completed' : member.role === 'driver' ? 'assigned' : 'pending'}>
+                        {member.role}
+                      </StatusBadge>
+                      {member.hasSubscription && (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          SUBSCRIBED
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <div>📧 {member.email}</div>
+                      {(member.firstName || member.lastName) && (
+                        <div>👤 {member.firstName} {member.lastName}</div>
+                      )}
+                      <div>📅 Joined: {new Date(member.createdAt).toLocaleDateString()}</div>
+                      {member.lastLoginAt && (
+                        <div>🕒 Last login: {new Date(member.lastLoginAt).toLocaleDateString()}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-muted-foreground">
+                      📦 {member.totalPickups} pickups
+                    </div>
+                    {member.subscriptionStatus !== 'none' && (
+                      <div className="text-sm mt-1">
+                        Status: <span className={member.hasSubscription ? 'text-green-600' : 'text-red-600'}>
+                          {member.subscriptionStatus}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </MobileCard>
+            ))
+          }
+        </div>
+        
+        {allMembersData.filter((member: any) => {
+          const matchesSearch = searchTerm === '' || 
+            member.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (member.firstName && member.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (member.lastName && member.lastName.toLowerCase().includes(searchTerm.toLowerCase()));
+          
+          const matchesRole = statusFilter === 'all' || member.role === statusFilter;
+          
+          return matchesSearch && matchesRole;
+        }).length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            No members found matching your criteria.
+          </div>
+        )}
+      </div>
+    </MobileSection>
+  );
+
   const renderRequestsSection = () => (
     <MobileSection className="bg-muted/20">
       <div className="flex items-center justify-between mb-4">
@@ -1756,6 +1917,7 @@ export default function Admin() {
       title={currentSection === 'dashboard' ? 'Admin Dashboard' : 
              currentSection === 'subscribers' ? 'Subscribers' :
              currentSection === 'requests' ? 'One-Time Requests' :
+             currentSection === 'members' ? 'All Members' :
              currentSection === 'routes' ? 'Route Optimization' :
              currentSection === 'drivers' ? 'Driver Management' :
              currentSection === 'reports' ? 'Reports' :

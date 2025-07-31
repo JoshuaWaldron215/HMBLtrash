@@ -16,7 +16,8 @@ import {
   Pause,
   Info,
   Calendar,
-  ChevronRight
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react';
 import MobileLayout, { 
   MobileCard, 
@@ -35,11 +36,12 @@ export default function Driver() {
   const [isOnline, setIsOnline] = useState(true);
   const [startingAddress, setStartingAddress] = useState('');
   const [selectedPickups, setSelectedPickups] = useState<number[]>([]);
+  const [expandedPickups, setExpandedPickups] = useState<number[]>([]);
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Fetch 7-day schedule (primary data source)
-  const { data: scheduleData = {}, isLoading: routeLoading, error: routeError } = useQuery({
+  // Fetch 7-day schedule (primary data source) with automatic refresh
+  const { data: scheduleData = {}, isLoading: routeLoading, isFetching: routeFetching, error: routeError, refetch: refetchRoute } = useQuery({
     queryKey: ['/api/driver/route'],
     queryFn: async () => {
       const res = await authenticatedRequest('GET', '/api/driver/route');
@@ -50,6 +52,8 @@ export default function Driver() {
       return data;
     },
     retry: false,
+    refetchInterval: 30000, // Refetch every 30 seconds to stay synchronized with admin changes
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not active
   });
 
   // Fetch full route data for Google Maps integration
@@ -57,6 +61,7 @@ export default function Driver() {
     queryKey: ['/api/driver/full-route'],
     queryFn: () => authenticatedRequest('GET', '/api/driver/full-route').then(res => res.json()),
     retry: false,
+    refetchInterval: 60000, // Refetch every minute for route optimization updates
   });
 
   // Handle new organized-by-date format - fix timezone issue
@@ -67,22 +72,38 @@ export default function Driver() {
   console.log('📅 Driver dashboard - Today\'s date (Eastern):', todayDate);
   console.log('📅 Browser timezone date:', `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
   
-  // Get today's data from the schedule
-  const todaySchedule = scheduleData[todayDate] || { pickups: [] };
-  const todayRoute = todaySchedule.pickups || [];
   console.log('📅 Looking for pickups on date:', todayDate);
-  console.log('📦 Found today schedule:', todaySchedule);
-  console.log('🚚 Today route pickups:', todayRoute.length);
   console.log('🗂️ Full schedule data keys:', Object.keys(scheduleData));
   console.log('📋 Schedule for 2025-07-29:', scheduleData['2025-07-29']);
 
-  // Get all days from schedule for 7-day view
-  const scheduleDays = Object.values(scheduleData).sort((a: any, b: any) => 
-    a.date.localeCompare(b.date)
-  );
+  // Separate overdue, today's, and upcoming pickups
+  const overduePickups: any[] = [];
+  const upcomingDays: any[] = [];
+  
+  Object.values(scheduleData).forEach((day: any) => {
+    if (day.date < todayDate) {
+      // Past dates with pending pickups are overdue
+      const pendingPickups = (day.pickups || []).filter((p: any) => p.status === 'assigned');
+      if (pendingPickups.length > 0) {
+        overduePickups.push(...pendingPickups.map((p: any) => ({ ...p, originalDate: day.date, dayName: day.dayName })));
+      }
+    } else if (day.date > todayDate) {
+      // Future dates for upcoming schedule
+      upcomingDays.push(day);
+    }
+  });
+
+  // Get today's data from the schedule
+  const todaySchedule = scheduleData[todayDate] || { pickups: [] };
+  const todayRoute = todaySchedule.pickups || [];
+  console.log('📦 Found today schedule:', todaySchedule);
+  console.log('🚚 Today route pickups:', todayRoute.length);
+  
+  // Sort upcoming days by date
+  upcomingDays.sort((a: any, b: any) => a.date.localeCompare(b.date));
 
   // Calculate totals from all schedule days for proper summary
-  const allPickups = scheduleDays.flatMap((day: any) => day.pickups || []);
+  const allPickups = Object.values(scheduleData).flatMap((day: any) => day.pickups || []);
   const allPendingPickups = allPickups.filter((p: any) => p.status === 'assigned');
   const allCompletedPickups = allPickups.filter((p: any) => p.status === 'completed');
 
@@ -134,6 +155,14 @@ export default function Driver() {
 
   const clearSelection = () => {
     setSelectedPickups([]);
+  };
+
+  const togglePickupExpansion = (pickupId: number) => {
+    setExpandedPickups(prev => 
+      prev.includes(pickupId) 
+        ? prev.filter(id => id !== pickupId)
+        : [...prev, pickupId]
+    );
   };
 
   const handleCompleteSelected = () => {
@@ -210,6 +239,36 @@ export default function Driver() {
           <div className={`w-4 h-4 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
         </div>
 
+        {/* Auto-sync status indicator */}
+        {routeFetching && !routeLoading && (
+          <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+              <div className="animate-spin w-3 h-3 border border-blue-600 border-t-transparent rounded-full" />
+              <span className="text-xs">Syncing with latest updates...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Manual refresh button */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Your Schedule</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              refetchRoute();
+              toast({
+                title: "Refreshing",
+                description: "Checking for latest schedule updates...",
+              });
+            }}
+            disabled={routeFetching}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${routeFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+
         {/* Weekly Summary */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <MobileCard className="text-center">
@@ -237,6 +296,175 @@ export default function Driver() {
             </div>
           </MobileCard>
         </div>
+
+        {/* Route Optimization Section - Moved above Today's Route */}
+        <MobileCard className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">Route Optimization</h2>
+          
+          {/* Starting Address Input */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Starting Address</label>
+            <input
+              type="text"
+              value={startingAddress}
+              onChange={(e) => setStartingAddress(e.target.value)}
+              placeholder="Enter your current location (e.g., 1234 Main St, Philadelphia, PA)"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              This will be your starting point for the optimized route
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <MobileButton 
+              variant="outline"
+              className="flex flex-col items-center space-y-2 h-auto py-4"
+              onClick={() => {
+                if (todayRoute.length > 0) {
+                  // Create optimized multi-stop route with all pickup addresses
+                  const pickupAddresses = todayRoute.map((p: any) => p.address);
+                  
+                  if (startingAddress.trim()) {
+                    // Create route with starting point and all pickup addresses as waypoints
+                    const destination = pickupAddresses[pickupAddresses.length - 1];
+                    const waypoints = pickupAddresses.slice(0, -1).join('|');
+                    
+                    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(startingAddress)}&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving&optimize=true`;
+                    
+                    console.log('🗺️ Opening optimized route with:', {
+                      start: startingAddress,
+                      destination,
+                      waypoints: waypoints.split('|'),
+                      totalStops: pickupAddresses.length + 1
+                    });
+                    
+                    window.open(googleMapsUrl, '_blank');
+                  } else {
+                    // Fallback: route without starting point
+                    const destination = pickupAddresses[0];
+                    const waypoints = pickupAddresses.slice(1).join('|');
+                    
+                    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving&optimize=true`;
+                    
+                    window.open(googleMapsUrl, '_blank');
+                  }
+                } else {
+                  toast({
+                    title: "No Route Available",
+                    description: "You don't have any pickups scheduled for today.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              disabled={todayRoute.length === 0}
+            >
+              <Route className="w-6 h-6" />
+              <span>Full Route ({todayRoute.length} stops)</span>
+            </MobileButton>
+            
+            <MobileButton 
+              variant="outline"
+              className="flex flex-col items-center space-y-2 h-auto py-4"
+              onClick={() => {
+                // Show estimated route info
+                toast({
+                  title: "Route Info",
+                  description: `${todayRoute.length} stops • Est. ${Math.round(todayRoute.length * 20)} minutes • ${Math.round(todayRoute.length * 2.5)} miles`,
+                });
+              }}
+            >
+              <Navigation className="w-6 h-6" />
+              <span>Route Info</span>
+            </MobileButton>
+          </div>
+        </MobileCard>
+
+        {/* Overdue Pickups - Highest Priority */}
+        {overduePickups.length > 0 && (
+          <MobileCard className="mb-6 border-2 border-red-500 bg-red-50 dark:bg-red-950/20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  OVERDUE
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-red-600 dark:text-red-400">Overdue Pickups</h3>
+                  <p className="text-sm text-red-600/70 dark:text-red-400/70">
+                    Complete these pickups immediately
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{overduePickups.length}</div>
+                <div className="text-xs text-red-600/70 dark:text-red-400/70">overdue</div>
+              </div>
+            </div>
+
+            {/* Overdue Pickup List */}
+            <div className="space-y-3">
+              {overduePickups.map((pickup: any) => (
+                <div 
+                  key={pickup.id}
+                  className="p-4 rounded-lg border-2 border-red-200 dark:border-red-800 bg-white dark:bg-gray-800"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-full">
+                          <Package className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-red-600 dark:text-red-400">
+                            {pickup.customerFirstName} {pickup.customerLastName}
+                          </div>
+                          <div className="text-sm text-red-600/70 dark:text-red-400/70">
+                            Due: {pickup.dayName}, {new Date(pickup.originalDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-red-600 dark:text-red-400">{pickup.bagCount} bags</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center text-sm text-red-600/70 dark:text-red-400/70">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      <span>{pickup.address}</span>
+                    </div>
+
+                    {pickup.specialInstructions && (
+                      <div className="text-sm text-red-600/70 dark:text-red-400/70 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                        {pickup.specialInstructions}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleNavigate(pickup.address)}
+                        className="flex-1 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                      >
+                        <Navigation className="w-4 h-4 mr-2" />
+                        Navigate
+                      </Button>
+                      <Button
+                        onClick={() => completePickupsMutation.mutate([pickup.id])}
+                        disabled={completePickupsMutation.isPending}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                        size="sm"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Complete
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </MobileCard>
+        )}
 
         {/* Today's Pickups - Primary Focus */}
         {todayRoute.length > 0 ? (
@@ -345,7 +573,20 @@ export default function Driver() {
                           <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
                             #{pickup.routeOrder || index + 1}
                           </span>
-                          <span className="font-medium text-sm leading-tight">{pickup.address}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm leading-tight">
+                              {pickup.customerFirstName && pickup.customerLastName ? (
+                                <span className="text-primary font-semibold">
+                                  {pickup.customerFirstName} {pickup.customerLastName}
+                                </span>
+                              ) : pickup.customerName ? (
+                                <span className="text-primary font-semibold">{pickup.customerName}</span>
+                              ) : (
+                                <span className="text-muted-foreground">Customer</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">{pickup.address}</div>
+                          </div>
                         </div>
                         
                         {/* Pickup details in a grid */}
@@ -359,7 +600,15 @@ export default function Driver() {
                             <span>ETA: {pickup.estimatedArrival}</span>
                           </span>
                           <span className="font-medium">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
-                          <div className="flex justify-end">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => togglePickupExpansion(pickup.id)}
+                              className="text-muted-foreground hover:text-primary h-7 px-2 text-xs"
+                            >
+                              <MoreHorizontal className="w-3 h-3" />
+                            </Button>
                             {pickup.status === 'completed' ? (
                               <div className="flex items-center text-green-600">
                                 <Check className="w-4 h-4 mr-1" />
@@ -378,6 +627,52 @@ export default function Driver() {
                             )}
                           </div>
                         </div>
+
+                        {/* Expandable pickup details */}
+                        {expandedPickups.includes(pickup.id) && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Customer Phone</label>
+                                <div className="text-sm">{pickup.customerPhone || 'Not provided'}</div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Service Type</label>
+                                <div className="text-sm">{pickup.serviceType || 'One-time pickup'}</div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Scheduled Date</label>
+                                <div className="text-sm">
+                                  {pickup.scheduledDate ? new Date(pickup.scheduledDate).toLocaleDateString() : 'Today'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Payment</label>
+                                <div className="text-sm font-medium text-green-600">
+                                  ${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                            {(pickup.customerEmail || pickup.specialInstructions) && (
+                              <div className="space-y-2">
+                                {pickup.customerEmail && (
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground">Email</label>
+                                    <div className="text-sm">{pickup.customerEmail}</div>
+                                  </div>
+                                )}
+                                {pickup.specialInstructions && (
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground">Special Instructions</label>
+                                    <div className="text-sm text-amber-700 dark:text-amber-300 p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
+                                      {pickup.specialInstructions}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -405,14 +700,14 @@ export default function Driver() {
         )}
 
         {/* Upcoming Schedule Preview */}
-        {scheduleDays.length > 0 && (
+        {upcomingDays.length > 0 && (
           <div className="space-y-4">
             <h3 className="font-semibold text-lg flex items-center space-x-2">
               <Calendar className="w-5 h-5 text-muted-foreground" />
               <span>Upcoming Schedule</span>
             </h3>
 
-            {scheduleDays.filter((day: any) => !day.isToday).map((day: any) => {
+            {upcomingDays.map((day: any) => {
               const dayPickups = day.pickups || [];
 
               return (
@@ -447,11 +742,21 @@ export default function Driver() {
                   {dayPickups.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {dayPickups.slice(0, 2).map((pickup: any, index: number) => (
-                        <div key={pickup.id} className="flex items-center space-x-2 text-sm text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          <span>{pickup.address}</span>
-                          <span>•</span>
-                          <span>{pickup.bagCount} bags</span>
+                        <div key={pickup.id} className="flex items-center space-x-2 text-sm">
+                          <MapPin className="w-3 h-3 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-primary text-xs">
+                              {pickup.customerFirstName && pickup.customerLastName ? (
+                                `${pickup.customerFirstName} ${pickup.customerLastName}`
+                              ) : pickup.customerName ? (
+                                pickup.customerName
+                              ) : (
+                                'Customer'
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">{pickup.address}</div>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{pickup.bagCount} bags</span>
                         </div>
                       ))}
                       {dayPickups.length > 2 && (
@@ -467,109 +772,6 @@ export default function Driver() {
           </div>
         )}
 
-      </MobileSection>
-
-      {/* Route Optimization Section */}
-      <MobileSection>
-        <h2 className="text-xl font-semibold mb-4">Route Optimization</h2>
-        
-        {/* Starting Address Input */}
-        <MobileCard className="mb-4">
-          <label className="block text-sm font-medium mb-2">Starting Address</label>
-          <input
-            type="text"
-            value={startingAddress}
-            onChange={(e) => setStartingAddress(e.target.value)}
-            placeholder="Enter your current location (e.g., 1234 Main St, Philadelphia, PA)"
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            This will be your starting point for the optimized route
-          </p>
-        </MobileCard>
-
-        <div className="grid grid-cols-2 gap-4">
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-            onClick={() => {
-              if (todayRoute.length > 0) {
-                // Create optimized multi-stop route with all pickup addresses
-                const pickupAddresses = todayRoute.map((p: any) => p.address);
-                
-                if (startingAddress.trim()) {
-                  // Create route with starting point and all pickup addresses as waypoints
-                  const destination = pickupAddresses[pickupAddresses.length - 1];
-                  const waypoints = pickupAddresses.slice(0, -1).join('|');
-                  
-                  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(startingAddress)}&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving&optimize=true`;
-                  
-                  console.log('🗺️ Opening optimized route with:', {
-                    start: startingAddress,
-                    destination,
-                    waypoints: waypoints.split('|'),
-                    totalStops: pickupAddresses.length + 1
-                  });
-                  
-                  window.open(googleMapsUrl, '_blank');
-                } else {
-                  // Fallback: route without starting point
-                  const destination = pickupAddresses[0];
-                  const waypoints = pickupAddresses.slice(1).join('|');
-                  
-                  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving&optimize=true`;
-                  
-                  window.open(googleMapsUrl, '_blank');
-                }
-              } else {
-                toast({
-                  title: "No Route Available",
-                  description: "You don't have any pickups scheduled for today.",
-                  variant: "destructive",
-                });
-              }
-            }}
-            disabled={todayRoute.length === 0}
-          >
-            <Route className="w-6 h-6" />
-            <span>Full Route ({todayRoute.length} stops)</span>
-          </MobileButton>
-          
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-            onClick={() => {
-              // Show estimated route info
-              toast({
-                title: "Route Info",
-                description: `${todayRoute.length} stops • Est. ${Math.round(todayRoute.length * 20)} minutes • ${Math.round(todayRoute.length * 2.5)} miles`,
-              });
-            }}
-          >
-            <Navigation className="w-6 h-6" />
-            <span>Route Info</span>
-          </MobileButton>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-            onClick={() => window.open('tel:+12674014292', '_self')}
-          >
-            <Phone className="w-6 h-6" />
-            <span>Support</span>
-          </MobileButton>
-          
-          <MobileButton 
-            variant="outline"
-            className="flex flex-col items-center space-y-2 h-auto py-4"
-            onClick={() => setLocation('/driver/history')}
-          >
-            <Star className="w-6 h-6" />
-            <span>History</span>
-          </MobileButton>
-        </div>
       </MobileSection>
     </MobileLayout>
   );
