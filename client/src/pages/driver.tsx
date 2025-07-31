@@ -414,10 +414,6 @@ export default function Driver() {
 
             {scheduleDays.filter((day: any) => !day.isToday).map((day: any) => {
               const dayPickups = day.pickups || [];
-              const isWeekend = new Date(day.date).getDay() === 0 || new Date(day.date).getDay() === 6;
-              
-              // Skip weekends since you work Mon-Fri only
-              if (isWeekend) return null;
 
               return (
                 <MobileCard key={day.date} className="border border-gray-200 dark:border-gray-700">

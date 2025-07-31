@@ -35,8 +35,8 @@ const serviceFeatures = [
   },
   {
     icon: Zap,
-    title: "Same-Day Service",
-    description: "Emergency pickups available"
+    title: "7 Days a Week",
+    description: "Service available every day of the week"
   }
 ];
 
