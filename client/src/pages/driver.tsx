@@ -16,7 +16,8 @@ import {
   Pause,
   Info,
   Calendar,
-  ChevronRight
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react';
 import MobileLayout, { 
   MobileCard, 
@@ -38,8 +39,8 @@ export default function Driver() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Fetch 7-day schedule (primary data source)
-  const { data: scheduleData = {}, isLoading: routeLoading, error: routeError } = useQuery({
+  // Fetch 7-day schedule (primary data source) with automatic refresh
+  const { data: scheduleData = {}, isLoading: routeLoading, isFetching: routeFetching, error: routeError, refetch: refetchRoute } = useQuery({
     queryKey: ['/api/driver/route'],
     queryFn: async () => {
       const res = await authenticatedRequest('GET', '/api/driver/route');
@@ -50,6 +51,8 @@ export default function Driver() {
       return data;
     },
     retry: false,
+    refetchInterval: 30000, // Refetch every 30 seconds to stay synchronized with admin changes
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not active
   });
 
   // Fetch full route data for Google Maps integration
@@ -57,6 +60,7 @@ export default function Driver() {
     queryKey: ['/api/driver/full-route'],
     queryFn: () => authenticatedRequest('GET', '/api/driver/full-route').then(res => res.json()),
     retry: false,
+    refetchInterval: 60000, // Refetch every minute for route optimization updates
   });
 
   // Handle new organized-by-date format - fix timezone issue
@@ -208,6 +212,36 @@ export default function Driver() {
             </p>
           </div>
           <div className={`w-4 h-4 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
+        </div>
+
+        {/* Auto-sync status indicator */}
+        {routeFetching && !routeLoading && (
+          <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+              <div className="animate-spin w-3 h-3 border border-blue-600 border-t-transparent rounded-full" />
+              <span className="text-xs">Syncing with latest updates...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Manual refresh button */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Your Schedule</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              refetchRoute();
+              toast({
+                title: "Refreshing",
+                description: "Checking for latest schedule updates...",
+              });
+            }}
+            disabled={routeFetching}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${routeFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
         {/* Weekly Summary */}
