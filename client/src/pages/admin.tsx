@@ -55,7 +55,7 @@ export default function Admin() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showClusters, setShowClusters] = useState(false);
   const [selectedCluster, setSelectedCluster] = useState<any>(null);
-  const [reschedulePickup, setReschedulePickup] = useState<{ pickup: Pickup; customer: User } | null>(null);
+  const [reschedulePickup, setReschedulePickup] = useState<{ pickup: Pickup | { id: number; customerId: number; scheduledDate?: string | Date | null; }; customer: User; isSubscription?: boolean } | null>(null);
   
   // Enhanced subscriber management state
   const [selectedSubscriber, setSelectedSubscriber] = useState<{subscriber: any; customer: User; pickups: Pickup[]} | null>(null);
@@ -849,6 +849,21 @@ export default function Admin() {
                 >
                   <Edit3 className="w-4 h-4 mr-2" />
                   Edit Details
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setReschedulePickup({ 
+                    pickup: { 
+                      id: selectedSubscriber.subscriber.id, 
+                      customerId: selectedSubscriber.subscriber.customerId,
+                      scheduledDate: selectedSubscriber.subscriber.nextPickupDate 
+                    }, 
+                    customer: selectedSubscriber.customer,
+                    isSubscription: true
+                  })}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Reschedule Next Pickup
                 </Button>
                 {selectedSubscriber.subscriber.status === 'cancelled' ? (
                   <Button
@@ -1760,6 +1775,7 @@ export default function Admin() {
           customer={reschedulePickup.customer}
           isOpen={!!reschedulePickup}
           onClose={() => setReschedulePickup(null)}
+          isSubscription={reschedulePickup.isSubscription}
         />
       )}
     </MobileLayout>

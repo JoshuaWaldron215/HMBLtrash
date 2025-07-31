@@ -1651,6 +1651,68 @@ Acapella Trash Removal Team
     }
   });
 
+  // Reschedule subscription next pickup endpoint
+  app.post('/api/admin/subscriptions/:id/reschedule', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newDate, reason } = req.body;
+      
+      // Get the subscription and customer info
+      const subscription = await storage.getSubscription(parseInt(id));
+      if (!subscription) {
+        return res.status(404).json({ message: 'Subscription not found' });
+      }
+      
+      const customer = await storage.getUser(subscription.customerId);
+      if (!customer) {
+        return res.status(404).json({ message: 'Customer not found' });
+      }
+      
+      // Update the subscription with new next pickup date
+      const updatedSubscription = await storage.updateSubscription(parseInt(id), {
+        nextPickupDate: new Date(newDate),
+        updatedAt: new Date()
+      });
+      
+      // Send email notification for subscription pickup reschedule
+      try {
+        const mockPickup = {
+          id: parseInt(id),
+          customerId: subscription.customerId,
+          address: customer.address || 'Customer Address',
+          bagCount: subscription.bagCountLimit || 6,
+          serviceType: 'subscription' as const,
+          scheduledDate: subscription.nextPickupDate || new Date(),
+          amount: parseFloat(subscription.pricePerMonth || '35').toString(),
+          status: 'pending' as const,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          cancellationReason: null,
+          driverId: null,
+          completedAt: null,
+          rescheduledReason: null,
+          specialInstructions: null,
+          paymentStatus: 'pending' as const,
+          stripePaymentIntentId: null
+        };
+        
+        const originalDate = subscription.nextPickupDate || new Date();
+        await emailService.sendPickupRescheduledEmail(customer, mockPickup, originalDate, new Date(newDate));
+      } catch (emailError) {
+        console.error('❌ Failed to send subscription reschedule email:', emailError);
+        // Continue with the response even if email fails
+      }
+      
+      res.json({
+        subscription: updatedSubscription,
+        emailSent: true
+      });
+    } catch (error: any) {
+      console.error('❌ Error rescheduling subscription pickup:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Route Optimization endpoints - separated by service type
   app.post('/api/admin/optimize-subscription-route', authenticateToken, requireRole('admin'), async (req, res) => {
     try {

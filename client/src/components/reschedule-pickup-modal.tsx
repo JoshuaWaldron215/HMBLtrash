@@ -12,17 +12,19 @@ import { authenticatedRequest } from '@/lib/auth';
 import type { Pickup, User as UserType } from '@shared/schema';
 
 interface ReschedulePickupModalProps {
-  pickup: Pickup;
+  pickup: Pickup | { id: number; customerId: number; scheduledDate?: string | Date | null; };
   customer: UserType;
   onClose: () => void;
   isOpen: boolean;
+  isSubscription?: boolean;
 }
 
 export default function ReschedulePickupModal({ 
   pickup, 
   customer, 
   onClose, 
-  isOpen 
+  isOpen,
+  isSubscription = false
 }: ReschedulePickupModalProps) {
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('09:00');
@@ -32,18 +34,30 @@ export default function ReschedulePickupModal({
 
   const reschedulePickupMutation = useMutation({
     mutationFn: async ({ pickupId, newDate, reason }: { pickupId: number; newDate: string; reason: string }) => {
-      const response = await authenticatedRequest('POST', `/api/admin/pickups/${pickupId}/reschedule`, {
+      const endpoint = isSubscription 
+        ? `/api/admin/subscriptions/${pickupId}/reschedule`
+        : `/api/admin/pickups/${pickupId}/reschedule`;
+      
+      const response = await authenticatedRequest('POST', endpoint, {
         newDate,
         reason
       });
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
-      toast({
-        title: "Pickup Rescheduled Successfully",
-        description: `Pickup moved to ${new Date(data.pickup.scheduledDate).toLocaleDateString()}. Customer has been notified via email.`,
-      });
+      if (isSubscription) {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] });
+        toast({
+          title: "Subscription Pickup Rescheduled Successfully",
+          description: `Next pickup moved to ${new Date(data.subscription.nextPickupDate).toLocaleDateString()}. Customer has been notified via email.`,
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+        toast({
+          title: "Pickup Rescheduled Successfully",
+          description: `Pickup moved to ${new Date(data.pickup.scheduledDate).toLocaleDateString()}. Customer has been notified via email.`,
+        });
+      }
       onClose();
     },
     onError: (error: any) => {
@@ -85,7 +99,7 @@ export default function ReschedulePickupModal({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
-              Reschedule Pickup
+              {isSubscription ? 'Reschedule Next Pickup' : 'Reschedule Pickup'}
             </CardTitle>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="w-4 h-4" />
@@ -96,7 +110,7 @@ export default function ReschedulePickupModal({
         <CardContent className="space-y-6">
           {/* Current Pickup Details */}
           <div className="p-4 bg-muted/50 rounded-lg">
-            <h3 className="font-semibold mb-3">Current Pickup Details</h3>
+            <h3 className="font-semibold mb-3">{isSubscription ? 'Subscription Details' : 'Current Pickup Details'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" />
@@ -108,16 +122,21 @@ export default function ReschedulePickupModal({
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">{pickup.address}</span>
+                <span className="text-sm">{customer.address}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-muted-foreground" />
-                <span>{pickup.bagCount} bags • ${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
-              </div>
+              {!isSubscription && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-muted-foreground" />
+                    <span>{(pickup as Pickup).bagCount} bags • ${parseFloat((pickup as Pickup).amount?.toString() || '0').toFixed(2)}</span>
+                  </div>
+                </>
+              )}
             </div>
             <div className="mt-2">
-              <Badge variant="outline">{pickup.serviceType}</Badge>
-              <Badge variant="outline" className="ml-2">{pickup.status}</Badge>
+              <Badge variant="outline">{isSubscription ? 'subscription' : (pickup as Pickup).serviceType}</Badge>
+              {!isSubscription && <Badge variant="outline" className="ml-2">{(pickup as Pickup).status}</Badge>}
+              {isSubscription && <Badge variant="outline" className="ml-2">Weekly Service</Badge>}
             </div>
           </div>
 
