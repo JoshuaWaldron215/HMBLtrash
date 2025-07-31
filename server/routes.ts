@@ -1638,7 +1638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/pickups/:id/reschedule', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
       const { id } = req.params;
-      const { newDate, reason } = req.body;
+      const { newDate, reason, shouldEmailCustomer = true } = req.body;
       
       // Get the pickup and customer info
       const pickup = await storage.getPickup(parseInt(id));
@@ -1680,18 +1680,22 @@ Acapella Trash Removal Team
         `
       };
       
-      // Send reschedule email via Resend
-      try {
-        const originalDate = pickup.scheduledDate ? new Date(pickup.scheduledDate) : new Date();
-        await emailService.sendPickupRescheduledEmail(customer, pickup, originalDate, new Date(newDate));
-      } catch (emailError) {
-        console.error('❌ Failed to send reschedule email:', emailError);
-        // Continue with the response even if email fails
+      // Send reschedule email via Resend if requested
+      let emailSent = false;
+      if (shouldEmailCustomer) {
+        try {
+          const originalDate = pickup.scheduledDate ? new Date(pickup.scheduledDate) : new Date();
+          await emailService.sendPickupRescheduledEmail(customer, pickup, originalDate, new Date(newDate));
+          emailSent = true;
+        } catch (emailError) {
+          console.error('❌ Failed to send reschedule email:', emailError);
+          // Continue with the response even if email fails
+        }
       }
       
       res.json({
         pickup: updatedPickup,
-        emailSent: true
+        emailSent
       });
     } catch (error: any) {
       console.error('Reschedule error:', error);
@@ -1703,7 +1707,7 @@ Acapella Trash Removal Team
   app.post('/api/admin/subscriptions/:id/reschedule', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
       const { id } = req.params;
-      const { newDate, reason } = req.body;
+      const { newDate, reason, shouldEmailCustomer = true } = req.body;
       
       // Get the subscription and customer info
       const subscription = await storage.getSubscription(parseInt(id));
@@ -1722,8 +1726,10 @@ Acapella Trash Removal Team
         updatedAt: new Date()
       });
       
-      // Send email notification for subscription pickup reschedule
-      try {
+      // Send email notification for subscription pickup reschedule if requested
+      let emailSent = false;
+      if (shouldEmailCustomer) {
+        try {
         const mockPickup = {
           id: parseInt(id),
           customerId: subscription.customerId,
@@ -1746,14 +1752,16 @@ Acapella Trash Removal Team
         
         const originalDate = subscription.nextPickupDate || new Date();
         await emailService.sendPickupRescheduledEmail(customer, mockPickup, originalDate, new Date(newDate));
-      } catch (emailError) {
-        console.error('❌ Failed to send subscription reschedule email:', emailError);
-        // Continue with the response even if email fails
+        emailSent = true;
+        } catch (emailError) {
+          console.error('❌ Failed to send subscription reschedule email:', emailError);
+          // Continue with the response even if email fails
+        }
       }
       
       res.json({
         subscription: updatedSubscription,
-        emailSent: true
+        emailSent
       });
     } catch (error: any) {
       console.error('❌ Error rescheduling subscription pickup:', error);

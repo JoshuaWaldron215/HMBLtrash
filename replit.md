@@ -290,6 +290,12 @@ This is a full-stack web application for "Acapella Trash Removal powered by LEMD
   * Enhanced homepage marketing to highlight "7 Days a Week" service availability
   * Driver upcoming schedule now shows complete 7-day view for better planning
   * System supports pickup scheduling and completion on all days of the week
+- ✓ **OPTIONAL EMAIL NOTIFICATION FOR RESCHEDULING** (July 31, 2025):
+  * Added checkbox option in reschedule modal allowing admins to choose whether to email customers
+  * Updated both pickup and subscription reschedule API endpoints to accept shouldEmailCustomer parameter
+  * Email notification defaults to checked (true) but can be unchecked to reschedule without notifying customer
+  * Toast notifications now indicate whether customer was notified via email or not
+  * Provides admin flexibility to handle internal rescheduling without unnecessary customer communication
 
 ## User Preferences
 

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Clock, User, MapPin, Package, X } from 'lucide-react';
+import { Calendar, Clock, User, MapPin, Package, X, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { authenticatedRequest } from '@/lib/auth';
 import type { Pickup, User as UserType } from '@shared/schema';
@@ -34,29 +35,32 @@ export default function ReschedulePickupModal({
   const queryClient = useQueryClient();
 
   const reschedulePickupMutation = useMutation({
-    mutationFn: async ({ pickupId, newDate, reason }: { pickupId: number; newDate: string; reason: string }) => {
+    mutationFn: async ({ pickupId, newDate, reason, shouldEmailCustomer }: { pickupId: number; newDate: string; reason: string; shouldEmailCustomer: boolean }) => {
       const endpoint = isSubscription 
         ? `/api/admin/subscriptions/${pickupId}/reschedule`
         : `/api/admin/pickups/${pickupId}/reschedule`;
       
       const response = await authenticatedRequest('POST', endpoint, {
         newDate,
-        reason
+        reason,
+        shouldEmailCustomer
       });
       return response.json();
     },
     onSuccess: (data) => {
       if (isSubscription) {
         queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] });
+        const emailStatus = data.emailSent ? "Customer has been notified via email." : "Customer was not notified via email.";
         toast({
           title: "Subscription Pickup Rescheduled Successfully",
-          description: `Next pickup moved to ${new Date(data.subscription.nextPickupDate).toLocaleDateString()}. Customer has been notified via email.`,
+          description: `Next pickup moved to ${new Date(data.subscription.nextPickupDate).toLocaleDateString()}. ${emailStatus}`,
         });
       } else {
         queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+        const emailStatus = data.emailSent ? "Customer has been notified via email." : "Customer was not notified via email.";
         toast({
           title: "Pickup Rescheduled Successfully",
-          description: `Pickup moved to ${new Date(data.pickup.scheduledDate).toLocaleDateString()}. Customer has been notified via email.`,
+          description: `Pickup moved to ${new Date(data.pickup.scheduledDate).toLocaleDateString()}. ${emailStatus}`,
         });
       }
       onClose();
@@ -85,7 +89,8 @@ export default function ReschedulePickupModal({
     reschedulePickupMutation.mutate({
       pickupId: pickup.id,
       newDate: combinedDateTime,
-      reason
+      reason,
+      shouldEmailCustomer
     });
   };
 
@@ -194,12 +199,23 @@ export default function ReschedulePickupModal({
               </div>
             )}
 
-            {/* Email notification info */}
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">Email Notification</h4>
-              <p className="text-sm text-green-800 dark:text-green-200">
-                An email will be automatically sent to <strong>{customer.email}</strong> with the new pickup date and reason for rescheduling.
-              </p>
+            {/* Email notification option */}
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="email-notification"
+                  checked={shouldEmailCustomer}
+                  onCheckedChange={(checked) => setShouldEmailCustomer(checked as boolean)}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="email-notification" className="text-sm font-medium cursor-pointer">
+                    Email customer about this reschedule
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Send notification to <strong>{customer.email}</strong> with the new pickup date and reason
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">
