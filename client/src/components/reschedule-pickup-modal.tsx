@@ -29,6 +29,7 @@ export default function ReschedulePickupModal({
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('09:00');
   const [reason, setReason] = useState('');
+  const [shouldEmailCustomer, setShouldEmailCustomer] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
