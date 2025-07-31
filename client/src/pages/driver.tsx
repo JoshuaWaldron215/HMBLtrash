@@ -36,6 +36,7 @@ export default function Driver() {
   const [isOnline, setIsOnline] = useState(true);
   const [startingAddress, setStartingAddress] = useState('');
   const [selectedPickups, setSelectedPickups] = useState<number[]>([]);
+  const [expandedPickups, setExpandedPickups] = useState<number[]>([]);
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -138,6 +139,14 @@ export default function Driver() {
 
   const clearSelection = () => {
     setSelectedPickups([]);
+  };
+
+  const togglePickupExpansion = (pickupId: number) => {
+    setExpandedPickups(prev => 
+      prev.includes(pickupId) 
+        ? prev.filter(id => id !== pickupId)
+        : [...prev, pickupId]
+    );
   };
 
   const handleCompleteSelected = () => {
@@ -462,7 +471,20 @@ export default function Driver() {
                           <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
                             #{pickup.routeOrder || index + 1}
                           </span>
-                          <span className="font-medium text-sm leading-tight">{pickup.address}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm leading-tight">
+                              {pickup.customerFirstName && pickup.customerLastName ? (
+                                <span className="text-primary font-semibold">
+                                  {pickup.customerFirstName} {pickup.customerLastName}
+                                </span>
+                              ) : pickup.customerName ? (
+                                <span className="text-primary font-semibold">{pickup.customerName}</span>
+                              ) : (
+                                <span className="text-muted-foreground">Customer</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">{pickup.address}</div>
+                          </div>
                         </div>
                         
                         {/* Pickup details in a grid */}
@@ -476,7 +498,15 @@ export default function Driver() {
                             <span>ETA: {pickup.estimatedArrival}</span>
                           </span>
                           <span className="font-medium">${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}</span>
-                          <div className="flex justify-end">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => togglePickupExpansion(pickup.id)}
+                              className="text-muted-foreground hover:text-primary h-7 px-2 text-xs"
+                            >
+                              <MoreHorizontal className="w-3 h-3" />
+                            </Button>
                             {pickup.status === 'completed' ? (
                               <div className="flex items-center text-green-600">
                                 <Check className="w-4 h-4 mr-1" />
@@ -495,6 +525,52 @@ export default function Driver() {
                             )}
                           </div>
                         </div>
+
+                        {/* Expandable pickup details */}
+                        {expandedPickups.includes(pickup.id) && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Customer Phone</label>
+                                <div className="text-sm">{pickup.customerPhone || 'Not provided'}</div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Service Type</label>
+                                <div className="text-sm">{pickup.serviceType || 'One-time pickup'}</div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Scheduled Date</label>
+                                <div className="text-sm">
+                                  {pickup.scheduledDate ? new Date(pickup.scheduledDate).toLocaleDateString() : 'Today'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-muted-foreground">Payment</label>
+                                <div className="text-sm font-medium text-green-600">
+                                  ${parseFloat(pickup.amount?.toString() || '0').toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                            {(pickup.customerEmail || pickup.specialInstructions) && (
+                              <div className="space-y-2">
+                                {pickup.customerEmail && (
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground">Email</label>
+                                    <div className="text-sm">{pickup.customerEmail}</div>
+                                  </div>
+                                )}
+                                {pickup.specialInstructions && (
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground">Special Instructions</label>
+                                    <div className="text-sm text-amber-700 dark:text-amber-300 p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
+                                      {pickup.specialInstructions}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -564,11 +640,21 @@ export default function Driver() {
                   {dayPickups.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {dayPickups.slice(0, 2).map((pickup: any, index: number) => (
-                        <div key={pickup.id} className="flex items-center space-x-2 text-sm text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          <span>{pickup.address}</span>
-                          <span>•</span>
-                          <span>{pickup.bagCount} bags</span>
+                        <div key={pickup.id} className="flex items-center space-x-2 text-sm">
+                          <MapPin className="w-3 h-3 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-primary text-xs">
+                              {pickup.customerFirstName && pickup.customerLastName ? (
+                                `${pickup.customerFirstName} ${pickup.customerLastName}`
+                              ) : pickup.customerName ? (
+                                pickup.customerName
+                              ) : (
+                                'Customer'
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">{pickup.address}</div>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{pickup.bagCount} bags</span>
                         </div>
                       ))}
                       {dayPickups.length > 2 && (

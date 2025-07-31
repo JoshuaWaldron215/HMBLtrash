@@ -556,8 +556,41 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(pickups).where(eq(pickups.customerId, customerId));
   }
 
-  async getPickupsByDriver(driverId: number): Promise<Pickup[]> {
-    return await db.select().from(pickups).where(eq(pickups.driverId, driverId));
+  async getPickupsByDriver(driverId: number): Promise<any[]> {
+    return await db
+      .select({
+        // Pickup fields
+        id: pickups.id,
+        customerId: pickups.customerId,
+        driverId: pickups.driverId,
+        address: pickups.address,
+        fullAddress: pickups.fullAddress,
+        coordinates: pickups.coordinates,
+        bagCount: pickups.bagCount,
+        amount: pickups.amount,
+        serviceType: pickups.serviceType,
+        status: pickups.status,
+        scheduledDate: pickups.scheduledDate,
+        specialInstructions: pickups.specialInstructions,
+        priority: pickups.priority,
+        routeOrder: pickups.routeOrder,
+        estimatedDuration: pickups.estimatedDuration,
+        estimatedArrival: pickups.estimatedArrival,
+        paymentStatus: pickups.paymentStatus,
+        packageType: pickups.packageType,
+        createdAt: pickups.createdAt,
+        updatedAt: pickups.updatedAt,
+        
+        // Customer fields
+        customerFirstName: users.firstName,
+        customerLastName: users.lastName,
+        customerEmail: users.email,
+        customerPhone: users.phone,
+        customerName: users.username
+      })
+      .from(pickups)
+      .leftJoin(users, eq(pickups.customerId, users.id))
+      .where(eq(pickups.driverId, driverId));
   }
 
   async getPickupsByStatus(status: string): Promise<Pickup[]> {
