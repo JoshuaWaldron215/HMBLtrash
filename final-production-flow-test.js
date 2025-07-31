@@ -2,7 +2,7 @@
 // Final comprehensive production flow test
 // Tests complete user journey from account creation to admin/driver dashboard visibility
 
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
 
 const API_BASE = 'http://localhost:5000';
@@ -33,8 +33,18 @@ async function apiCall(method, endpoint, data = null, headers = {}) {
     cmd.push('-d', JSON.stringify(data));
   }
   
-  const response = execSync(cmd.join(' '), { encoding: 'utf8' });
-  return JSON.parse(response);
+  // Use spawnSync with array arguments to prevent command injection
+  const result = spawnSync('curl', cmd.slice(1), { encoding: 'utf8' });
+  
+  if (result.error) {
+    throw new Error(`Command failed: ${result.error.message}`);
+  }
+  
+  if (result.status !== 0) {
+    throw new Error(`Command failed with status ${result.status}: ${result.stderr}`);
+  }
+  
+  return JSON.parse(result.stdout);
 }
 
 async function runCompleteFlowTest() {
