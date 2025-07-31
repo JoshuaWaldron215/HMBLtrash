@@ -123,6 +123,12 @@ function Router() {
           <Admin />
         </ProtectedRoute>
       </Route>
+
+      <Route path="/admin/members">
+        <ProtectedRoute allowedRoles={['admin']}>
+          <Admin />
+        </ProtectedRoute>
+      </Route>
       
       {/* Protected driver routes */}
       <Route path="/driver">

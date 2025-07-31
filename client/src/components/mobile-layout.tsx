@@ -123,6 +123,12 @@ export default function MobileLayout({
           active: location === '/admin/subscribers'
         },
         { 
+          icon: User, 
+          label: 'All Members', 
+          path: '/admin/members',
+          active: location === '/admin/members'
+        },
+        { 
           icon: Package, 
           label: 'One-Time Requests', 
           path: '/admin/requests',
