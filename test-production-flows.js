@@ -2,7 +2,7 @@
 // Complete Production Flow Testing
 // Tests entire user journey from signup to admin/driver visibility
 
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
 
 const API_BASE = 'http://localhost:5000';
@@ -23,17 +23,27 @@ async function makeRequest(method, endpoint, data = null, headers = {}) {
   const defaultHeaders = { 'Content-Type': 'application/json', ...headers };
   
   try {
-    const cmd = [
-      'curl', '-s', '-X', method,
+    const args = [
+      '-s', '-X', method,
       `${API_BASE}${endpoint}`,
       ...Object.entries(defaultHeaders).flatMap(([k, v]) => ['-H', `${k}: ${v}`])
     ];
     
     if (data && method !== 'GET') {
-      cmd.push('-d', JSON.stringify(data));
+      args.push('-d', JSON.stringify(data));
     }
     
-    const response = execSync(cmd.join(' '), { encoding: 'utf8' });
+    const result = spawnSync('curl', args, { encoding: 'utf8' });
+    
+    if (result.error) {
+      throw new Error(`curl command failed: ${result.error.message}`);
+    }
+    
+    if (result.status !== 0) {
+      throw new Error(`curl exited with status ${result.status}: ${result.stderr}`);
+    }
+    
+    const response = result.stdout;
     
     // Check if response is HTML (indicates routing issue)
     if (response.includes('<!DOCTYPE html>')) {
