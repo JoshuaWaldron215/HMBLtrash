@@ -1123,6 +1123,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin subscription management endpoints
+  app.get("/api/admin/subscriptions", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const subscriptions = await storage.getAllSubscriptions();
+      res.json(subscriptions);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   app.patch("/api/admin/subscriptions/:id", authenticateToken, requireRole('admin'), async (req, res) => {
     try {
       const subscriptionId = parseInt(req.params.id);

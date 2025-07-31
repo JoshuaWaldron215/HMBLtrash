@@ -127,7 +127,7 @@ export default function Admin() {
   });
 
   // Fetch subscription data for enhanced subscriber management  
-  const { data: adminSubscriptions = [] } = useQuery({
+  const { data: subscriptions = [] } = useQuery({
     queryKey: ['/api/admin/subscriptions'],
     queryFn: () => authenticatedRequest('GET', '/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
   });
@@ -328,7 +328,7 @@ export default function Admin() {
   const totalRevenue = pickups.reduce((sum, p) => sum + (parseFloat(p.amount?.toString() || '0') || 0), 0);
   const pendingPickups = pickups.filter(p => p.status === 'pending');
   const completedPickups = pickups.filter(p => p.status === 'completed');
-  const activeSubscriptions = adminSubscriptions.filter(s => s.status === 'active');
+  const activeSubscriptions = subscriptions.filter((s: Subscription) => s.status === 'active');
 
   // Filter pickups for one-time requests
   const oneTimePickups = pickups.filter(p => p.serviceType !== 'subscription');
@@ -429,7 +429,7 @@ export default function Admin() {
   // Section rendering functions
   const renderSubscribersSection = () => {
     // Filter and search subscribers
-    const filteredSubscriptions = activeSubscriptions.filter(subscription => {
+    const filteredSubscriptions = subscriptions.filter((subscription: Subscription) => {
       const customer = users.find(u => u.id === subscription.customerId);
       
       // Search filter
@@ -495,7 +495,7 @@ export default function Admin() {
               onClick={() => setSubscriberFilter('all')}
               className="h-8"
             >
-              All ({activeSubscriptions.length})
+              All ({subscriptions.length})
             </Button>
             <Button 
               variant={subscriberFilter === 'active' ? 'default' : 'outline'} 
@@ -503,7 +503,7 @@ export default function Admin() {
               onClick={() => setSubscriberFilter('active')}
               className="h-8"
             >
-              Active ({activeSubscriptions.filter(s => s.status === 'active').length})
+              Active ({subscriptions.filter(s => s.status === 'active').length})
             </Button>
             <Button 
               variant={subscriberFilter === 'paused' ? 'default' : 'outline'} 
@@ -511,7 +511,15 @@ export default function Admin() {
               onClick={() => setSubscriberFilter('paused')}
               className="h-8"
             >
-              Paused ({activeSubscriptions.filter(s => s.status === 'paused').length})
+              Paused ({subscriptions.filter(s => s.status === 'paused').length})
+            </Button>
+            <Button 
+              variant={subscriberFilter === 'cancelled' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setSubscriberFilter('cancelled')}
+              className="h-8"
+            >
+              Cancelled ({subscriptions.filter(s => s.status === 'cancelled').length})
             </Button>
           </div>
 
@@ -562,7 +570,7 @@ export default function Admin() {
 
         {filteredSubscriptions.length > 0 ? (
           <div className="space-y-3">
-            {filteredSubscriptions.map((subscription) => {
+            {filteredSubscriptions.map((subscription: Subscription) => {
               const customer = users.find(u => u.id === subscription.customerId);
               const pickupDay = getPickupDayOfWeek(subscription);
               const relatedPickups = pickups.filter(p => p.customerId === subscription.customerId);
@@ -791,18 +799,36 @@ export default function Admin() {
                   <Edit3 className="w-4 h-4 mr-2" />
                   Edit Details
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (confirm('Are you sure you want to cancel this subscription? This action cannot be undone.')) {
-                      cancelSubscriptionMutation.mutate(selectedSubscriber.subscriber.id);
-                    }
-                  }}
-                  disabled={cancelSubscriptionMutation.isPending}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Cancel Subscription'}
-                </Button>
+                {selectedSubscriber.subscriber.status === 'cancelled' ? (
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to reactivate this subscription?')) {
+                        updateSubscriberMutation.mutate({
+                          subscriptionId: selectedSubscriber.subscriber.id,
+                          updates: { status: 'active' }
+                        });
+                      }
+                    }}
+                    disabled={updateSubscriberMutation.isPending}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    {updateSubscriberMutation.isPending ? 'Reactivating...' : 'Reactivate Subscription'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to cancel this subscription? This action cannot be undone.')) {
+                        cancelSubscriptionMutation.mutate(selectedSubscriber.subscriber.id);
+                      }
+                    }}
+                    disabled={cancelSubscriptionMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Cancel Subscription'}
+                  </Button>
+                )}
                 <Button onClick={() => setSelectedSubscriber(null)}>
                   Close
                 </Button>
