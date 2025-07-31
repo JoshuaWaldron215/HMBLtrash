@@ -1313,10 +1313,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       assignedPickups.forEach(pickup => {
         console.log(`🔍 Pickup ${pickup.id}: scheduledDate = ${pickup.scheduledDate}`);
         if (pickup.scheduledDate) {
-          // Fix timezone issue by using Eastern Time (Philadelphia timezone) for consistency
+          // Convert pickup date to Eastern Time date string
           const pickupDateTime = new Date(pickup.scheduledDate);
-          const easternPickupTime = new Date(pickupDateTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
-          const pickupDate = `${easternPickupTime.getFullYear()}-${String(easternPickupTime.getMonth() + 1).padStart(2, '0')}-${String(easternPickupTime.getDate()).padStart(2, '0')}`;
+          // Create date in Eastern Time zone directly
+          const easternDate = new Date(pickupDateTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
+          const pickupDate = `${easternDate.getFullYear()}-${String(easternDate.getMonth() + 1).padStart(2, '0')}-${String(easternDate.getDate()).padStart(2, '0')}`;
           console.log(`📅 Pickup ${pickup.id}: computed date (Eastern) = ${pickupDate}`);
           if (schedule[pickupDate]) {
             schedule[pickupDate].pickups.push(pickup);

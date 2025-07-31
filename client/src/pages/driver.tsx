@@ -423,10 +423,15 @@ export default function Driver() {
                         {day.isTomorrow ? 'Tomorrow' : day.dayName}
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(day.date).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
+                        {(() => {
+                          // Parse the date string as YYYY-MM-DD and create date in Eastern Time
+                          const [year, month, dayNum] = day.date.split('-').map(Number);
+                          const date = new Date(year, month - 1, dayNum); // month is 0-indexed
+                          return date.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric' 
+                          });
+                        })()}
                       </p>
                     </div>
                     <div className="text-right">
