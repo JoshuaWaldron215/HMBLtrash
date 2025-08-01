@@ -47,21 +47,21 @@ export class AuthService {
    * Generate a secure JWT token
    */
   generateToken(user: User): string {
-    return jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
-        role: user.role,
-        iat: Math.floor(Date.now() / 1000),
-        jti: crypto.randomUUID() // Unique token ID for revocation
-      },
-      JWT_SECRET,
-      { 
-        expiresIn: JWT_EXPIRES_IN,
-        issuer: 'acapella-trash-removal',
-        audience: 'acapella-app'
-      }
-    );
+    const payload = { 
+      id: user.id, 
+      email: user.email, 
+      role: user.role,
+      iat: Math.floor(Date.now() / 1000),
+      jti: crypto.randomUUID() // Unique token ID for revocation
+    };
+    
+    const options = { 
+      expiresIn: JWT_EXPIRES_IN,
+      issuer: 'acapella-trash-removal',
+      audience: 'acapella-app'
+    };
+    
+    return jwt.sign(payload, JWT_SECRET, options);
   }
 
   /**
@@ -197,7 +197,7 @@ export class AuthService {
       }
 
       // Verify password
-      const passwordValid = await this.verifyPassword(password, user.password);
+      const passwordValid = await this.verifyPassword(password, user.passwordHash || '');
       if (!passwordValid) {
         await this.recordLoginAttempt(user, false, ip, userAgent, "Invalid password");
         return {
