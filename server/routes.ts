@@ -257,6 +257,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   
+  // Simple registration endpoint (for frontend compatibility)
+  app.post("/api/register", async (req, res) => {
+    try {
+      const { username, email, password } = req.body;
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(username) || await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create user
+      const newUser = await storage.createUser({
+        username,
+        email,
+        password: hashedPassword,
+        role: "customer"
+      });
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { id: newUser.id, email: newUser.email, role: newUser.role },
+        JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      res.json({ 
+        user: { 
+          id: newUser.id, 
+          email: newUser.email, 
+          username: newUser.username, 
+          role: newUser.role,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName
+        },
+        token 
+      });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      res.status(500).json({ message: "Registration failed. Please try again." });
+    }
+  });
+
+  // Simple login endpoint (for frontend compatibility)
+  app.post("/api/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Find user by username
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
+
+      // Check password
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      res.json({ 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          username: user.username, 
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName
+        },
+        token 
+      });
+    } catch (error: any) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: "Login failed. Please try again." });
+    }
+  });
+
   // Enhanced Auth routes with security features
   app.post("/api/auth/register", async (req, res) => {
     try {
