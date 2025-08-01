@@ -308,7 +308,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple login endpoint (for frontend compatibility)
+  // Login endpoint for frontend compatibility (with auth prefix)
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      console.log('Login request body:', req.body);
+      const { username, password } = req.body;
+      
+      // Validate required fields
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
+      // Find user by username or email
+      let user = await storage.getUserByUsername(username);
+      if (!user) {
+        console.log('User not found by username, trying email...');
+        user = await storage.getUserByEmail(username);
+      }
+      
+      if (!user) {
+        console.log('User not found by username or email:', username);
+        return res.status(400).json({ message: "Invalid email/username or password" });
+      }
+      
+      console.log('Found user:', { id: user.id, username: user.username, email: user.email });
+
+      // Check password
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(400).json({ message: "Invalid email/username or password" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      res.json({ 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          username: user.username, 
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName
+        },
+        token 
+      });
+    } catch (error: any) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: "Login failed. Please try again." });
+    }
+  });
+
+  // Registration endpoint for frontend compatibility (with auth prefix)
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      console.log('Registration request body:', req.body);
+      const { username, email, password, firstName, lastName, phone, address } = req.body;
+      
+      // Validate required fields
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: "Username, email, and password are required" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(username) || await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create user with all available fields
+      const newUser = await storage.createUser({
+        username,
+        email,
+        password: hashedPassword,
+        role: "customer",
+        firstName: firstName || null,
+        lastName: lastName || null,
+        phone: phone || null,
+        address: address || null
+      });
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { id: newUser.id, email: newUser.email, role: newUser.role },
+        JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      res.json({ 
+        user: { 
+          id: newUser.id, 
+          email: newUser.email, 
+          username: newUser.username, 
+          role: newUser.role,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName
+        },
+        token 
+      });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      res.status(500).json({ message: "Registration failed. Please try again." });
+    }
+  });
+
+  // Simple login endpoint (for backend testing compatibility)
   app.post("/api/login", async (req, res) => {
     try {
       const { username, password } = req.body;
