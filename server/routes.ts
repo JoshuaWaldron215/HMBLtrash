@@ -780,7 +780,245 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Driver route optimization endpoint (removed - duplicate below)
+  // ===== STRIPE PAYMENT ENDPOINTS =====
+
+  // Create payment intent for one-time payments
+  app.post("/api/create-payment-intent", authenticateToken, async (req, res) => {
+    try {
+      const { amount, currency = 'usd', pickupId, serviceType = 'one-time' } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      if (stripe) {
+        // Real Stripe integration
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(amount * 100), // Convert to cents
+          currency,
+          metadata: {
+            userId: req.user!.id.toString(),
+            pickupId: pickupId?.toString() || '',
+            serviceType
+          },
+          automatic_payment_methods: {
+            enabled: true,
+          },
+        });
+
+        // Update pickup with payment intent ID if provided
+        if (pickupId) {
+          await storage.updatePickup(pickupId, {
+            stripePaymentIntentId: paymentIntent.id,
+            paymentStatus: 'pending'
+          });
+        }
+
+        res.json({ 
+          clientSecret: paymentIntent.client_secret,
+          paymentIntentId: paymentIntent.id
+        });
+      } else {
+        // Test simulation
+        const testPaymentIntent = await TestPaymentSimulator.createTestPaymentIntent(
+          Math.round(amount * 100), 
+          currency
+        );
+        res.json({ 
+          clientSecret: testPaymentIntent.client_secret,
+          paymentIntentId: testPaymentIntent.id
+        });
+      }
+    } catch (error: any) {
+      console.error('Payment intent creation error:', error);
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Create or get subscription for recurring payments
+  app.post('/api/create-subscription', authenticateToken, async (req, res) => {
+    try {
+      const { priceId, paymentMethodId } = req.body;
+      const user = await storage.getUser(req.user!.id);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (stripe) {
+        // Real Stripe integration
+        let customerId = user.stripeCustomerId;
+
+        // Create customer if doesn't exist
+        if (!customerId) {
+          const customer = await stripe.customers.create({
+            email: user.email,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+            metadata: {
+              userId: user.id.toString()
+            }
+          });
+          customerId = customer.id;
+          
+          // Update user with Stripe customer ID
+          await storage.updateUser(user.id, { stripeCustomerId: customerId });
+        }
+
+        // Check if user already has an active subscription
+        if (user.stripeSubscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          if (subscription.status === 'active') {
+            return res.json({
+              subscriptionId: subscription.id,
+              clientSecret: null,
+              message: 'User already has an active subscription'
+            });
+          }
+        }
+
+        // Create subscription
+        const subscription = await stripe.subscriptions.create({
+          customer: customerId,
+          items: [{
+            price: priceId,
+          }],
+          payment_behavior: 'default_incomplete',
+          payment_settings: {
+            save_default_payment_method: 'on_subscription',
+          },
+          expand: ['latest_invoice.payment_intent'],
+        });
+
+        // Save subscription to database
+        const dbSubscription = await storage.createSubscription({
+          customerId: user.id,
+          stripeSubscriptionId: subscription.id,
+          status: subscription.status,
+          frequency: 'weekly', // Default frequency
+          pricePerMonth: 20.00, // Default price
+          autoRenewal: true
+        });
+
+        // Update user with subscription ID
+        await storage.updateUser(user.id, { stripeSubscriptionId: subscription.id });
+
+        res.json({
+          subscriptionId: subscription.id,
+          clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+          message: 'Subscription created successfully'
+        });
+      } else {
+        // Test simulation
+        const testCustomer = await TestPaymentSimulator.createTestCustomer(user.email, user.username);
+        const testSubscription = await TestPaymentSimulator.createTestSubscription(testCustomer.id);
+        
+        // Save test subscription to database
+        const dbSubscription = await storage.createSubscription({
+          customerId: user.id,
+          stripeSubscriptionId: testSubscription.id,
+          status: 'active',
+          frequency: 'weekly',
+          pricePerMonth: 20.00,
+          autoRenewal: true
+        });
+
+        res.json({
+          subscriptionId: testSubscription.id,
+          clientSecret: testSubscription.latest_invoice.payment_intent.client_secret,
+          message: 'Test subscription created successfully'
+        });
+      }
+    } catch (error: any) {
+      console.error('Subscription creation error:', error);
+      res.status(500).json({ message: "Error creating subscription: " + error.message });
+    }
+  });
+
+  // Webhook endpoint for Stripe events
+  app.post('/api/stripe-webhook', async (req, res) => {
+    let event;
+
+    if (stripe) {
+      const sig = req.headers['stripe-signature'];
+      
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig!, process.env.STRIPE_WEBHOOK_SECRET!);
+      } catch (err: any) {
+        console.error('Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      // Handle the event
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          const paymentIntent = event.data.object;
+          console.log('PaymentIntent succeeded:', paymentIntent.id);
+          
+          // Update pickup payment status
+          if (paymentIntent.metadata?.pickupId) {
+            await storage.updatePickup(parseInt(paymentIntent.metadata.pickupId), {
+              paymentStatus: 'paid'
+            });
+          }
+          break;
+          
+        case 'invoice.payment_succeeded':
+          const invoice = event.data.object;
+          console.log('Invoice payment succeeded:', invoice.id);
+          
+          // Handle subscription payment success
+          if (invoice.subscription) {
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+            const user = await storage.getUserByStripeCustomerId(subscription.customer as string);
+            if (user) {
+              // Create next week's pickup for active subscription
+              await createNextWeekPickup(user.id);
+            }
+          }
+          break;
+          
+        case 'customer.subscription.updated':
+          const subscription = event.data.object;
+          console.log('Subscription updated:', subscription.id);
+          
+          // Update subscription status in database
+          const dbSubscription = await storage.getSubscriptionByStripeId(subscription.id);
+          if (dbSubscription) {
+            await storage.updateSubscription(dbSubscription.id, {
+              status: subscription.status
+            });
+          }
+          break;
+          
+        default:
+          console.log(`Unhandled event type ${event.type}`);
+      }
+    }
+
+    res.json({ received: true });
+  });
+
+  // Helper function to create next week's pickup
+  async function createNextWeekPickup(customerId: number) {
+    const user = await storage.getUser(customerId);
+    if (!user || !user.address) return;
+
+    const nextWeekDate = new Date();
+    nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+
+    await storage.createPickup({
+      customerId,
+      address: user.address,
+      bagCount: 3, // Default bag count
+      amount: 5.00, // Default subscription pickup price
+      serviceType: 'subscription',
+      scheduledDate: nextWeekDate,
+      status: 'pending',
+      paymentStatus: 'paid'
+    });
+  }
+
+  // ===== END STRIPE PAYMENT ENDPOINTS =====
 
   // Route optimization function with Google Maps Distance Matrix integration
   async function optimizeRoute(pickups: any[]) {

@@ -26,6 +26,7 @@ export interface IStorage {
   updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User>;
   updateUserRole(userId: number, role: string): Promise<User>;
   getUsersByRole(role: string): Promise<User[]>;
+  getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined>;
   
   // Pickup operations
   getPickup(id: number): Promise<Pickup | undefined>;
@@ -430,6 +431,10 @@ export class MemStorage implements IStorage {
     this.pickups.set(id, updatedPickup);
     return updatedPickup;
   }
+
+  async getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.stripeCustomerId === stripeCustomerId);
+  }
 }
 
 // Database storage implementation
@@ -522,6 +527,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  async getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, stripeCustomerId));
+    return user || undefined;
   }
 
   async updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User> {

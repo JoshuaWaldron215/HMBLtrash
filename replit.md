@@ -42,6 +42,7 @@ Preferred communication style: Simple, everyday language.
 - **Responsive Design**: Layouts tuned for all screen sizes, with collapsible sidebars on desktop and mobile overlays.  
 - **Branding**: “Acapella Trash Removal powered by HMBL.”  
 - **Service Availability**: 7 days a week.
+- **Payment System**: Full Stripe integration with both one-time payments and subscription billing. Frontend checkout and subscription flows with Stripe Elements for secure payment processing.
 
 ## External Dependencies
 - **Database**: Neon Database (serverless PostgreSQL)  
