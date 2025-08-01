@@ -262,6 +262,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, email, password } = req.body;
       
+      // Validate required fields
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: "Username, email, and password are required" });
+      }
+      
       // Check if user already exists
       const existingUser = await storage.getUserByUsername(username) || await storage.getUserByEmail(email);
       if (existingUser) {
@@ -307,6 +312,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/login", async (req, res) => {
     try {
       const { username, password } = req.body;
+      
+      // Validate required fields
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
       
       // Find user by username
       const user = await storage.getUserByUsername(username);
