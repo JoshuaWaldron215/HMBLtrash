@@ -108,18 +108,11 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
       // Redirect authenticated users to their appropriate dashboard
-      switch (user.role) {
-        case 'admin':
-          setLocation('/admin');
-          break;
-        case 'driver':
-          setLocation('/driver');
-          break;
-        default:
-          setLocation('/dashboard');
-      }
+      const targetPath = user.role === 'admin' ? '/admin' : 
+                         user.role === 'driver' ? '/driver' : '/dashboard';
+      window.location.href = targetPath;
     }
-  }, [isAuthenticated, isLoading, user, setLocation]);
+  }, [isAuthenticated, isLoading, user]);
 
   const handleBooking = (serviceType: 'subscription' | 'one-time') => {
     setSelectedService(serviceType);

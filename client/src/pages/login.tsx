@@ -35,24 +35,19 @@ export default function Login() {
       setStoredUser(result.user);
       
       // Invalidate auth query to trigger immediate update
-      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+      await queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
       
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
 
-      // Small delay to ensure auth state updates before redirect
-      setTimeout(() => {
-        // Redirect based on user role
-        if (result.user.role === 'admin') {
-          setLocation('/admin');
-        } else if (result.user.role === 'driver') {
-          setLocation('/driver');
-        } else {
-          setLocation('/dashboard');
-        }
-      }, 100);
+      // Force immediate redirect after login
+      const targetPath = result.user.role === 'admin' ? '/admin' : 
+                         result.user.role === 'driver' ? '/driver' : '/dashboard';
+      
+      // Use window.location for more reliable redirect
+      window.location.href = targetPath;
     } catch (error: any) {
       toast({
         title: "Login failed",
