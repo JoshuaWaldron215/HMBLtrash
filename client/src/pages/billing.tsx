@@ -34,17 +34,13 @@ export default function Billing() {
     queryFn: () => authenticatedRequest('GET', '/api/subscription').then(res => res.json() as Promise<Subscription>),
   });
 
-  // Fetch recent pickups for billing history
-  const { data: pickups = [] } = useQuery({
-    queryKey: ['/api/pickups'],
-    queryFn: () => authenticatedRequest('GET', '/api/pickups').then(res => res.json() as Promise<Pickup[]>),
+  // Fetch billing history
+  const { data: billingHistory = [] } = useQuery({
+    queryKey: ['/api/billing-history'],
+    queryFn: () => authenticatedRequest('GET', '/api/billing-history').then(res => res.json()),
   });
 
-  const completedPickups = pickups.filter(p => p.status === 'completed' && p.amount);
-  const totalSpent = completedPickups.reduce((sum, pickup) => {
-    const amount = typeof pickup.amount === 'string' ? parseFloat(pickup.amount) : pickup.amount;
-    return sum + (amount || 0);
-  }, 0);
+  const totalSpent = billingHistory.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
 
   const paymentMethods = [
     {
@@ -87,13 +83,21 @@ export default function Billing() {
         {/* Billing Summary */}
         <MobileCard className="mb-6">
           <h3 className="font-semibold text-lg mb-4">Billing Summary</h3>
-          <div className="flex justify-center">
+          <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600 mb-1">
-                {completedPickups.length}
+                {billingHistory.filter((item: any) => item.type === 'one-time').length}
               </div>
               <div className="text-sm text-muted-foreground">
                 Completed Pickups
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600 mb-1">
+                ${totalSpent.toFixed(2)}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total Spent
               </div>
             </div>
           </div>
@@ -166,27 +170,35 @@ export default function Billing() {
             </Button>
           </div>
 
-          {completedPickups.length > 0 ? (
+          {billingHistory.length > 0 ? (
             <div className="space-y-3">
-              {completedPickups.slice(0, 5).map((pickup) => (
-                <div key={pickup.id} className="flex items-center justify-between py-2">
+              {billingHistory.slice(0, 5).map((item: any) => (
+                <div key={`${item.type}-${item.id}`} className="flex items-center justify-between py-2">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      item.status === 'paid' || item.status === 'succeeded' ? 'bg-green-100' : 
+                      item.status === 'pending' ? 'bg-yellow-100' : 'bg-red-100'
+                    }`}>
+                      <CheckCircle className={`w-4 h-4 ${
+                        item.status === 'paid' || item.status === 'succeeded' ? 'text-green-600' : 
+                        item.status === 'pending' ? 'text-yellow-600' : 'text-red-600'
+                      }`} />
                     </div>
                     <div>
-                      <p className="font-medium">{pickup.bagCount} bags pickup</p>
+                      <p className="font-medium">{item.description}</p>
                       <p className="text-sm text-muted-foreground">
-                        {pickup.scheduledDate ? 
-                          new Date(pickup.scheduledDate).toLocaleDateString() : 
-                          'Date pending'
-                        }
+                        {new Date(item.date).toLocaleDateString()} • {item.type}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">${pickup.amount}</p>
-                    <p className="text-sm text-muted-foreground">{pickup.serviceType}</p>
+                    <p className="font-medium">${item.amount?.toFixed(2) || '0.00'}</p>
+                    <p className={`text-sm ${
+                      item.status === 'paid' || item.status === 'succeeded' ? 'text-green-600' : 
+                      item.status === 'pending' ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                    </p>
                   </div>
                 </div>
               ))}

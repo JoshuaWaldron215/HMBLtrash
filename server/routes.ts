@@ -1360,6 +1360,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get billing history for customer
+  app.get('/api/billing-history', authenticateToken, async (req, res) => {
+    try {
+      const user = req.user!;
+      const billingHistory = [];
+      
+      // Get subscription payments from Stripe
+      if (stripe && user.stripeCustomerId) {
+        try {
+          const invoices = await stripe.invoices.list({
+            customer: user.stripeCustomerId,
+            limit: 50,
+          });
+
+          for (const invoice of invoices.data) {
+            billingHistory.push({
+              id: invoice.id,
+              amount: invoice.amount_paid / 100,
+              date: new Date(invoice.created * 1000),
+              status: invoice.status,
+              description: invoice.lines.data[0]?.description || 'Subscription payment',
+              type: 'subscription',
+              invoice_url: invoice.hosted_invoice_url
+            });
+          }
+        } catch (stripeError) {
+          console.error('Stripe invoice fetch error:', stripeError);
+          // Continue without Stripe data
+        }
+      }
+
+      // Get one-time pickup payments
+      const pickups = await storage.getPickupsByCustomer(user.id);
+      const paidPickups = pickups.filter(p => p.status === 'completed' && p.amount);
+      
+      for (const pickup of paidPickups) {
+        billingHistory.push({
+          id: pickup.id,
+          amount: typeof pickup.amount === 'string' ? parseFloat(pickup.amount) : pickup.amount,
+          date: pickup.createdAt,
+          status: 'paid',
+          description: `${pickup.serviceType} pickup - ${pickup.bagCount} bags`,
+          type: 'one-time',
+          pickup_id: pickup.id
+        });
+      }
+
+      // Sort by date descending
+      billingHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      res.json(billingHistory);
+    } catch (error: any) {
+      console.error('Billing history error:', error);
+      res.status(500).json({ message: 'Failed to fetch billing history' });
+    }
+  });
+
   // Admin subscription management endpoints
   app.get("/api/admin/subscriptions", authenticateToken, requireRole('admin'), async (req, res) => {
     try {
@@ -1379,6 +1436,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedSubscription);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Admin: Pause subscription
+  app.post('/api/admin/subscription/:id/pause', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const subscriptionId = parseInt(req.params.id);
+      const subscription = await storage.getSubscription(subscriptionId);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: 'Subscription not found' });
+      }
+
+      if (stripe) {
+        // Pause in Stripe
+        await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+          pause_collection: {
+            behavior: 'keep_as_draft'
+          }
+        });
+      }
+
+      // Update in database
+      await storage.updateSubscriptionStatus(subscriptionId, 'paused');
+
+      res.json({ message: 'Subscription paused successfully' });
+    } catch (error: any) {
+      console.error('Subscription pause error:', error);
+      res.status(500).json({ message: 'Failed to pause subscription' });
+    }
+  });
+
+  // Admin: Resume subscription
+  app.post('/api/admin/subscription/:id/resume', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const subscriptionId = parseInt(req.params.id);
+      const subscription = await storage.getSubscription(subscriptionId);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: 'Subscription not found' });
+      }
+
+      if (stripe) {
+        // Resume in Stripe
+        await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+          pause_collection: null
+        });
+      }
+
+      // Update in database
+      await storage.updateSubscriptionStatus(subscriptionId, 'active');
+
+      res.json({ message: 'Subscription resumed successfully' });
+    } catch (error: any) {
+      console.error('Subscription resume error:', error);
+      res.status(500).json({ message: 'Failed to resume subscription' });
+    }
+  });
+
+  // Admin: Cancel subscription
+  app.post('/api/admin/subscription/:id/cancel', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const subscriptionId = parseInt(req.params.id);
+      const subscription = await storage.getSubscription(subscriptionId);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: 'Subscription not found' });
+      }
+
+      if (stripe) {
+        // Cancel in Stripe
+        await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+      }
+
+      // Update in database
+      await storage.updateSubscriptionStatus(subscriptionId, 'cancelled');
+
+      res.json({ message: 'Subscription cancelled successfully' });
+    } catch (error: any) {
+      console.error('Subscription cancel error:', error);
+      res.status(500).json({ message: 'Failed to cancel subscription' });
     }
   });
 
