@@ -202,7 +202,7 @@ class TestPaymentSimulator {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Extend Express Request type to include user
 declare global {
@@ -217,7 +217,7 @@ declare global {
   }
 }
 
-// Enhanced middleware to verify JWT with security features
+// JWT middleware to verify tokens
 const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
@@ -227,11 +227,15 @@ const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   }
 
   try {
-    const decoded = authService.verifyToken(token);
-    req.user = decoded;
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role
+    };
     next();
   } catch (error: any) {
-    return res.status(403).json({ message: 'Invalid token' });
+    return res.status(403).json({ message: 'Invalid or expired token' });
   }
 };
 
@@ -571,6 +575,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: result.message });
     } catch (error: any) {
       res.status(400).json({ message: "Invalid request data" });
+    }
+  });
+
+  // User info endpoint for frontend authentication validation
+  app.get("/api/auth/user", authenticateToken, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+        address: user.address
+      });
+    } catch (error: any) {
+      console.error('Get user error:', error);
+      res.status(500).json({ message: "Failed to get user information" });
     }
   });
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getStoredToken, getStoredUser, removeStoredToken, removeStoredUser } from "@/lib/auth";
+import { getStoredToken, getStoredUser, setStoredUser, removeStoredToken, removeStoredUser } from "@/lib/auth";
 
 export function useAuth() {
   const { data: user, isLoading, error } = useQuery({
@@ -10,8 +10,32 @@ export function useAuth() {
         return null;
       }
       
-      // Return stored user for now, in a real app you'd validate the token with the server
-      return getStoredUser();
+      try {
+        // Validate token with server
+        const response = await fetch('/api/auth/user', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          // Token is invalid, clear storage
+          removeStoredToken();
+          removeStoredUser();
+          return null;
+        }
+        
+        const userData = await response.json();
+        // Update stored user with server data
+        setStoredUser(userData);
+        return userData;
+      } catch (error) {
+        // Network error or invalid response, clear storage
+        removeStoredToken();
+        removeStoredUser();
+        return null;
+      }
     },
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
