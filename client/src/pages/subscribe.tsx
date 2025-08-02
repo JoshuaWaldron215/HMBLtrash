@@ -171,6 +171,19 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
         <PaymentElement 
           options={{
             layout: "tabs",
+            fields: {
+              billingDetails: 'auto'
+            },
+            defaultValues: {
+              billingDetails: {
+                name: '',
+                email: '',
+                phone: '',
+                address: {
+                  country: 'US',
+                }
+              }
+            }
           }}
         />
       </div>

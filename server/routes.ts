@@ -853,6 +853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const customer = await stripe.customers.create({
           email: user.email,
           name: user.username,
+          description: 'Acapella Trash Removal Group Customer',
         });
         user = await storage.updateUserStripeInfo(user.id, customer.id);
       }
@@ -865,6 +866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         product_data: {
           name: `${packageType.charAt(0).toUpperCase() + packageType.slice(1)} Trash Pickup Package`,
+          statement_descriptor: 'Acapella Trash',
         },
         unit_amount: packageAmount,
       });
@@ -879,6 +881,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           save_default_payment_method: 'on_subscription'
         },
         expand: ['latest_invoice.payment_intent'],
+        metadata: {
+          company: 'Acapella Trash Removal Group',
+          service: 'Residential Trash Pickup'
+        }
       });
 
       // DO NOT create database subscription until payment is confirmed
