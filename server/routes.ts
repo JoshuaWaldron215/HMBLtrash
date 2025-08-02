@@ -864,6 +864,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price: price.id,
         }],
         payment_behavior: 'default_incomplete',
+        payment_settings: {
+          save_default_payment_method: 'on_subscription'
+        },
         expand: ['latest_invoice.payment_intent'],
       });
 
@@ -871,16 +874,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store subscription details temporarily for payment confirmation
       const subscriptionPackageType = getPackageTypeFromAmount(packageAmount);
       
-      // Extract client secret safely
+      // Extract client secret safely with better debugging
+      console.log('Subscription created:', subscription.id);
+      console.log('Latest invoice type:', typeof subscription.latest_invoice);
+      
       const invoice = subscription.latest_invoice;
       let clientSecret = null;
       
       if (invoice && typeof invoice === 'object' && 'payment_intent' in invoice) {
         const paymentIntent = invoice.payment_intent;
+        console.log('Payment intent type:', typeof paymentIntent);
+        
         if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
           clientSecret = paymentIntent.client_secret;
+          console.log('Client secret found:', clientSecret ? 'Yes' : 'No');
         }
       }
+      
+      // If client secret is still null, try to retrieve the invoice directly
+      if (!clientSecret && typeof invoice === 'string') {
+        console.log('Fetching invoice directly:', invoice);
+        const fullInvoice = await stripe.invoices.retrieve(invoice, {
+          expand: ['payment_intent']
+        });
+        
+        const paymentIntent = fullInvoice.payment_intent;
+        if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
+          clientSecret = paymentIntent.client_secret;
+          console.log('Client secret from full invoice:', clientSecret ? 'Yes' : 'No');
+        }
+      }
+      
+      console.log('Final response:', {
+        subscriptionId: subscription.id,
+        hasClientSecret: !!clientSecret,
+        packageType: subscriptionPackageType
+      });
       
       res.json({
         subscriptionId: subscription.id,
