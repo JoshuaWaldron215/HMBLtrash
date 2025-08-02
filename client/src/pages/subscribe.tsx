@@ -65,6 +65,7 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [elementError, setElementError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,10 +188,31 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
           options={{
             layout: "tabs",
             fields: {
-              billingDetails: 'auto'
+              billingDetails: 'never'
+            },
+            terms: {
+              card: 'never'
             }
           }}
+          onChange={(event) => {
+            if (event.error) {
+              console.error('PaymentElement error:', event.error);
+              setElementError(event.error.message);
+            } else {
+              setElementError(null);
+            }
+            console.log('PaymentElement status:', {
+              complete: event.complete,
+              empty: event.empty,
+              error: event.error
+            });
+          }}
         />
+        {elementError && (
+          <div className="mt-2 text-sm text-red-600">
+            {elementError}
+          </div>
+        )}
       </div>
 
       <Button 
@@ -338,6 +360,7 @@ export default function SubscribePage() {
                 options={{ 
                   clientSecret,
                   appearance,
+                  loader: 'auto'
                 }}
               >
                 <SubscribeForm 
