@@ -11,9 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { authenticatedRequest } from '@/lib/auth';
 import { MobileButton, MobileCard, MobileInput } from '@/components/mobile-layout';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-import StripePaymentForm from '@/components/stripe-payment-form';
+import TestPaymentModal from '@/components/test-payment-modal';
 import AddressAutocomplete from '@/components/address-autocomplete';
 import PackageSelection from '@/components/package-selection';
 import type { Subscription } from '@shared/schema';
@@ -119,7 +117,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
       // Create payment intent
       const endpoint = serviceType === 'subscription' ? '/api/create-subscription' : '/api/create-payment-intent';
       const response = await authenticatedRequest('POST', endpoint, 
-        serviceType === 'subscription' ? {} : { amount }
+        serviceType === 'subscription' ? { packageType: formData.packageType } : { amount }
       );
       
       const result = await response.json();
@@ -464,27 +462,18 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
         </div>
       </div>
       
-      {/* Stripe Payment Modal */}
+      {/* Payment Modal */}
       {showPaymentModal && paymentData && (
-        <Elements 
-          stripe={loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY!)}
-          options={{
-            clientSecret: paymentData.clientSecret,
-            appearance: {
-              theme: 'stripe'
-            }
-          }}
-        >
-          <StripePaymentForm
-            isOpen={showPaymentModal}
-            onClose={() => setShowPaymentModal(false)}
-            onSuccess={handlePaymentSuccess}
-            clientSecret={paymentData.clientSecret}
-            amount={paymentData.amount}
-            serviceType={serviceType}
-            testMode={paymentData.testMode}
-          />
-        </Elements>
+        <TestPaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={handlePaymentSuccess}
+          clientSecret={paymentData.clientSecret}
+          amount={paymentData.amount}
+          serviceType={serviceType}
+          testMode={paymentData.testMode}
+          testCards={paymentData.testCards}
+        />
       )}
     </div>
   );
