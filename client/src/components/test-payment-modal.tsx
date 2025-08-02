@@ -82,14 +82,7 @@ export default function TestPaymentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!cardData.number || !cardData.expiry || !cardData.cvc) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required payment fields",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Remove client-side validation - let Stripe handle validation
 
     setIsProcessing(true);
     setPaymentResult(null);
