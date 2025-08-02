@@ -44,7 +44,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Core Features & System Design
 - **User Management**: JWT‑based authentication, secure password hashing (bcrypt), role‑based access (customer, driver, admin).  
-- **Booking System**: One‑time pickups and recurring subscriptions with date‑based scheduling. Tiered pricing (including 4‑tier subscription packages, roughly $35–$150, depending on bag count and service type). Includes a robust test‑payment simulation for development.  
+- **Booking System**: One‑time pickups and recurring subscriptions with automated scheduling. Four subscription packages: Basic ($35/month, weekly), Clean-Carry ($60/month, weekly + services), Heavy-Duty ($75/month, twice-weekly), Premium ($150/month, twice-weekly + lawn service). Automatic pickup generation via subscriptionScheduler.ts.  
 - **Payment Integration**: Stripe Elements for secure collection; recurring billing and automated customer creation in Stripe.  
 - **Route Management**: Admin assigns pickups to drivers; real‑time pickup status updates. Driver dashboard supports advanced route optimization (see above), bulk completion, Google Maps deep links, and a 7‑day schedule view.  
 - **Admin Dashboard**: Business metrics, user and pickup management, route planning, pickup rescheduling (with optional email notifications), and neighborhood clustering to aid optimization—tailored to Philadelphia areas.  

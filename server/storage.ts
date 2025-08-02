@@ -712,6 +712,19 @@ export class DatabaseStorage implements IStorage {
     return subscription;
   }
 
+  async updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription> {
+    const [subscription] = await db
+      .update(subscriptions)
+      .set(updates)
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
+  async getActiveSubscriptions(): Promise<Subscription[]> {
+    return await db.select().from(subscriptions).where(eq(subscriptions.status, 'active'));
+  }
+
   async updateSubscriptionStatus(id: number, status: string): Promise<Subscription> {
     const [subscription] = await db
       .update(subscriptions)

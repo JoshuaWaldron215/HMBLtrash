@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { storage } from "./storage";
 import { authService } from "./auth";
 import { emailService } from "./emailService";
+import { createSubscriptionWithScheduling, SUBSCRIPTION_PACKAGES } from "./subscriptionScheduler";
 import { 
   registerSchema, 
   loginSchema, 
@@ -882,13 +883,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expand: ['latest_invoice.payment_intent'],
       });
 
-      // Save subscription to database
-      await storage.createSubscription({
-        customerId: user.id,
-        stripeSubscriptionId: subscription.id,
-        status: 'active',
-        nextPickupDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next week
-      });
+      // Save subscription to database with proper scheduling
+      const subscriptionPackageType = getPackageTypeFromAmount(packageAmount);
+      await createSubscriptionWithScheduling(
+        user.id,
+        subscription.id,
+        subscriptionPackageType,
+        req.body.preferredDay,
+        req.body.preferredTime
+      );
 
       await storage.updateUserStripeInfo(user.id, user.stripeCustomerId!, subscription.id);
 
@@ -1125,15 +1128,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           expand: ['latest_invoice.payment_intent'],
         });
 
-        // Save subscription to database
-        const dbSubscription = await storage.createSubscription({
-          customerId: user.id,
-          stripeSubscriptionId: subscription.id,
-          status: subscription.status,
-          frequency: 'weekly', // Default frequency
-          pricePerMonth: 20.00, // Default price
-          autoRenewal: true
-        });
+        // Save subscription to database with proper scheduling
+        const subscriptionPackageType = determinePackageFromPriceId(priceId);
+        const dbSubscription = await createSubscriptionWithScheduling(
+          user.id,
+          subscription.id,
+          subscriptionPackageType,
+          req.body.preferredDay,
+          req.body.preferredTime
+        );
 
         // Update user with subscription ID
         await storage.updateUser(user.id, { stripeSubscriptionId: subscription.id });
@@ -1148,15 +1151,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const testCustomer = await TestPaymentSimulator.createTestCustomer(user.email, user.username);
         const testSubscription = await TestPaymentSimulator.createTestSubscription(testCustomer.id);
         
-        // Save test subscription to database
-        const dbSubscription = await storage.createSubscription({
-          customerId: user.id,
-          stripeSubscriptionId: testSubscription.id,
-          status: 'active',
-          frequency: 'weekly',
-          pricePerMonth: 20.00,
-          autoRenewal: true
-        });
+        // Save test subscription to database with proper scheduling
+        const testPackageType = 'basic'; // Default for test
+        const dbSubscription = await createSubscriptionWithScheduling(
+          user.id,
+          testSubscription.id,
+          testPackageType,
+          req.body.preferredDay,
+          req.body.preferredTime
+        );
 
         res.json({
           subscriptionId: testSubscription.id,
@@ -1797,6 +1800,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Subscription scheduler endpoint
+  app.post('/api/admin/run-subscription-scheduler', authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      const { generateUpcomingPickups } = await import('./subscriptionScheduler');
+      
+      console.log('🚀 Admin triggered subscription scheduler...');
+      await generateUpcomingPickups();
+      
+      res.json({
+        success: true,
+        message: 'Subscription scheduler completed successfully',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('❌ Subscription scheduler failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Subscription scheduler failed',
+        error: error.message
+      });
+    }
+  });
+
+  // Get subscription packages info endpoint
+  app.get('/api/subscription-packages', async (req, res) => {
+    try {
+      const { SUBSCRIPTION_PACKAGES } = await import('./subscriptionScheduler');
+      
+      res.json({
+        packages: Object.entries(SUBSCRIPTION_PACKAGES).map(([key, config]) => ({
+          id: key,
+          name: key.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          ...config
+        }))
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
@@ -3002,6 +3045,29 @@ Acapella Trash Removal Team
 
   const httpServer = createServer(app);
   return httpServer;
+}
+
+// Helper function to determine package type from price
+function getPackageTypeFromAmount(amount: number): string {
+  switch (amount) {
+    case 3500: // $35
+      return 'basic';
+    case 6000: // $60
+      return 'clean-carry';
+    case 7500: // $75
+      return 'heavy-duty';
+    case 15000: // $150
+      return 'premium';
+    default:
+      return 'basic';
+  }
+}
+
+// Helper function to determine package type from Stripe price ID
+function determinePackageFromPriceId(priceId: string): string {
+  // This would be based on your actual Stripe price IDs
+  // For now, return basic as default
+  return 'basic';
 }
 
 // Advanced route optimization algorithm - tests multiple permutations to find fastest route

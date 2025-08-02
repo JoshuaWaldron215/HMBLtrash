@@ -94,12 +94,20 @@ export const subscriptions = pgTable("subscriptions", {
   stripeSubscriptionId: text("stripe_subscription_id").notNull(),
   status: text("status").notNull(), // active, cancelled, past_due
   nextPickupDate: timestamp("next_pickup_date"),
-  // Additional subscription fields
-  frequency: text("frequency").notNull().default("weekly"), // weekly, biweekly, monthly
+  // Subscription package details
+  packageType: text("package_type").notNull(), // basic, clean-carry, heavy-duty, premium
+  frequency: text("frequency").notNull().default("weekly"), // weekly, twice-weekly, monthly
   preferredDay: text("preferred_day"), // monday, tuesday, etc.
   preferredTime: text("preferred_time"), // morning, afternoon, evening
+  pickupDays: text("pickup_days").array(), // For twice-weekly: ["monday", "thursday"]
   bagCountLimit: integer("bag_count_limit").default(5),
   pricePerMonth: decimal("price_per_month", { precision: 10, scale: 2 }),
+  // Service features
+  includesFurniturePickup: boolean("includes_furniture_pickup").default(false),
+  includesBinWashing: boolean("includes_bin_washing").default(false),
+  includesLawnMowing: boolean("includes_lawn_mowing").default(false),
+  lawnMowingInterval: integer("lawn_mowing_interval").default(30), // days
+  nextLawnMowingDate: timestamp("next_lawn_mowing_date"),
 
   pausedUntil: timestamp("paused_until"),
   cancellationDate: timestamp("cancellation_date"),
@@ -264,6 +272,13 @@ export const changePasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Create insert schemas
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertPickupSchema = createInsertSchema(pickups).omit({
   id: true,
   createdAt: true,
@@ -280,13 +295,6 @@ export const insertPickupSchema = createInsertSchema(pickups).omit({
 export const insertRouteSchema = createInsertSchema(routes).omit({
   id: true,
   createdAt: true,
-});
-
-export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  cancellationDate: true,
 });
 
 export const insertServiceAreaSchema = createInsertSchema(serviceAreas).omit({
