@@ -89,14 +89,27 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
         return;
       }
 
-      // Validate form completion 
+      // Validate form completion first
       console.log('Validating payment form...');
       const { error: submitError } = await elements.submit();
       if (submitError) {
         console.error('Form validation error:', submitError);
+        let errorMessage = submitError.message || "Please check all payment fields";
+        
+        // Enhanced error messages for common validation issues
+        if (submitError.code === 'incomplete_number') {
+          errorMessage = "Please enter a complete card number";
+        } else if (submitError.code === 'incomplete_cvc') {
+          errorMessage = "Please enter the 3-digit security code (CVC)";
+        } else if (submitError.code === 'incomplete_expiry') {
+          errorMessage = "Please enter a valid expiration date";
+        } else if (submitError.type === 'validation_error') {
+          errorMessage = "Please complete all required billing information fields";
+        }
+        
         toast({
           title: "Form Validation Error",
-          description: submitError.message || "Please check all payment fields",
+          description: errorMessage,
           variant: "destructive",
         });
         setIsLoading(false);
@@ -215,22 +228,15 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
       </div>
 
       <div className="border rounded-lg p-4 bg-white dark:bg-gray-800">
-        <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 mb-2">
+        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200 mb-2">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
-            <span className="font-semibold text-sm">Live Payment Requirements</span>
+            <span className="font-semibold text-sm">Live Payment Mode - Complete All Fields</span>
           </div>
-          <div className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
-            <p><strong>Required fields:</strong></p>
-            <ul className="list-disc list-inside ml-2 space-y-0.5">
-              <li>Card number, expiry date, and CVC</li>
-              <li>Cardholder name</li>
-              <li>Complete billing address</li>
-              <li>ZIP/postal code</li>
-            </ul>
-            <p className="mt-2"><strong>Note:</strong> All fields must be completed before you can subscribe.</p>
+          <div className="text-xs text-blue-700 dark:text-blue-300">
+            <p>All billing information fields are required for live payments. Please ensure you fill out every field completely, including your full name, email, and complete billing address.</p>
           </div>
         </div>
         
@@ -244,7 +250,7 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
                 address: {
                   country: 'auto',
                   line1: 'auto',
-                  line2: 'auto',
+                  line2: 'never',
                   city: 'auto',
                   state: 'auto',
                   postalCode: 'auto'
@@ -259,12 +265,18 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
               type: 'tabs',
               defaultCollapsed: false,
               radios: false,
-              spacedAccordionItems: true
+              spacedAccordionItems: false
             },
             terms: {
               card: 'never'
             },
-            readOnly: false
+            defaultValues: {
+              billingDetails: {
+                address: {
+                  country: 'US'
+                }
+              }
+            }
           }}
           onChange={(event) => {
             console.log('PaymentElement status:', {
@@ -285,11 +297,16 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
               <span className="text-sm font-semibold">Missing Information</span>
             </div>
             <div className="text-xs text-red-600 dark:text-red-400">
-              Please fill in all required payment fields including:
+              Please complete all required fields:
               <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
-                <li>Complete credit card information</li>
-                <li>Cardholder name</li>
-                <li>Billing address with ZIP code</li>
+                <li>Card number, expiry date, and CVC</li>
+                <li>Cardholder name (Name on card)</li>
+                <li>Email address</li>
+                <li>Country</li>
+                <li>Street address (Address line 1)</li>
+                <li>City</li>
+                <li>State</li>
+                <li>ZIP/Postal code</li>
               </ul>
             </div>
           </div>
@@ -435,8 +452,12 @@ export default function SubscribePage() {
       theme: 'stripe' as const,
       variables: {
         colorPrimary: '#1e3a8a',
+        colorBackground: '#ffffff',
+        colorText: '#374151',
         fontFamily: 'system-ui, sans-serif',
-        borderRadius: '8px'
+        borderRadius: '6px',
+        spacingUnit: '4px',
+        fontSizeBase: '16px'
       },
     };
 
