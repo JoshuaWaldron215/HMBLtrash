@@ -827,29 +827,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const testCustomer = await TestPaymentSimulator.createTestCustomer(user.email, userName);
         const testSubscription = await TestPaymentSimulator.createTestSubscription(testCustomer.id);
         
-        // Create subscription in database
-        const mockSubscription = await storage.createSubscription({
-          customerId: user.id,
-          stripeSubscriptionId: testSubscription.id,
-          status: 'active',
-          packageType: packageType || 'basic',
-          nextPickupDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next week
-        });
-        
-        // Update user with test Stripe info
-        await storage.updateUserStripeInfo(user.id, testCustomer.id, testSubscription.id);
-        
+        // DON'T create database subscription yet - wait for payment confirmation
         res.json({
-          subscriptionId: mockSubscription.stripeSubscriptionId,
+          subscriptionId: testSubscription.id,
           clientSecret: testSubscription.latest_invoice.payment_intent.client_secret,
-          testMode: true,
-          testCards: {
-            successful: "4242424242424242",
-            declined: "4000000000000002",
-            expired: "4000000000000036",
-            insufficientFunds: "4000000000000010",
-            cvcFailed: "4000000000000127"
-          }
+          packageType: packageType,
+          testMode: true
         });
         return;
       }
@@ -870,7 +853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           interval: 'month',
         },
         product_data: {
-          name: 'Weekly Trash Pickup',
+          name: `${packageType.charAt(0).toUpperCase() + packageType.slice(1)} Trash Pickup Package`,
         },
         unit_amount: packageAmount,
       });

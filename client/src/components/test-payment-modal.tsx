@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useStripe, useElements } from '@stripe/react-stripe-js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,8 @@ export default function TestPaymentModal({
   testMode = false,
   testCards 
 }: TestPaymentModalProps) {
+  const stripe = useStripe();
+  const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [cardData, setCardData] = useState({
     number: '',
@@ -125,8 +128,43 @@ export default function TestPaymentModal({
           });
         }
       } else {
-        // Real Stripe integration would go here
-        throw new Error("Live Stripe integration not implemented");
+        // Real Stripe integration using Elements
+        if (!stripe || !elements) {
+          throw new Error("Stripe not properly initialized");
+        }
+
+        const { error, paymentIntent } = await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: window.location.origin + '/payment/success',
+          },
+          redirect: 'if_required'
+        });
+
+        if (error) {
+          setPaymentResult({
+            success: false,
+            message: error.message || "Payment failed",
+            details: error
+          });
+        } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+          setPaymentResult({
+            success: true,
+            message: "Payment successful! Your booking has been confirmed.",
+            details: paymentIntent
+          });
+          
+          setTimeout(() => {
+            onSuccess();
+            onClose();
+          }, 2000);
+        } else {
+          setPaymentResult({
+            success: false,
+            message: "Payment was not completed successfully",
+            details: paymentIntent
+          });
+        }
       }
     } catch (error: any) {
       setPaymentResult({
