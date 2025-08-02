@@ -11,8 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { authenticatedRequest } from '@/lib/auth';
 import { MobileButton, MobileCard, MobileInput } from '@/components/mobile-layout';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import TestPaymentModal from '@/components/test-payment-modal';
 import AddressAutocomplete from '@/components/address-autocomplete';
+
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY!);
 import PackageSelection from '@/components/package-selection';
 import type { Subscription } from '@shared/schema';
 
@@ -464,16 +469,26 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
       
       {/* Payment Modal */}
       {showPaymentModal && paymentData && (
-        <TestPaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={handlePaymentSuccess}
-          clientSecret={paymentData.clientSecret}
-          amount={paymentData.amount}
-          serviceType={serviceType}
-          testMode={paymentData.testMode}
-          testCards={paymentData.testCards}
-        />
+        <Elements 
+          stripe={stripePromise}
+          options={{
+            clientSecret: paymentData.clientSecret,
+            appearance: {
+              theme: 'stripe'
+            }
+          }}
+        >
+          <TestPaymentModal
+            isOpen={showPaymentModal}
+            onClose={() => setShowPaymentModal(false)}
+            onSuccess={handlePaymentSuccess}
+            clientSecret={paymentData.clientSecret}
+            amount={paymentData.amount}
+            serviceType={serviceType}
+            testMode={paymentData.testMode}
+            testCards={paymentData.testCards}
+          />
+        </Elements>
       )}
     </div>
   );
