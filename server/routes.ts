@@ -871,9 +871,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store subscription details temporarily for payment confirmation
       const subscriptionPackageType = getPackageTypeFromAmount(packageAmount);
       
+      // Extract client secret safely
+      const invoice = subscription.latest_invoice;
+      let clientSecret = null;
+      
+      if (invoice && typeof invoice === 'object' && 'payment_intent' in invoice) {
+        const paymentIntent = invoice.payment_intent;
+        if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
+          clientSecret = paymentIntent.client_secret;
+        }
+      }
+      
       res.json({
         subscriptionId: subscription.id,
-        clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
+        clientSecret: clientSecret,
         packageType: subscriptionPackageType,
         preferredDay: req.body.preferredDay,
         preferredTime: req.body.preferredTime
