@@ -17,10 +17,16 @@ import {
   type User 
 } from "@shared/schema";
 
-// Mock Stripe for development when keys are not available
+// Initialize Stripe with proper configuration
 const stripe = process.env.STRIPE_SECRET_KEY 
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+    })
   : null;
+
+// Check if we're in test mode
+const isTestMode = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') || false;
+console.log(`Stripe initialized: ${stripe ? 'Yes' : 'No'}, Test mode: ${isTestMode}`);
 
 // Test payment simulation system
 class TestPaymentSimulator {
@@ -837,6 +843,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // For live Stripe keys, we need to be more careful with subscription creation
+      if (!isTestMode) {
+        console.warn('⚠️  Using live Stripe key in development. Consider using test keys (sk_test_*)');
+      }
+
       // Create Stripe customer if not exists
       if (!user.stripeCustomerId) {
         const customer = await stripe.customers.create({
@@ -874,34 +885,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store subscription details temporarily for payment confirmation
       const subscriptionPackageType = getPackageTypeFromAmount(packageAmount);
       
-      // Extract client secret safely with better debugging
+      // Extract client secret safely with detailed debugging
       console.log('Subscription created:', subscription.id);
-      console.log('Latest invoice type:', typeof subscription.latest_invoice);
+      console.log('Latest invoice:', JSON.stringify(subscription.latest_invoice, null, 2));
       
       const invoice = subscription.latest_invoice;
       let clientSecret = null;
       
-      if (invoice && typeof invoice === 'object' && 'payment_intent' in invoice) {
-        const paymentIntent = invoice.payment_intent;
-        console.log('Payment intent type:', typeof paymentIntent);
+      if (invoice && typeof invoice === 'object') {
+        console.log('Invoice object keys:', Object.keys(invoice));
         
-        if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
-          clientSecret = paymentIntent.client_secret;
-          console.log('Client secret found:', clientSecret ? 'Yes' : 'No');
+        if ('payment_intent' in invoice) {
+          const paymentIntent = invoice.payment_intent;
+          console.log('Payment intent:', JSON.stringify(paymentIntent, null, 2));
+          
+          if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
+            clientSecret = paymentIntent.client_secret;
+            console.log('Client secret extracted:', clientSecret);
+          }
         }
       }
       
       // If client secret is still null, try to retrieve the invoice directly
-      if (!clientSecret && typeof invoice === 'string') {
+      if (!clientSecret && invoice && typeof invoice === 'string') {
         console.log('Fetching invoice directly:', invoice);
-        const fullInvoice = await stripe.invoices.retrieve(invoice, {
-          expand: ['payment_intent']
-        });
-        
-        const paymentIntent = fullInvoice.payment_intent;
-        if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
-          clientSecret = paymentIntent.client_secret;
-          console.log('Client secret from full invoice:', clientSecret ? 'Yes' : 'No');
+        try {
+          const fullInvoice = await stripe.invoices.retrieve(invoice, {
+            expand: ['payment_intent']
+          });
+          
+          console.log('Full invoice payment_intent:', JSON.stringify(fullInvoice.payment_intent, null, 2));
+          
+          const paymentIntent = fullInvoice.payment_intent;
+          if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
+            clientSecret = paymentIntent.client_secret;
+            console.log('Client secret from full invoice:', clientSecret);
+          }
+        } catch (invoiceError) {
+          console.error('Error fetching invoice:', invoiceError);
         }
       }
       
