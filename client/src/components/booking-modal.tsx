@@ -143,6 +143,12 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
         serviceType
       }));
 
+      // Validate result before showing payment modal
+      if (!result.clientSecret) {
+        console.error('No clientSecret received:', result);
+        throw new Error('Payment setup failed - no client secret received');
+      }
+
       // Show payment modal
       setPaymentData({
         clientSecret: result.clientSecret,
@@ -477,7 +483,7 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
       </div>
       
       {/* Payment Modal */}
-      {showPaymentModal && paymentData && (
+      {showPaymentModal && paymentData && paymentData.clientSecret && (
         <Elements 
           stripe={stripePromise}
           options={{

@@ -1112,7 +1112,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create or get subscription for recurring payments
+  // DUPLICATE ENDPOINT REMOVED - conflicted with the one at line 797
+  // The booking modal sends {packageType} but this endpoint expected {priceId, paymentMethodId}
+  /*
   app.post('/api/create-subscription', authenticateToken, async (req, res) => {
     try {
       const { priceId, paymentMethodId } = req.body;
@@ -1204,6 +1206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error creating subscription: " + error.message });
     }
   });
+  */
 
   // Webhook endpoint for Stripe events
   app.post('/api/stripe-webhook', async (req, res) => {
