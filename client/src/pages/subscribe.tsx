@@ -77,20 +77,21 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
     setIsLoading(true);
 
     try {
-      // Check if the form is complete before submitting
-      console.log('Submitting payment form...');
+      // Validate form completion first
+      console.log('Validating payment form...');
       const { error: submitError } = await elements.submit();
       if (submitError) {
-        console.error('Stripe elements submit error:', submitError);
+        console.error('Form validation error:', submitError);
         toast({
-          title: "Payment Form Incomplete",
-          description: submitError.message || "Please fill in all required fields",
+          title: "Please Complete All Fields",
+          description: submitError.message || "All payment fields are required for live payments",
           variant: "destructive",
         });
         setIsLoading(false);
         return;
       }
-      console.log('Form submitted successfully, confirming payment...');
+      
+      console.log('Form validated, confirming payment...');
 
       // First confirm payment with Stripe
       const { error, paymentIntent } = await stripe.confirmPayment({
@@ -102,9 +103,27 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
       });
 
       if (error) {
+        console.error('Payment failed:', error);
+        let errorMessage = error.message;
+        
+        // Enhanced error handling for live payments
+        if (error.type === 'validation_error') {
+          errorMessage = "Please fill in all required payment fields including billing address.";
+        } else if (error.code === 'incomplete_number') {
+          errorMessage = "Please enter a complete card number.";
+        } else if (error.code === 'incomplete_cvc') {
+          errorMessage = "Please enter a valid security code.";
+        } else if (error.code === 'incomplete_expiry') {
+          errorMessage = "Please enter a valid expiration date.";
+        } else if (error.code === 'card_declined') {
+          errorMessage = "Your card was declined. Please try a different payment method.";
+        } else if (error.message?.includes('missing information')) {
+          errorMessage = "Please complete all required fields including name and billing address.";
+        }
+        
         toast({
           title: "Payment Failed",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
         return;
@@ -184,28 +203,46 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
       </div>
 
       <div className="border rounded-lg p-4 bg-white dark:bg-gray-800">
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <span className="font-medium text-sm">Live Payment Mode</span>
+          </div>
+          <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
+            All fields including billing address are required for live payments.
+          </p>
+        </div>
+        
         <PaymentElement 
           options={{
-            layout: "tabs",
             fields: {
-              billingDetails: 'never'
+              billingDetails: {
+                name: 'auto',
+                email: 'auto',
+                phone: 'never',
+                address: {
+                  country: 'auto',
+                  line1: 'auto',
+                  line2: 'never',
+                  city: 'auto',
+                  state: 'auto',
+                  postalCode: 'auto'
+                }
+              }
             },
-            terms: {
-              card: 'never'
+            wallets: {
+              applePay: 'never',
+              googlePay: 'never'
             }
           }}
           onChange={(event) => {
-            if (event.error) {
-              console.error('PaymentElement error:', event.error);
-              setElementError(event.error.message);
-            } else {
-              setElementError(null);
-            }
             console.log('PaymentElement status:', {
               complete: event.complete,
-              empty: event.empty,
-              error: event.error
+              empty: event.empty
             });
+            setElementError(null);
           }}
         />
         {elementError && (
@@ -359,8 +396,7 @@ export default function SubscribePage() {
                 stripe={stripePromise} 
                 options={{ 
                   clientSecret,
-                  appearance,
-                  loader: 'auto'
+                  appearance
                 }}
               >
                 <SubscribeForm 

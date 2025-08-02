@@ -19,9 +19,7 @@ import {
 
 // Initialize Stripe with proper configuration
 const stripe = process.env.STRIPE_SECRET_KEY 
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16',
-    })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
 // Check if we're in test mode
@@ -850,10 +848,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create Stripe customer if not exists
       if (!user.stripeCustomerId) {
+        const customerName = user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.username;
+        
         const customer = await stripe.customers.create({
           email: user.email,
-          name: user.username,
+          name: customerName,
           description: 'Acapella Trash Removal Group Customer',
+          metadata: {
+            userId: user.id.toString(),
+            source: 'subscription_signup'
+          }
         });
         user = await storage.updateUserStripeInfo(user.id, customer.id);
       }
@@ -878,13 +884,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }],
         payment_behavior: 'default_incomplete',
         payment_settings: {
-          save_default_payment_method: 'on_subscription'
+          save_default_payment_method: 'on_subscription',
+          payment_method_types: ['card']
         },
         expand: ['latest_invoice.payment_intent'],
         metadata: {
           company: 'Acapella Trash Removal Group',
-          service: 'Residential Trash Pickup'
-        }
+          service: 'Residential Trash Pickup',
+          userId: user.id.toString(),
+          packageType: packageType
+        },
+        description: `${packageType.charAt(0).toUpperCase() + packageType.slice(1)} subscription for ${user.email}`
       });
 
       // DO NOT create database subscription until payment is confirmed
@@ -901,14 +911,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (invoice && typeof invoice === 'object') {
         console.log('Invoice object keys:', Object.keys(invoice));
         
-        if ('payment_intent' in invoice) {
-          const paymentIntent = invoice.payment_intent;
-          console.log('Payment intent:', JSON.stringify(paymentIntent, null, 2));
-          
-          if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
-            clientSecret = paymentIntent.client_secret;
-            console.log('Client secret extracted:', clientSecret);
-          }
+        const paymentIntent = (invoice as any).payment_intent;
+        if (paymentIntent && typeof paymentIntent === 'object') {
+          console.log('Payment intent found');
+          clientSecret = (paymentIntent as any).client_secret;
+          console.log('Client secret extracted:', clientSecret ? 'Yes' : 'No');
         }
       }
       
