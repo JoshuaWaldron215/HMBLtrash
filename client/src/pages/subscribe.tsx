@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { authenticatedRequest } from "@/lib/auth";
 import { CheckCircle, CreditCard, Loader2, Star } from 'lucide-react';
 
 // Make sure to call `loadStripe` outside of a component's render to avoid recreating the `Stripe` object on every render.
@@ -375,8 +376,8 @@ export default function SubscribePage() {
     setLoading(true);
     
     try {
-      // Create subscription with Stripe
-      const response = await apiRequest('POST', '/api/create-subscription', { 
+      // Create subscription with Stripe - requires authentication
+      const response = await authenticatedRequest('POST', '/api/create-subscription', { 
         packageType: selectedPlan.id,
       });
       const data = await response.json();
