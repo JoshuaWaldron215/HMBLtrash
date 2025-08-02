@@ -894,7 +894,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: user.id.toString(),
           packageType: packageType
         },
-        description: `${packageType.charAt(0).toUpperCase() + packageType.slice(1)} subscription for ${user.email}`
+        description: `${packageType.charAt(0).toUpperCase() + packageType.slice(1)} subscription for ${user.email}`,
+        collection_method: 'charge_automatically'
       });
 
       // DO NOT create database subscription until payment is confirmed
@@ -909,6 +910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let clientSecret = null;
       
       if (invoice && typeof invoice === 'object') {
+        console.log('Invoice status:', (invoice as any).status);
         console.log('Invoice object keys:', Object.keys(invoice));
         
         const paymentIntent = (invoice as any).payment_intent;
@@ -916,10 +918,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Payment intent found');
           clientSecret = (paymentIntent as any).client_secret;
           console.log('Client secret extracted:', clientSecret ? 'Yes' : 'No');
+        } else {
+          console.log('No payment intent found. Invoice status:', (invoice as any).status);
+          
+          // For live mode, we need to manually create a payment intent if none exists
+          if ((invoice as any).status === 'open' && (invoice as any).amount_due > 0) {
+            console.log('Creating manual payment intent for live subscription...');
+            
+            try {
+              const paymentIntent = await stripe.paymentIntents.create({
+                amount: (invoice as any).amount_due,
+                currency: 'usd',
+                customer: user.stripeCustomerId!,
+                invoice: (invoice as any).id,
+                setup_future_usage: 'off_session',
+                metadata: {
+                  subscriptionId: subscription.id,
+                  packageType: packageType,
+                  userId: user.id.toString()
+                }
+              });
+              
+              clientSecret = paymentIntent.client_secret;
+              console.log('Manual payment intent created with client secret');
+            } catch (intentError) {
+              console.error('Failed to create manual payment intent:', intentError);
+            }
+          }
         }
       }
       
-      // If client secret is still null, try to retrieve the invoice directly
+      // If client secret is still null and we have a string invoice ID, try to retrieve it directly
       if (!clientSecret && invoice && typeof invoice === 'string') {
         console.log('Fetching invoice directly:', invoice);
         try {
@@ -927,12 +956,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             expand: ['payment_intent']
           });
           
-          console.log('Full invoice payment_intent:', JSON.stringify(fullInvoice.payment_intent, null, 2));
-          
-          const paymentIntent = fullInvoice.payment_intent;
-          if (paymentIntent && typeof paymentIntent === 'object' && 'client_secret' in paymentIntent) {
+          if (fullInvoice.payment_intent && typeof fullInvoice.payment_intent === 'object') {
+            clientSecret = (fullInvoice.payment_intent as any).client_secret;
+            console.log('Client secret from full invoice:', clientSecret ? 'Yes' : 'No');
+          } else if (fullInvoice.status === 'open' && fullInvoice.amount_due > 0) {
+            // Create manual payment intent for live mode
+            console.log('Creating manual payment intent for live subscription...');
+            
+            const paymentIntent = await stripe.paymentIntents.create({
+              amount: fullInvoice.amount_due,
+              currency: 'usd',
+              customer: user.stripeCustomerId!,
+              invoice: fullInvoice.id,
+              setup_future_usage: 'off_session',
+              metadata: {
+                subscriptionId: subscription.id,
+                packageType: packageType,
+                userId: user.id.toString()
+              }
+            });
+            
             clientSecret = paymentIntent.client_secret;
-            console.log('Client secret from full invoice:', clientSecret);
+            console.log('Manual payment intent created successfully');
           }
         } catch (invoiceError) {
           console.error('Error fetching invoice:', invoiceError);
