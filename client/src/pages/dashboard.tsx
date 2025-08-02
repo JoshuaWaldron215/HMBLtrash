@@ -17,7 +17,8 @@ import {
   User,
   History,
   DollarSign,
-  ArrowRight
+  ArrowRight,
+  RefreshCw
 } from 'lucide-react';
 import MobileLayout, { 
   MobileCard, 
@@ -49,22 +50,28 @@ export default function Dashboard() {
     }
   }, [showSuccessMessage]);
 
-  // Fetch user data
-  const { data: user } = useQuery({
+  // Fetch user data with real-time updates
+  const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['/api/me'],
     queryFn: () => authenticatedRequest('GET', '/api/me').then(res => res.json() as Promise<UserType>),
+    refetchInterval: 30000, // Refetch every 30 seconds for user updates
+    refetchIntervalInBackground: true,
   });
 
-  // Fetch pickups
-  const { data: pickups = [] } = useQuery({
+  // Fetch pickups with real-time updates
+  const { data: pickups = [], refetch: refetchPickups, isFetching: pickupsFetching } = useQuery({
     queryKey: ['/api/pickups'],
     queryFn: () => authenticatedRequest('GET', '/api/pickups').then(res => res.json() as Promise<Pickup[]>),
+    refetchInterval: 20000, // Refetch every 20 seconds for pickup status updates
+    refetchIntervalInBackground: true,
   });
 
-  // Fetch subscription
-  const { data: subscription } = useQuery({
+  // Fetch subscription with real-time updates
+  const { data: subscription, refetch: refetchSubscription, isFetching: subscriptionFetching } = useQuery({
     queryKey: ['/api/subscription'],
     queryFn: () => authenticatedRequest('GET', '/api/subscription').then(res => res.json() as Promise<Subscription>),
+    refetchInterval: 25000, // Refetch every 25 seconds for subscription updates
+    refetchIntervalInBackground: true,
   });
 
   const upcomingPickups = pickups
@@ -127,6 +134,38 @@ export default function Dashboard() {
             <p className="text-muted-foreground">
               Manage your trash pickup service
             </p>
+          </div>
+
+          {/* Real-time sync indicator */}
+          {(pickupsFetching || subscriptionFetching) && (
+            <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                <div className="animate-spin w-3 h-3 border border-blue-600 border-t-transparent rounded-full" />
+                <span className="text-xs">Syncing with latest updates...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Manual refresh button */}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Dashboard</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                refetchPickups();
+                refetchSubscription();
+                refetchUser();
+                toast({
+                  title: "Refreshing",
+                  description: "Checking for latest updates...",
+                });
+              }}
+              disabled={pickupsFetching || subscriptionFetching}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${(pickupsFetching || subscriptionFetching) ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
 
           {/* Quick Stats */}

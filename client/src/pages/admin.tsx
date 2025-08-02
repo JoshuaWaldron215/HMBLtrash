@@ -105,15 +105,19 @@ export default function Admin() {
     }
   };
 
-  // Fetch all data
-  const { data: pickups = [] } = useQuery({
+  // Fetch all data with real-time updates
+  const { data: pickups = [], refetch: refetchPickups, isLoading: pickupsLoading, isFetching: pickupsFetching } = useQuery({
     queryKey: ['/api/admin/pickups'],
     queryFn: () => authenticatedRequest('GET', '/api/admin/pickups').then(res => res.json() as Promise<Pickup[]>),
+    refetchInterval: 15000, // Refetch every 15 seconds for real-time updates
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not active
   });
 
-  const { data: usersData = { customers: [], drivers: [], admins: [] } } = useQuery({
+  const { data: usersData = { customers: [], drivers: [], admins: [] }, refetch: refetchUsers } = useQuery({
     queryKey: ['/api/admin/users'],
     queryFn: () => authenticatedRequest('GET', '/api/admin/users').then(res => res.json()),
+    refetchInterval: 30000, // Refetch every 30 seconds for user updates
+    refetchIntervalInBackground: true,
   });
 
   // Fetch address clusters for geographic view
@@ -131,9 +135,11 @@ export default function Admin() {
   });
 
   // Fetch subscription data for enhanced subscriber management  
-  const { data: subscriptions = [] } = useQuery({
+  const { data: subscriptions = [], refetch: refetchSubscriptions } = useQuery({
     queryKey: ['/api/admin/subscriptions'],
     queryFn: () => authenticatedRequest('GET', '/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
+    refetchInterval: 20000, // Refetch every 20 seconds for subscription updates
+    refetchIntervalInBackground: true,
   });
 
   // Fetch all members data for members section
@@ -1721,8 +1727,20 @@ export default function Admin() {
 
   const renderDashboardContent = () => (
     <>
+      {/* Real-time sync indicator */}
+      {(pickupsFetching || subscriptionFetching) && (
+        <MobileSection className="pt-4">
+          <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+              <div className="animate-spin w-3 h-3 border border-blue-600 border-t-transparent rounded-full" />
+              <span className="text-xs">Syncing with latest updates...</span>
+            </div>
+          </div>
+        </MobileSection>
+      )}
+
       {/* Metrics Overview */}
-      <MobileSection className="pt-4">
+      <MobileSection className={pickupsFetching || subscriptionFetching ? "" : "pt-4"}>
         <div className="grid grid-cols-2 gap-4 mb-6">
           <MobileCard className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
             <div className="flex items-center justify-between">
@@ -1763,6 +1781,28 @@ export default function Admin() {
               <Calendar className="w-8 h-8 text-purple-600 dark:text-purple-400" />
             </div>
           </MobileCard>
+        </div>
+
+        {/* Manual refresh section */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Admin Dashboard</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              refetchPickups();
+              refetchSubscriptions();
+              refetchUsers();
+              toast({
+                title: "Refreshing",
+                description: "Checking for latest updates...",
+              });
+            }}
+            disabled={pickupsFetching || subscriptionFetching}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${(pickupsFetching || subscriptionFetching) ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
         {/* Address Clusters */}
