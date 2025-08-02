@@ -77,14 +77,25 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
     setIsLoading(true);
 
     try {
-      // Validate form completion first
+      // Check if form is complete before submitting
+      if (!isComplete) {
+        toast({
+          title: "Please Complete All Fields",
+          description: "All payment fields including billing address are required for live payments",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate form completion 
       console.log('Validating payment form...');
       const { error: submitError } = await elements.submit();
       if (submitError) {
         console.error('Form validation error:', submitError);
         toast({
-          title: "Please Complete All Fields",
-          description: submitError.message || "All payment fields are required for live payments",
+          title: "Form Validation Error",
+          description: submitError.message || "Please check all payment fields",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -203,16 +214,23 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
       </div>
 
       <div className="border rounded-lg p-4 bg-white dark:bg-gray-800">
-        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+        <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 mb-2">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
             </svg>
-            <span className="font-medium text-sm">Live Payment Mode</span>
+            <span className="font-semibold text-sm">Live Payment Requirements</span>
           </div>
-          <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
-            All fields including billing address are required for live payments.
-          </p>
+          <div className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+            <p><strong>Required fields:</strong></p>
+            <ul className="list-disc list-inside ml-2 space-y-0.5">
+              <li>Card number, expiry date, and CVC</li>
+              <li>Cardholder name</li>
+              <li>Complete billing address</li>
+              <li>ZIP/postal code</li>
+            </ul>
+            <p className="mt-2"><strong>Note:</strong> All fields must be completed before you can subscribe.</p>
+          </div>
         </div>
         
         <PaymentElement 
@@ -225,7 +243,7 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
                 address: {
                   country: 'auto',
                   line1: 'auto',
-                  line2: 'never',
+                  line2: 'auto',
                   city: 'auto',
                   state: 'auto',
                   postalCode: 'auto'
@@ -235,6 +253,15 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
             wallets: {
               applePay: 'never',
               googlePay: 'never'
+            },
+            layout: {
+              type: 'tabs',
+              defaultCollapsed: false,
+              radios: false,
+              spacedAccordionItems: true
+            },
+            terms: {
+              card: 'never'
             }
           }}
           onChange={(event) => {
@@ -243,8 +270,20 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
               empty: event.empty
             });
             setElementError(null);
+            setIsComplete(event.complete);
           }}
         />
+        
+        {!isComplete && (
+          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-medium">Complete all payment fields above</span>
+            </div>
+          </div>
+        )}
         {elementError && (
           <div className="mt-2 text-sm text-red-600">
             {elementError}
@@ -254,7 +293,7 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
 
       <Button 
         type="submit" 
-        disabled={!stripe || isLoading} 
+        disabled={!stripe || isLoading || !isComplete} 
         className="w-full"
         size="lg"
       >
@@ -263,6 +302,8 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             Setting up subscription...
           </>
+        ) : !isComplete ? (
+          "Complete Payment Information"
         ) : (
           `Subscribe for $${selectedPlan.price.toFixed(2)}/month`
         )}
@@ -336,7 +377,7 @@ export default function SubscribePage() {
     try {
       // Create subscription with Stripe
       const response = await apiRequest('POST', '/api/create-subscription', { 
-        priceId: selectedPlan.priceId,
+        packageType: selectedPlan.id,
       });
       const data = await response.json();
       
