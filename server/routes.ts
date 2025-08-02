@@ -832,6 +832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerId: user.id,
           stripeSubscriptionId: testSubscription.id,
           status: 'active',
+          packageType: packageType || 'basic',
           nextPickupDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next week
         });
         
@@ -883,35 +884,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expand: ['latest_invoice.payment_intent'],
       });
 
-      // Save subscription to database with proper scheduling
+      // DO NOT create database subscription until payment is confirmed
+      // Store subscription details temporarily for payment confirmation
       const subscriptionPackageType = getPackageTypeFromAmount(packageAmount);
-      await createSubscriptionWithScheduling(
-        user.id,
-        subscription.id,
-        subscriptionPackageType,
-        req.body.preferredDay,
-        req.body.preferredTime
-      );
-
-      await storage.updateUserStripeInfo(user.id, user.stripeCustomerId!, subscription.id);
-
-      // Send welcome email for new subscription
-      try {
-        const newSubscription = await storage.getSubscriptionByCustomer(user.id);
-        if (newSubscription) {
-          await emailService.sendSubscriptionConfirmationEmail(user, newSubscription);
-        }
-      } catch (emailError) {
-        console.error('❌ Failed to send subscription confirmation email:', emailError);
-        // Continue with the response even if email fails
-      }
-
+      
       res.json({
         subscriptionId: subscription.id,
         clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
+        packageType: subscriptionPackageType,
+        preferredDay: req.body.preferredDay,
+        preferredTime: req.body.preferredTime
       });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Payment confirmation endpoint - creates database subscription only after payment
+  app.post('/api/confirm-subscription-payment', authenticateToken, async (req, res) => {
+    try {
+      const { subscriptionId, packageType, preferredDay, preferredTime } = req.body;
+      const user = await storage.getUser(req.user!.id);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (stripe) {
+        // Verify payment was successful through Stripe
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const invoice = await stripe.invoices.retrieve(subscription.latest_invoice as string);
+        const paymentIntent = await stripe.paymentIntents.retrieve((invoice as any).payment_intent as string);
+
+        if (paymentIntent.status !== 'succeeded') {
+          return res.status(400).json({ 
+            message: "Payment not confirmed", 
+            paymentStatus: paymentIntent.status 
+          });
+        }
+
+        // Payment confirmed - now create database subscription
+        const dbSubscription = await createSubscriptionWithScheduling(
+          user.id,
+          subscription.id,
+          packageType,
+          preferredDay,
+          preferredTime
+        );
+
+        // Update user with subscription ID
+        await storage.updateUserStripeInfo(user.id, user.stripeCustomerId!, subscription.id);
+
+        // Send welcome email
+        try {
+          await emailService.sendSubscriptionConfirmationEmail(user, dbSubscription);
+        } catch (emailError) {
+          console.error('❌ Failed to send subscription confirmation email:', emailError);
+        }
+
+        res.json({
+          success: true,
+          subscription: dbSubscription,
+          message: 'Subscription activated successfully'
+        });
+      } else {
+        // Test mode - assume payment succeeded
+        const dbSubscription = await createSubscriptionWithScheduling(
+          user.id,
+          subscriptionId,
+          packageType,
+          preferredDay,
+          preferredTime
+        );
+
+        res.json({
+          success: true,
+          subscription: dbSubscription,
+          testMode: true,
+          message: 'Test subscription activated'
+        });
+      }
+    } catch (error: any) {
+      console.error('❌ Subscription confirmation failed:', error);
+      res.status(500).json({ message: "Error confirming subscription: " + error.message });
     }
   });
 
@@ -1128,23 +1183,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           expand: ['latest_invoice.payment_intent'],
         });
 
-        // Save subscription to database with proper scheduling
+        // DO NOT create database subscription until payment is confirmed
+        // Store subscription details temporarily for payment confirmation
         const subscriptionPackageType = determinePackageFromPriceId(priceId);
-        const dbSubscription = await createSubscriptionWithScheduling(
-          user.id,
-          subscription.id,
-          subscriptionPackageType,
-          req.body.preferredDay,
-          req.body.preferredTime
-        );
-
-        // Update user with subscription ID
-        await storage.updateUser(user.id, { stripeSubscriptionId: subscription.id });
 
         res.json({
           subscriptionId: subscription.id,
           clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
-          message: 'Subscription created successfully'
+          packageType: subscriptionPackageType,
+          preferredDay: req.body.preferredDay,
+          preferredTime: req.body.preferredTime,
+          message: 'Payment confirmation required'
         });
       } else {
         // Test simulation

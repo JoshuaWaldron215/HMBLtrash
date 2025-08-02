@@ -171,27 +171,80 @@ export default function Dashboard() {
             
             {hasActiveSubscription ? (
               <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Weekly pickup service - $35/month
-                </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-3">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Calendar className="w-5 h-5 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700">Next Pickup</span>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">
+                      {subscription.packageType?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Basic'} Package
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      ${subscription.packageType === 'basic' ? '35' : 
+                        subscription.packageType === 'clean-carry' ? '60' : 
+                        subscription.packageType === 'heavy-duty' ? '75' : '150'}/month
+                    </p>
                   </div>
-                  <p className="text-xl font-bold text-blue-900">
-                    {subscription?.nextPickupDate ? 
-                      new Date(subscription.nextPickupDate).toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      }) : 'Scheduling...'
-                    }
-                  </p>
-                  <p className="text-sm text-blue-600 mt-1">
-                    Weekly service • We'll be there!
-                  </p>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">Next Pickup</p>
+                    <p className="text-sm text-muted-foreground">
+                      {subscription.nextPickupDate ? 
+                        new Date(subscription.nextPickupDate).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short', 
+                          day: 'numeric'
+                        }) : 'Not scheduled'
+                      }
+                    </p>
+                  </div>
                 </div>
+                
+                {/* Package Features */}
+                <div className="pt-2 border-t border-gray-100">
+                  <p className="text-xs font-medium text-gray-600 mb-1">Included Features:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {subscription.packageType === 'basic' && (
+                      <>
+                        <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">Weekly Pickup</span>
+                        <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">6 Bags</span>
+                      </>
+                    )}
+                    {subscription.packageType === 'clean-carry' && (
+                      <>
+                        <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">Weekly Pickup</span>
+                        <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">Furniture Pickup</span>
+                        <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">Bin Washing</span>
+                      </>
+                    )}
+                    {subscription.packageType === 'heavy-duty' && (
+                      <>
+                        <span className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded">Twice Weekly</span>
+                        <span className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded">Furniture Pickup</span>
+                        <span className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded">Bin Washing</span>
+                      </>
+                    )}
+                    {subscription.packageType === 'premium' && (
+                      <>
+                        <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded">Twice Weekly</span>
+                        <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded">Lawn Mowing</span>
+                        <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded">All Services</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Upcoming Lawn Mowing for Premium */}
+                {subscription.packageType === 'premium' && subscription.nextLawnMowingDate && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-green-600">Next Lawn Mowing</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(subscription.nextLawnMowingDate).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short', 
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex space-x-2">
                   <MobileButton 
                     variant="outline" 

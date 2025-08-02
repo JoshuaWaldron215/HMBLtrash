@@ -55,7 +55,11 @@ const SUBSCRIPTION_PLANS = [
   }
 ];
 
-const SubscribeForm = ({ selectedPlan, onSuccess }: { selectedPlan: typeof SUBSCRIPTION_PLANS[0]; onSuccess?: () => void }) => {
+const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: { 
+  selectedPlan: typeof SUBSCRIPTION_PLANS[0]; 
+  subscriptionDetails: any;
+  onSuccess?: () => void; 
+}) => {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
@@ -72,26 +76,60 @@ const SubscribeForm = ({ selectedPlan, onSuccess }: { selectedPlan: typeof SUBSC
     setIsLoading(true);
 
     try {
-      const { error } = await stripe.confirmPayment({
+      // First confirm payment with Stripe
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: window.location.origin + '/subscribe/success',
         },
+        redirect: 'if_required' // Don't redirect automatically
       });
 
       if (error) {
         toast({
-          title: "Subscription Failed",
+          title: "Payment Failed",
           description: error.message,
           variant: "destructive",
         });
+        return;
+      }
+
+      // Payment succeeded, now confirm with our backend
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        try {
+          const confirmResponse = await apiRequest('POST', '/api/confirm-subscription-payment', {
+            subscriptionId: subscriptionDetails.subscriptionId,
+            packageType: subscriptionDetails.packageType,
+            preferredDay: subscriptionDetails.preferredDay,
+            preferredTime: subscriptionDetails.preferredTime
+          });
+
+          const confirmData = await confirmResponse.json();
+
+          if (confirmData.success) {
+            setIsComplete(true);
+            toast({
+              title: "Subscription Activated!",
+              description: "Welcome to Acapella Trash Removal!",
+            });
+            if (onSuccess) onSuccess();
+          } else {
+            throw new Error(confirmData.message || 'Failed to activate subscription');
+          }
+        } catch (confirmError: any) {
+          toast({
+            title: "Activation Failed",
+            description: "Payment succeeded but subscription activation failed. Contact support.",
+            variant: "destructive",
+          });
+          console.error('Subscription confirmation failed:', confirmError);
+        }
       } else {
-        setIsComplete(true);
         toast({
-          title: "Subscription Successful",
-          description: "Welcome to Acapella Trash Removal!",
+          title: "Payment Incomplete",
+          description: "Payment was not fully processed. Please try again.",
+          variant: "destructive",
         });
-        if (onSuccess) onSuccess();
       }
     } catch (error) {
       toast({
@@ -210,6 +248,7 @@ export default function SubscribePage() {
   const [selectedPlanId, setSelectedPlanId] = useState('clean_carry'); // Default to popular plan
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
   const [, setLocation] = useLocation();
 
   const selectedPlan = SUBSCRIPTION_PLANS.find(plan => plan.id === selectedPlanId)!;
@@ -226,6 +265,12 @@ export default function SubscribePage() {
       
       if (data.clientSecret) {
         setClientSecret(data.clientSecret);
+        setSubscriptionDetails({
+          subscriptionId: data.subscriptionId,
+          packageType: data.packageType,
+          preferredDay: data.preferredDay || 'monday',
+          preferredTime: data.preferredTime || 'morning'
+        });
         setShowPayment(true);
       } else if (data.message) {
         toast({
@@ -277,6 +322,7 @@ export default function SubscribePage() {
               >
                 <SubscribeForm 
                   selectedPlan={selectedPlan}
+                  subscriptionDetails={subscriptionDetails}
                   onSuccess={() => {
                     setTimeout(() => setLocation('/'), 3000);
                   }}
