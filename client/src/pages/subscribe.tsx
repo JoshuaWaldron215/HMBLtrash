@@ -125,9 +125,7 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
         let errorMessage = error.message;
         
         // Enhanced error handling for live payments
-        if (error.type === 'validation_error') {
-          errorMessage = "Please fill in all required payment fields including billing address.";
-        } else if (error.code === 'incomplete_number') {
+        if (error.code === 'incomplete_number') {
           errorMessage = "Please enter a complete card number.";
         } else if (error.code === 'incomplete_cvc') {
           errorMessage = "Please enter a valid security code.";
@@ -135,8 +133,6 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
           errorMessage = "Please enter a valid expiration date.";
         } else if (error.code === 'card_declined') {
           errorMessage = "Your card was declined. Please try a different payment method.";
-        } else if (error.message?.includes('missing information')) {
-          errorMessage = "Please complete all required fields including name and billing address.";
         }
         
         toast({
@@ -242,14 +238,7 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
                 name: 'auto',
                 email: 'auto',
                 phone: 'never',
-                address: {
-                  country: 'auto',
-                  line1: 'auto',
-                  line2: 'never',
-                  city: 'auto',
-                  state: 'auto',
-                  postalCode: 'auto'
-                }
+                address: 'auto'
               }
             },
             wallets: {
@@ -258,19 +247,10 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
             },
             layout: {
               type: 'accordion',
-              defaultCollapsed: false,
-              radios: false,
-              spacedAccordionItems: true
+              defaultCollapsed: false
             },
             terms: {
               card: 'never'
-            },
-            defaultValues: {
-              billingDetails: {
-                address: {
-                  country: 'US'
-                }
-              }
             }
           }}
           onChange={(event) => {
@@ -299,11 +279,6 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
               </svg>
               <span className="text-sm">{elementError}</span>
             </div>
-          </div>
-        )}
-        {elementError && (
-          <div className="mt-2 text-sm text-red-600">
-            {elementError}
           </div>
         )}
       </div>
