@@ -81,8 +81,8 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
       // Check if form is complete before submitting
       if (!isComplete) {
         toast({
-          title: "Please Complete All Fields",
-          description: "All payment fields including billing address are required for live payments",
+          title: "Missing Payment Information",
+          description: "Please complete all required fields: card details, name, and complete billing address with ZIP code",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -144,7 +144,7 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
       // Payment succeeded, now confirm with our backend
       if (paymentIntent && paymentIntent.status === 'succeeded') {
         try {
-          const confirmResponse = await apiRequest('POST', '/api/confirm-subscription-payment', {
+          const confirmResponse = await authenticatedRequest('POST', '/api/confirm-subscription-payment', {
             subscriptionId: subscriptionDetails.subscriptionId,
             packageType: subscriptionDetails.packageType,
             preferredDay: subscriptionDetails.preferredDay,
@@ -263,7 +263,8 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
             },
             terms: {
               card: 'never'
-            }
+            },
+            readOnly: false
           }}
           onChange={(event) => {
             console.log('PaymentElement status:', {
@@ -276,12 +277,31 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
         />
         
         {!isComplete && (
-          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="flex items-center gap-2 text-red-700 dark:text-red-300 mb-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              <span className="text-sm font-medium">Complete all payment fields above</span>
+              <span className="text-sm font-semibold">Missing Information</span>
+            </div>
+            <div className="text-xs text-red-600 dark:text-red-400">
+              Please fill in all required payment fields including:
+              <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
+                <li>Complete credit card information</li>
+                <li>Cardholder name</li>
+                <li>Billing address with ZIP code</li>
+              </ul>
+            </div>
+          </div>
+        )}
+        
+        {elementError && (
+          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="text-sm">{elementError}</span>
             </div>
           </div>
         )}
