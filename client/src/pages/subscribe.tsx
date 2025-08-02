@@ -81,8 +81,8 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
       // Check if form is complete before submitting
       if (!isComplete) {
         toast({
-          title: "Missing Payment Information",
-          description: "Please complete all required fields: card details, name, and complete billing address with ZIP code",
+          title: "Payment Form Incomplete",
+          description: "Please fill in all visible payment and billing fields before continuing",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -233,29 +233,17 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
-            <span className="font-semibold text-sm">Live Payment Mode - Complete All Fields</span>
+            <span className="font-semibold text-sm">Live Payment Mode</span>
           </div>
           <div className="text-xs text-blue-700 dark:text-blue-300">
-            <p>All billing information fields are required for live payments. Please ensure you fill out every field completely, including your full name, email, and complete billing address.</p>
+            <p>Please complete all fields in the payment form below. All billing information is required for live payments.</p>
           </div>
         </div>
         
         <PaymentElement 
           options={{
             fields: {
-              billingDetails: {
-                name: 'auto',
-                email: 'auto',
-                phone: 'never',
-                address: {
-                  country: 'auto',
-                  line1: 'auto',
-                  line2: 'never',
-                  city: 'auto',
-                  state: 'auto',
-                  postalCode: 'auto'
-                }
-              }
+              billingDetails: 'auto'
             },
             wallets: {
               applePay: 'never',
@@ -281,10 +269,16 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
           onChange={(event) => {
             console.log('PaymentElement status:', {
               complete: event.complete,
-              empty: event.empty
+              empty: event.empty,
+              value: event.value
             });
             setElementError(null);
             setIsComplete(event.complete);
+            
+            // Additional debugging for billing details
+            if (event.value?.billingDetails) {
+              console.log('Billing details:', event.value.billingDetails);
+            }
           }}
         />
         
@@ -297,17 +291,8 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
               <span className="text-sm font-semibold">Missing Information</span>
             </div>
             <div className="text-xs text-red-600 dark:text-red-400">
-              Please complete all required fields:
-              <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
-                <li>Card number, expiry date, and CVC</li>
-                <li>Cardholder name (Name on card)</li>
-                <li>Email address</li>
-                <li>Country</li>
-                <li>Street address (Address line 1)</li>
-                <li>City</li>
-                <li>State</li>
-                <li>ZIP/Postal code</li>
-              </ul>
+              <p>Please complete all visible fields in the payment form above.</p>
+              <p className="mt-1 font-medium">Make sure to fill out all billing information fields that appear.</p>
             </div>
           </div>
         )}
