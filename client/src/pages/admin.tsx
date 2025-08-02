@@ -135,7 +135,7 @@ export default function Admin() {
   });
 
   // Fetch subscription data for enhanced subscriber management  
-  const { data: subscriptions = [], refetch: refetchSubscriptions } = useQuery({
+  const { data: subscriptions = [], refetch: refetchSubscriptions, isFetching: subscriptionFetching } = useQuery({
     queryKey: ['/api/admin/subscriptions'],
     queryFn: () => authenticatedRequest('GET', '/api/admin/subscriptions').then(res => res.json() as Promise<Subscription[]>),
     refetchInterval: 20000, // Refetch every 20 seconds for subscription updates

@@ -37,6 +37,7 @@ Preferred communication style: Simple, everyday language.
 - **Customer Dashboard**: Enhanced with detailed subscription package information and pickup scheduling
 - **Security**: Enterprise-grade JWT authentication, BCrypt hashing, role-based access
 - **Performance**: Optimized queries, lazy loading, compressed assets, real-time updates
+- **Real-Time Updates**: All three dashboards auto-sync with configurable intervals and background updates (August 2025)
 
 ### Database Design
 - **ORM**: Drizzle (PostgreSQL dialect)  
