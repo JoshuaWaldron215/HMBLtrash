@@ -864,18 +864,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user = await storage.updateUserStripeInfo(user.id, customer.id);
       }
 
-      // Create a price first, then subscription
-      const price = await stripe.prices.create({
+      // First check if a price already exists for this package
+      let price;
+      const existingPrices = await stripe.prices.list({
+        limit: 100,
+        active: true,
         currency: 'usd',
         recurring: {
-          interval: 'month',
-        },
-        product_data: {
-          name: `${packageType.charAt(0).toUpperCase() + packageType.slice(1)} Trash Pickup Package`,
-          statement_descriptor: 'Acapella Trash',
-        },
-        unit_amount: packageAmount,
+          interval: 'month'
+        }
       });
+      
+      const existingPrice = existingPrices.data.find(p => p.unit_amount === packageAmount);
+      
+      if (existingPrice) {
+        price = existingPrice;
+        console.log('Using existing price:', price.id);
+      } else {
+        // Create a new price if none exists
+        price = await stripe.prices.create({
+          currency: 'usd',
+          recurring: {
+            interval: 'month',
+          },
+          product_data: {
+            name: `${packageType.charAt(0).toUpperCase() + packageType.slice(1)} Trash Pickup Package`,
+            statement_descriptor: 'Acapella Trash',
+          },
+          unit_amount: packageAmount,
+        });
+        console.log('Created new price:', price.id);
+      }
 
       const subscription = await stripe.subscriptions.create({
         customer: user.stripeCustomerId!,
@@ -898,90 +917,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
         collection_method: 'charge_automatically'
       });
 
-      // DO NOT create database subscription until payment is confirmed
       // Store subscription details temporarily for payment confirmation
       const subscriptionPackageType = getPackageTypeFromAmount(packageAmount);
       
-      // Extract client secret safely with detailed debugging
       console.log('Subscription created:', subscription.id);
-      console.log('Latest invoice:', JSON.stringify(subscription.latest_invoice, null, 2));
       
-      const invoice = subscription.latest_invoice;
       let clientSecret = null;
+      const invoice = subscription.latest_invoice;
       
-      if (invoice && typeof invoice === 'object') {
-        console.log('Invoice status:', (invoice as any).status);
-        console.log('Invoice object keys:', Object.keys(invoice));
+      // Handle different invoice response types
+      if (invoice) {
+        let invoiceId: string;
+        let fullInvoice: any;
         
-        const paymentIntent = (invoice as any).payment_intent;
-        if (paymentIntent && typeof paymentIntent === 'object') {
-          console.log('Payment intent found');
-          clientSecret = (paymentIntent as any).client_secret;
-          console.log('Client secret extracted:', clientSecret ? 'Yes' : 'No');
-        } else {
-          console.log('No payment intent found. Invoice status:', (invoice as any).status);
-          
-          // For live mode, we need to manually create a payment intent if none exists
-          if ((invoice as any).status === 'open' && (invoice as any).amount_due > 0) {
-            console.log('Creating manual payment intent for live subscription...');
-            
-            try {
-              const paymentIntent = await stripe.paymentIntents.create({
-                amount: (invoice as any).amount_due,
-                currency: 'usd',
-                customer: user.stripeCustomerId!,
-                invoice: (invoice as any).id,
-                setup_future_usage: 'off_session',
-                metadata: {
-                  subscriptionId: subscription.id,
-                  packageType: packageType,
-                  userId: user.id.toString()
-                }
-              });
-              
-              clientSecret = paymentIntent.client_secret;
-              console.log('Manual payment intent created with client secret');
-            } catch (intentError) {
-              console.error('Failed to create manual payment intent:', intentError);
-            }
-          }
-        }
-      }
-      
-      // If client secret is still null and we have a string invoice ID, try to retrieve it directly
-      if (!clientSecret && invoice && typeof invoice === 'string') {
-        console.log('Fetching invoice directly:', invoice);
-        try {
-          const fullInvoice = await stripe.invoices.retrieve(invoice, {
+        if (typeof invoice === 'string') {
+          // Invoice is just an ID, need to fetch full object
+          invoiceId = invoice;
+          fullInvoice = await stripe.invoices.retrieve(invoiceId, {
             expand: ['payment_intent']
           });
+        } else {
+          // Invoice is already an object
+          invoiceId = (invoice as any).id;
+          fullInvoice = invoice;
+        }
+        
+        console.log('Invoice status:', fullInvoice.status);
+        console.log('Invoice amount_due:', fullInvoice.amount_due);
+        
+        // Check if payment intent exists
+        if (fullInvoice.payment_intent) {
+          if (typeof fullInvoice.payment_intent === 'string') {
+            // Payment intent is just an ID, need to retrieve it
+            const paymentIntent = await stripe.paymentIntents.retrieve(fullInvoice.payment_intent);
+            clientSecret = paymentIntent.client_secret;
+          } else {
+            // Payment intent is already expanded
+            clientSecret = fullInvoice.payment_intent.client_secret;
+          }
+        }
+        
+        // If no payment intent exists (common in live mode), create one manually
+        if (!clientSecret && fullInvoice.status === 'open' && fullInvoice.amount_due > 0) {
+          console.log('No payment intent found. Creating manual payment intent for live subscription...');
+          console.log('Invoice details:', {
+            id: fullInvoice.id,
+            amount_due: fullInvoice.amount_due,
+            customer: fullInvoice.customer
+          });
           
-          if (fullInvoice.payment_intent && typeof fullInvoice.payment_intent === 'object') {
-            clientSecret = (fullInvoice.payment_intent as any).client_secret;
-            console.log('Client secret from full invoice:', clientSecret ? 'Yes' : 'No');
-          } else if (fullInvoice.status === 'open' && fullInvoice.amount_due > 0) {
-            // Create manual payment intent for live mode
-            console.log('Creating manual payment intent for live subscription...');
-            
+          try {
+            // For live mode, we must manually create the payment intent
             const paymentIntent = await stripe.paymentIntents.create({
               amount: fullInvoice.amount_due,
               currency: 'usd',
               customer: user.stripeCustomerId!,
-              invoice: fullInvoice.id,
+              payment_method_types: ['card'],
               setup_future_usage: 'off_session',
               metadata: {
                 subscriptionId: subscription.id,
+                invoiceId: fullInvoice.id,
                 packageType: packageType,
                 userId: user.id.toString()
               }
             });
             
             clientSecret = paymentIntent.client_secret;
-            console.log('Manual payment intent created successfully');
+            console.log('Manual payment intent created successfully!');
+            console.log('Payment intent ID:', paymentIntent.id);
+            console.log('Client secret:', clientSecret ? 'Present' : 'Missing');
+            
+            // Update the invoice to link it with the payment intent
+            try {
+              await stripe.invoices.update(fullInvoice.id, {
+                payment_intent: paymentIntent.id
+              });
+              console.log('Invoice updated with payment intent');
+            } catch (updateError) {
+              console.log('Could not update invoice, but payment intent is created');
+            }
+          } catch (paymentIntentError) {
+            console.error('Failed to create manual payment intent:', paymentIntentError);
+            throw new Error(`Failed to create payment intent: ${(paymentIntentError as any).message}`);
           }
-        } catch (invoiceError) {
-          console.error('Error fetching invoice:', invoiceError);
         }
+      }
+      
+      // Ensure we have a client secret before responding
+      if (!clientSecret) {
+        console.error('No client secret available after all attempts');
+        console.log('Invoice details:', {
+          invoiceId: invoice ? (typeof invoice === 'string' ? invoice : (invoice as any).id) : 'No invoice',
+          subscriptionId: subscription.id
+        });
+        throw new Error('Failed to create payment intent for subscription. Please try again or contact support.');
       }
       
       console.log('Final response:', {
@@ -1360,8 +1389,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Invoice payment succeeded:', invoice.id);
           
           // Handle subscription payment success
-          if (invoice.subscription) {
-            const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+          if ((invoice as any).subscription) {
+            const subscription = await stripe.subscriptions.retrieve((invoice as any).subscription as string);
             const user = await storage.getUserByStripeCustomerId(subscription.customer as string);
             if (user) {
               // Create next week's pickup for active subscription
@@ -1403,7 +1432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       customerId,
       address: user.address,
       bagCount: 3, // Default bag count
-      amount: 5.00, // Default subscription pickup price
+      amount: '5.00', // Default subscription pickup price
       serviceType: 'subscription',
       scheduledDate: nextWeekDate,
       status: 'pending',
@@ -1760,10 +1789,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const billingHistory = [];
       
       // Get subscription payments from Stripe
-      if (stripe && user.stripeCustomerId) {
+      if (stripe && (user as any).stripeCustomerId) {
         try {
           const invoices = await stripe.invoices.list({
-            customer: user.stripeCustomerId,
+            customer: (user as any).stripeCustomerId,
             limit: 50,
           });
 
@@ -1792,7 +1821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         billingHistory.push({
           id: pickup.id,
           amount: typeof pickup.amount === 'string' ? parseFloat(pickup.amount) : pickup.amount,
-          date: pickup.createdAt,
+          date: pickup.createdAt || new Date(),
           status: 'paid',
           description: `${pickup.serviceType} pickup - ${pickup.bagCount} bags`,
           type: 'one-time',
@@ -1801,7 +1830,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Sort by date descending
-      billingHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      billingHistory.sort((a, b) => {
+        const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+        const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+        return dateB.getTime() - dateA.getTime();
+      });
 
       res.json(billingHistory);
     } catch (error: any) {
