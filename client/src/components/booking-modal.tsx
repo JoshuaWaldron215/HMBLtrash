@@ -121,11 +121,20 @@ export default function BookingModal({ isOpen, onClose, serviceType = 'one-time'
 
       // Create payment intent
       const endpoint = serviceType === 'subscription' ? '/api/create-subscription' : '/api/create-payment-intent';
+      console.log('Creating payment with endpoint:', endpoint, 'data:', serviceType === 'subscription' ? { packageType: formData.packageType } : { amount });
+      
       const response = await authenticatedRequest('POST', endpoint, 
         serviceType === 'subscription' ? { packageType: formData.packageType } : { amount }
       );
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Payment creation failed:', response.status, errorText);
+        throw new Error(`Payment setup failed: ${response.status} ${errorText}`);
+      }
+      
       const result = await response.json();
+      console.log('Payment result:', result);
       
       // Store booking data for after payment
       localStorage.setItem('bookingData', JSON.stringify({
