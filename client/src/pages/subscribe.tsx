@@ -76,6 +76,21 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
     setIsLoading(true);
 
     try {
+      // Check if the form is complete before submitting
+      console.log('Submitting payment form...');
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        console.error('Stripe elements submit error:', submitError);
+        toast({
+          title: "Payment Form Incomplete",
+          description: submitError.message || "Please fill in all required fields",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+      console.log('Form submitted successfully, confirming payment...');
+
       // First confirm payment with Stripe
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
@@ -173,16 +188,6 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
             layout: "tabs",
             fields: {
               billingDetails: 'auto'
-            },
-            defaultValues: {
-              billingDetails: {
-                name: '',
-                email: '',
-                phone: '',
-                address: {
-                  country: 'US',
-                }
-              }
             }
           }}
         />
@@ -309,6 +314,8 @@ export default function SubscribePage() {
       theme: 'stripe' as const,
       variables: {
         colorPrimary: '#1e3a8a',
+        fontFamily: 'system-ui, sans-serif',
+        borderRadius: '8px'
       },
     };
 
