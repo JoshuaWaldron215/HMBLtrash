@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStripe, useElements } from '@stripe/react-stripe-js';
+import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -256,70 +256,80 @@ export default function TestPaymentModal({
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="card-number">Card Number</Label>
-                  <Input
-                    id="card-number"
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardData.number}
-                    onChange={(e) => handleCardDataChange('number', formatCardNumber(e.target.value))}
-                    maxLength={19}
-                    required
-                  />
-                </div>
+                {testMode ? (
+                  // Test mode: Show custom form fields
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="card-number">Card Number</Label>
+                      <Input
+                        id="card-number"
+                        type="text"
+                        placeholder="1234 5678 9012 3456"
+                        value={cardData.number}
+                        onChange={(e) => handleCardDataChange('number', formatCardNumber(e.target.value))}
+                        maxLength={19}
+                        required
+                      />
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="expiry">Expiry Date</Label>
-                    <Input
-                      id="expiry"
-                      type="text"
-                      placeholder="MM/YY"
-                      value={cardData.expiry}
-                      onChange={(e) => handleCardDataChange('expiry', formatExpiry(e.target.value))}
-                      maxLength={5}
-                      required
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="expiry">Expiry Date</Label>
+                        <Input
+                          id="expiry"
+                          type="text"
+                          placeholder="MM/YY"
+                          value={cardData.expiry}
+                          onChange={(e) => handleCardDataChange('expiry', formatExpiry(e.target.value))}
+                          maxLength={5}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cvc">CVC</Label>
+                        <Input
+                          id="cvc"
+                          type="text"
+                          placeholder="123"
+                          value={cardData.cvc}
+                          onChange={(e) => handleCardDataChange('cvc', e.target.value.replace(/\D/g, '').substring(0, 3))}
+                          maxLength={3}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Cardholder Name</Label>
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={cardData.name}
+                        onChange={(e) => handleCardDataChange('name', e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="zip">ZIP Code</Label>
+                      <Input
+                        id="zip"
+                        type="text"
+                        placeholder="12345"
+                        value={cardData.zip}
+                        onChange={(e) => handleCardDataChange('zip', e.target.value.replace(/\D/g, '').substring(0, 5))}
+                        maxLength={5}
+                        required
+                      />
+                    </div>
+                  </>
+                ) : (
+                  // Live mode: Use Stripe PaymentElement
+                  <div className="space-y-4">
+                    <PaymentElement />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cvc">CVC</Label>
-                    <Input
-                      id="cvc"
-                      type="text"
-                      placeholder="123"
-                      value={cardData.cvc}
-                      onChange={(e) => handleCardDataChange('cvc', e.target.value.replace(/\D/g, '').substring(0, 3))}
-                      maxLength={3}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name">Cardholder Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={cardData.name}
-                    onChange={(e) => handleCardDataChange('name', e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="zip">ZIP Code</Label>
-                  <Input
-                    id="zip"
-                    type="text"
-                    placeholder="12345"
-                    value={cardData.zip}
-                    onChange={(e) => handleCardDataChange('zip', e.target.value.replace(/\D/g, '').substring(0, 5))}
-                    maxLength={5}
-                    required
-                  />
-                </div>
+                )}
 
                 {/* Test Card Quick Actions */}
                 {testMode && testCards && (
