@@ -107,7 +107,12 @@ export default function Billing() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-green-800">Active Subscription</p>
-                  <p className="text-sm text-green-600">Weekly Pickup - $20/month</p>
+                  <p className="text-sm text-green-600">
+                    {subscription.packageType === 'basic' ? 'Weekly Pickup - $35/month' : 
+                     subscription.packageType === 'clean-carry' ? 'Clean & Carry - $60/month' : 
+                     subscription.packageType === 'heavy-duty' ? 'Heavy Duty - $75/month' : 
+                     'Premium - $150/month'}
+                  </p>
                 </div>
                 <CheckCircle className="w-5 h-5 text-green-600" />
               </div>
