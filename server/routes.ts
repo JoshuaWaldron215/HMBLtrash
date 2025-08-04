@@ -1892,25 +1892,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // If this was a subscription pickup, create next week's pickup
+      // Handle subscription pickup completion
       if (originalPickup.serviceType === 'subscription') {
-        console.log(`📅 Creating next week's subscription pickup for customer ${originalPickup.customerId}`);
+        console.log(`🔄 Handling subscription pickup completion for pickup ${pickupId}`);
         
-        const nextWeekDate = new Date(originalPickup.scheduledDate || new Date());
-        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-        
-        const nextPickup = await storage.createPickup({
-          customerId: originalPickup.customerId,
-          address: originalPickup.address,
-          bagCount: originalPickup.bagCount,
-          serviceType: 'subscription',
-          scheduledDate: nextWeekDate,
-          amount: originalPickup.amount,
-          specialInstructions: originalPickup.specialInstructions,
-          status: 'pending'
-        });
-        
-        console.log(`📦 Next week's pickup created: #${nextPickup.id} for ${nextWeekDate.toDateString()}`);
+        // Find the subscription for this customer
+        const subscription = await storage.getSubscriptionByCustomer(originalPickup.customerId);
+        if (subscription && subscription.status === 'active') {
+          // Calculate the next pickup date based on when this pickup was scheduled (7 days later for weekly)
+          const nextPickupDate = new Date(originalPickup.scheduledDate || new Date());
+          nextPickupDate.setDate(nextPickupDate.getDate() + 7);
+          
+          // Update the subscription's next pickup date
+          await storage.updateSubscription(subscription.id, {
+            nextPickupDate,
+            updatedAt: new Date()
+          });
+          
+          console.log(`✅ Updated subscription ${subscription.id} next pickup date to ${nextPickupDate.toDateString()}`);
+          
+          // Generate the next pickup immediately
+          const nextPickup = await storage.createPickup({
+            customerId: originalPickup.customerId,
+            address: originalPickup.address,
+            fullAddress: originalPickup.fullAddress || originalPickup.address,
+            bagCount: originalPickup.bagCount,
+            amount: '0.00', // Subscription pickups are pre-paid
+            serviceType: 'subscription',
+            status: 'pending',
+            scheduledDate: nextPickupDate,
+            paymentStatus: 'paid',
+            specialInstructions: `${subscription.packageType?.toUpperCase()} subscription pickup - ${subscription.frequency} service`
+          });
+          
+          console.log(`📦 Next subscription pickup created: #${nextPickup.id} for ${nextPickupDate.toDateString()}`);
+        } else {
+          console.log(`⚠️ No active subscription found for customer ${originalPickup.customerId}`);
+        }
+      } else {
+        console.log(`ℹ️ One-time pickup ${pickupId} completed - no recurring pickup needed`);
       }
       
       res.json(pickup);
@@ -1947,23 +1967,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // If this was a subscription pickup, create next week's pickup
+        // Handle subscription pickup completion
         if (originalPickup.serviceType === 'subscription') {
-          const nextWeekDate = new Date(originalPickup.scheduledDate || new Date());
-          nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+          console.log(`🔄 Handling subscription pickup completion for pickup ${pickupId}`);
           
-          const nextPickup = await storage.createPickup({
-            customerId: originalPickup.customerId,
-            address: originalPickup.address,
-            bagCount: originalPickup.bagCount,
-            serviceType: 'subscription',
-            scheduledDate: nextWeekDate,
-            amount: originalPickup.amount,
-            specialInstructions: originalPickup.specialInstructions,
-            status: 'pending'
-          });
-          
-          createdSubscriptionPickups.push(nextPickup);
+          // Find the subscription for this customer
+          const subscription = await storage.getSubscriptionByCustomer(originalPickup.customerId);
+          if (subscription && subscription.status === 'active') {
+            // Calculate the next pickup date (7 days later for weekly)
+            const nextPickupDate = new Date(originalPickup.scheduledDate || new Date());
+            nextPickupDate.setDate(nextPickupDate.getDate() + 7);
+            
+            // Update the subscription's next pickup date
+            await storage.updateSubscription(subscription.id, {
+              nextPickupDate,
+              updatedAt: new Date()
+            });
+            
+            // Generate the next pickup immediately
+            const nextPickup = await storage.createPickup({
+              customerId: originalPickup.customerId,
+              address: originalPickup.address,
+              fullAddress: originalPickup.fullAddress || originalPickup.address,
+              bagCount: originalPickup.bagCount,
+              amount: '0.00',
+              serviceType: 'subscription',
+              status: 'pending',
+              scheduledDate: nextPickupDate,
+              paymentStatus: 'paid',
+              specialInstructions: `${subscription.packageType?.toUpperCase()} subscription pickup - ${subscription.frequency} service`
+            });
+            
+            createdSubscriptionPickups.push(nextPickup);
+            console.log(`📦 Next subscription pickup created: #${nextPickup.id} for ${nextPickupDate.toDateString()}`);
+          }
         }
       }
       
@@ -3439,6 +3476,27 @@ Acapella Trash Removal Team
   });
 
   const httpServer = createServer(app);
+  // Manual subscription scheduler trigger (for testing)
+  app.post("/api/admin/run-scheduler", authenticateToken, requireRole('admin'), async (req, res) => {
+    try {
+      console.log('🔄 Manually triggering subscription scheduler...');
+      const { generateUpcomingPickups } = await import('./subscriptionScheduler.js');
+      
+      await generateUpcomingPickups();
+      
+      res.json({ 
+        success: true, 
+        message: 'Subscription scheduler completed successfully' 
+      });
+    } catch (error: any) {
+      console.error('❌ Error running scheduler:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  });
+
   return httpServer;
 }
 

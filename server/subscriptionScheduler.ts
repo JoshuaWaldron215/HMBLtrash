@@ -245,16 +245,19 @@ export async function createSubscriptionWithScheduling(
 /**
  * Update next pickup date after a pickup is completed
  */
-export async function updateNextPickupAfterCompletion(subscriptionId: number): Promise<void> {
+export async function updateNextPickupAfterCompletion(subscriptionId: number, completedDate?: Date): Promise<void> {
   const subscription = await storage.getSubscription(subscriptionId);
   if (!subscription) {
     throw new Error('Subscription not found');
   }
 
-  // Calculate the next pickup date based on the current one
+  // Use the completed date if provided, or the current next pickup date
+  const baseDate = completedDate || subscription.nextPickupDate || new Date();
+
+  // Calculate the next pickup date based on the completed pickup date
   const nextPickupDate = calculateNextPickupDate(
     subscription.packageType,
-    subscription.nextPickupDate,
+    baseDate,
     subscription.preferredDay || undefined,
     subscription.pickupDays || undefined
   );
@@ -269,18 +272,65 @@ export async function updateNextPickupAfterCompletion(subscriptionId: number): P
 }
 
 /**
+ * Handle pickup completion and schedule next subscription pickup if needed
+ */
+export async function handlePickupCompletion(pickupId: number): Promise<void> {
+  const pickup = await storage.getPickup(pickupId);
+  if (!pickup) {
+    throw new Error('Pickup not found');
+  }
+
+  // Only handle subscription pickups
+  if (pickup.serviceType === 'subscription') {
+    console.log(`🔄 Handling subscription pickup completion for pickup ${pickupId}`);
+    
+    // Find the subscription for this customer
+    const subscription = await storage.getSubscriptionByCustomer(pickup.customerId);
+    if (subscription && subscription.status === 'active') {
+      // Update the next pickup date based on when this pickup was completed
+      await updateNextPickupAfterCompletion(subscription.id, pickup.scheduledDate || new Date());
+      
+      // Generate the next pickup immediately
+      await generateUpcomingPickups();
+      
+      console.log(`✅ Next subscription pickup scheduled for customer ${pickup.customerId}`);
+    } else {
+      console.log(`⚠️ No active subscription found for customer ${pickup.customerId}`);
+    }
+  } else {
+    console.log(`ℹ️ One-time pickup ${pickupId} completed - no recurring pickup needed`);
+  }
+}
+
+/**
  * Generate upcoming pickups for all active subscriptions
  * This should be run daily to ensure all subscriptions have scheduled pickups
  */
 export async function generateUpcomingPickups(): Promise<void> {
   const activeSubscriptions = await storage.getActiveSubscriptions();
   const today = new Date();
-  const threeDaysFromNow = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const tenDaysFromNow = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000);
+
+  console.log(`🔄 Generating pickups for ${activeSubscriptions.length} active subscriptions`);
 
   for (const subscription of activeSubscriptions) {
     try {
-      // Check if we need to generate a pickup for this subscription
-      if (subscription.nextPickupDate && subscription.nextPickupDate <= threeDaysFromNow) {
+      // Check if we need to generate a pickup for this subscription (up to 10 days in advance)
+      if (subscription.nextPickupDate && subscription.nextPickupDate <= tenDaysFromNow) {
+        // Check if pickup already exists for this date to avoid duplicates
+        const existingPickups = await storage.getPickupsByCustomer(subscription.customerId);
+        const pickupExists = existingPickups.some(pickup => 
+          pickup.scheduledDate && 
+          new Date(pickup.scheduledDate).toDateString() === subscription.nextPickupDate!.toDateString() &&
+          pickup.serviceType === 'subscription'
+        );
+
+        if (pickupExists) {
+          console.log(`✅ Pickup already exists for subscription ${subscription.id} on ${subscription.nextPickupDate.toDateString()}`);
+          continue;
+        }
+
+        console.log(`📦 Creating pickup for subscription ${subscription.id} on ${subscription.nextPickupDate.toDateString()}`);
         const customer = await storage.getUser(subscription.customerId);
         if (!customer || !customer.address) {
           console.log(`⚠️ Skipping pickup generation for subscription ${subscription.id}: No customer address`);
@@ -291,20 +341,21 @@ export async function generateUpcomingPickups(): Promise<void> {
         const pickupData: InsertPickup = {
           customerId: subscription.customerId,
           address: customer.address,
+          fullAddress: customer.address,
           bagCount: subscription.bagCountLimit || 6,
           amount: '0.00', // Subscription pickups are pre-paid
           serviceType: 'subscription',
           status: 'pending',
           scheduledDate: subscription.nextPickupDate,
-          paymentStatus: 'paid' // Subscription is already paid
+          paymentStatus: 'paid', // Subscription is already paid
+          specialInstructions: `${subscription.packageType?.toUpperCase()} subscription pickup - ${subscription.frequency} service`
         };
 
-        await storage.createPickup(pickupData);
+        const newPickup = await storage.createPickup(pickupData);
+        console.log(`✅ Generated pickup ${newPickup.id} for subscription ${subscription.id} on ${subscription.nextPickupDate.toDateString()}`);
         
-        // Update the next pickup date
-        await updateNextPickupAfterCompletion(subscription.id);
-        
-        console.log(`✅ Generated pickup for subscription ${subscription.id} on ${subscription.nextPickupDate.toDateString()}`);
+        // DON'T update the next pickup date here - only do that when the pickup is completed
+        // This allows multiple pickups to be generated in advance without skipping dates
       }
     } catch (error) {
       console.error(`❌ Error generating pickup for subscription ${subscription.id}:`, error);
