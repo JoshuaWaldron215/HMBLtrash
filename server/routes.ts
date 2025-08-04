@@ -1034,25 +1034,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment confirmation endpoint - creates database subscription only after payment
   app.post('/api/confirm-subscription-payment', authenticateToken, async (req, res) => {
     try {
+      console.log('🔄 Confirming subscription payment:', req.body);
       const { subscriptionId, packageType, preferredDay, preferredTime } = req.body;
       const user = await storage.getUser(req.user!.id);
 
       if (!user) {
+        console.error('❌ User not found during payment confirmation:', req.user!.id);
         return res.status(404).json({ message: "User not found" });
       }
 
+      console.log('✅ User found for payment confirmation:', {
+        userId: user.id,
+        email: user.email,
+        subscriptionId: subscriptionId
+      });
+
       if (stripe) {
         // Verify payment was successful through Stripe
+        console.log('🔍 Verifying payment in Stripe for subscription:', subscriptionId);
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const invoice = await stripe.invoices.retrieve(subscription.latest_invoice as string);
         const paymentIntent = await stripe.paymentIntents.retrieve((invoice as any).payment_intent as string);
 
+        console.log('📊 Stripe payment verification:', {
+          subscriptionId: subscription.id,
+          subscriptionStatus: subscription.status,
+          invoiceId: invoice.id,
+          paymentIntentId: paymentIntent.id,
+          paymentStatus: paymentIntent.status
+        });
+
         if (paymentIntent.status !== 'succeeded') {
+          console.error('❌ Payment not succeeded in Stripe:', {
+            paymentIntentId: paymentIntent.id,
+            status: paymentIntent.status,
+            subscriptionId: subscriptionId
+          });
           return res.status(400).json({ 
             message: "Payment not confirmed", 
             paymentStatus: paymentIntent.status 
           });
         }
+
+        console.log('✅ Payment confirmed in Stripe, creating database subscription...');
 
         // Payment confirmed - now create database subscription
         const dbSubscription = await createSubscriptionWithScheduling(
@@ -1063,16 +1087,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           preferredTime
         );
 
+        console.log('✅ Database subscription created:', {
+          dbSubscriptionId: dbSubscription.id,
+          userId: user.id,
+          stripeSubscriptionId: subscription.id
+        });
+
         // Update user with subscription ID
         await storage.updateUserStripeInfo(user.id, user.stripeCustomerId!, subscription.id);
+        
+        console.log('✅ User stripe info updated successfully');
 
         // Send welcome email
         try {
           await emailService.sendSubscriptionConfirmationEmail(user, dbSubscription);
+          console.log('✅ Welcome email sent successfully');
         } catch (emailError) {
           console.error('❌ Failed to send subscription confirmation email:', emailError);
         }
 
+        console.log('🎉 Subscription activation completed successfully');
         res.json({
           success: true,
           subscription: dbSubscription,
@@ -1096,8 +1130,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      console.error('❌ Subscription confirmation failed:', error);
+      console.error('❌ Subscription confirmation failed:', {
+        error: error.message,
+        stack: error.stack,
+        userId: req.user?.id,
+        body: req.body
+      });
       res.status(500).json({ message: "Error confirming subscription: " + error.message });
+    }
+  });
+
+  // Recovery endpoint for successful payments that weren't confirmed in database
+  app.post('/api/recover-subscription', authenticateToken, async (req, res) => {
+    try {
+      console.log('🔄 Attempting subscription recovery for user:', req.user!.id);
+      const user = await storage.getUser(req.user!.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user already has an active subscription
+      const existingSubscription = await storage.getSubscriptionByCustomer(user.id);
+      if (existingSubscription && existingSubscription.status === 'active') {
+        console.log('✅ User already has active subscription:', existingSubscription.id);
+        return res.json({
+          success: true,
+          message: 'Active subscription already exists',
+          subscription: existingSubscription
+        });
+      }
+
+      if (!stripe || !user.stripeCustomerId) {
+        return res.status(400).json({ message: "No Stripe customer found for user" });
+      }
+
+      // Get all subscriptions for this customer from Stripe (all statuses)
+      const subscriptions = await stripe.subscriptions.list({
+        customer: user.stripeCustomerId,
+        limit: 10
+      });
+
+      console.log('📊 Found Stripe subscriptions for customer:', {
+        customerId: user.stripeCustomerId,
+        totalSubscriptions: subscriptions.data.length,
+        subscriptions: subscriptions.data.map(s => ({
+          id: s.id,
+          status: s.status,
+          created: new Date(s.created * 1000)
+        }))
+      });
+
+      if (subscriptions.data.length === 0) {
+        return res.status(404).json({ message: "No subscriptions found in Stripe" });
+      }
+
+      // Find a subscription with successful payment (prefer active ones)
+      let targetSubscription = null;
+      let paymentIntent = null;
+
+      for (const subscription of subscriptions.data) {
+        try {
+          const invoice = await stripe.invoices.retrieve(subscription.latest_invoice as string);
+          const pi = await stripe.paymentIntents.retrieve((invoice as any).payment_intent as string);
+          
+          console.log('🔍 Checking subscription:', {
+            subscriptionId: subscription.id,
+            subscriptionStatus: subscription.status,
+            paymentIntentId: pi.id,
+            paymentStatus: pi.status
+          });
+
+          if (pi.status === 'succeeded') {
+            targetSubscription = subscription;
+            paymentIntent = pi;
+            console.log('✅ Found subscription with successful payment:', subscription.id);
+            break;
+          }
+        } catch (error) {
+          console.log('⚠️ Could not check payment for subscription:', subscription.id, error);
+          continue;
+        }
+      }
+
+      if (!targetSubscription || !paymentIntent) {
+        return res.status(400).json({
+          message: "No subscription found with successful payment",
+          subscriptions: subscriptions.data.map(s => ({ id: s.id, status: s.status }))
+        });
+      }
+
+      // Create database subscription with basic package type
+      const dbSubscription = await createSubscriptionWithScheduling(
+        user.id,
+        targetSubscription.id,
+        'basic', // Default to basic package
+        'monday', // Default to Monday
+        'morning' // Default to morning
+      );
+
+      // Update user with subscription ID
+      await storage.updateUserStripeInfo(user.id, user.stripeCustomerId, targetSubscription.id);
+
+      console.log('✅ Subscription recovered successfully:', {
+        dbSubscriptionId: dbSubscription.id,
+        stripeSubscriptionId: targetSubscription.id
+      });
+
+      // Send welcome email
+      try {
+        await emailService.sendSubscriptionConfirmationEmail(user, dbSubscription);
+        console.log('✅ Recovery welcome email sent');
+      } catch (emailError) {
+        console.error('❌ Failed to send recovery welcome email:', emailError);
+      }
+
+      res.json({
+        success: true,
+        subscription: dbSubscription,
+        message: 'Subscription recovered and activated successfully',
+        recovered: true
+      });
+
+    } catch (error: any) {
+      console.error('❌ Subscription recovery failed:', {
+        error: error.message,
+        stack: error.stack,
+        userId: req.user?.id
+      });
+      res.status(500).json({ message: "Error recovering subscription: " + error.message });
+    }
+  });
+
+  // Debug endpoint to check Stripe subscriptions
+  app.get('/api/debug/stripe-subscriptions', authenticateToken, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user || !stripe || !user.stripeCustomerId) {
+        return res.json({ error: "No Stripe customer found" });
+      }
+
+      const subscriptions = await stripe.subscriptions.list({
+        customer: user.stripeCustomerId,
+        limit: 20
+      });
+
+      const results = [];
+      for (const sub of subscriptions.data) {
+        try {
+          const invoice = await stripe.invoices.retrieve(sub.latest_invoice as string);
+          const paymentIntent = await stripe.paymentIntents.retrieve((invoice as any).payment_intent as string);
+          
+          results.push({
+            id: sub.id,
+            status: sub.status,
+            created: new Date(sub.created * 1000),
+            invoiceStatus: invoice.status,
+            paymentIntentId: paymentIntent.id,
+            paymentStatus: paymentIntent.status,
+            amount: paymentIntent.amount
+          });
+        } catch (error) {
+          results.push({
+            id: sub.id,
+            status: sub.status,
+            created: new Date(sub.created * 1000),
+            error: 'Could not retrieve payment details'
+          });
+        }
+      }
+
+      res.json({
+        customerId: user.stripeCustomerId,
+        subscriptions: results
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

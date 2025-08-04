@@ -143,8 +143,16 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
         return;
       }
 
-      // Payment succeeded, now confirm with our backend
+      // Payment succeeded, now confirm with our backend  
+      console.log('Payment result:', { error, paymentIntent });
+      
       if (paymentIntent && paymentIntent.status === 'succeeded') {
+        console.log('✅ Payment succeeded, confirming with backend...', {
+          subscriptionId: subscriptionDetails.subscriptionId,
+          paymentIntentId: paymentIntent.id,
+          status: paymentIntent.status
+        });
+        
         try {
           const confirmResponse = await authenticatedRequest('POST', '/api/confirm-subscription-payment', {
             subscriptionId: subscriptionDetails.subscriptionId,
@@ -154,8 +162,10 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
           });
 
           const confirmData = await confirmResponse.json();
+          console.log('Backend confirmation response:', confirmData);
 
           if (confirmData.success) {
+            console.log('✅ Subscription activated successfully');
             setIsComplete(true);
             toast({
               title: "Subscription Activated!",
@@ -163,20 +173,29 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
             });
             if (onSuccess) onSuccess();
           } else {
+            console.error('❌ Backend confirmation failed:', confirmData);
             throw new Error(confirmData.message || 'Failed to activate subscription');
           }
         } catch (confirmError: any) {
+          console.error('❌ Subscription confirmation error:', confirmError);
           toast({
-            title: "Activation Failed",
-            description: "Payment succeeded but subscription activation failed. Contact support.",
+            title: "Activation Failed", 
+            description: "Payment succeeded but subscription activation failed. Please contact support with subscription ID: " + subscriptionDetails.subscriptionId,
             variant: "destructive",
           });
-          console.error('Subscription confirmation failed:', confirmError);
         }
       } else {
+        console.error('❌ Payment did not succeed:', { 
+          paymentIntent: paymentIntent ? {
+            id: paymentIntent.id,
+            status: paymentIntent.status
+          } : null,
+          subscriptionId: subscriptionDetails.subscriptionId
+        });
+        
         toast({
-          title: "Payment Incomplete",
-          description: "Payment was not fully processed. Please try again.",
+          title: "Payment Status Unclear",
+          description: "Please check your payment method or contact support. Subscription ID: " + subscriptionDetails.subscriptionId,
           variant: "destructive",
         });
       }
