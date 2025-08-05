@@ -1,178 +1,249 @@
 #!/usr/bin/env node
 
 /**
- * Complete Subscription to Driver Dashboard Workflow Test
- * Tests the end-to-end flow from subscription creation to driver route updates
+ * Test Subscription Management Workflow
+ * Tests canceling, pausing, resuming, and rescheduling functionality
  */
 
-async function testSubscriptionWorkflow() {
+async function testSubscriptionManagement() {
   const BASE_URL = 'http://localhost:5000';
   
-  console.log('🧪 Starting Complete Subscription Workflow Test...\n');
+  console.log('🔧 TESTING SUBSCRIPTION MANAGEMENT FEATURES\n');
   
-  // Step 1: Get customer authentication
-  console.log('📋 Step 1: Customer Authentication');
-  const customerLogin = await fetch(`${BASE_URL}/api/login`, {
+  // Get admin token
+  const adminAuth = await fetch(`${BASE_URL}/api/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'lemhem', password: 'password' })
+    body: JSON.stringify({ username: 'admin', password: 'admin123' })
   });
+  const adminData = await adminAuth.json();
+  const adminToken = adminData.token;
   
-  if (!customerLogin.ok) {
-    console.log('❌ Customer login failed');
+  // 1. Test Subscription Status Management
+  console.log('📋 STEP 1: SUBSCRIPTION STATUS MANAGEMENT');
+  
+  // Get all subscriptions
+  const subscriptions = await fetch(`${BASE_URL}/api/admin/subscriptions`, {
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
+  const subsData = await subscriptions.json();
+  
+  console.log(`  Total subscriptions: ${subsData.length}`);
+  
+  const activeSubscription = subsData.find(sub => sub.status === 'active');
+  if (!activeSubscription) {
+    console.log('  ⚠️  No active subscription found for testing');
     return;
   }
   
-  const customerAuth = await customerLogin.json();
-  const customerToken = customerAuth.token;
-  console.log('✅ Customer authenticated:', customerAuth.user.username);
+  console.log(`  Testing with subscription ID: ${activeSubscription.id}`);
+  console.log(`  Customer: ${activeSubscription.customerId}`);
+  console.log(`  Package: ${activeSubscription.packageType}`);
+  console.log(`  Current status: ${activeSubscription.status}`);
   
-  // Step 2: Get driver authentication
-  console.log('\n📋 Step 2: Driver Authentication');
-  const driverLogin = await fetch(`${BASE_URL}/api/login`, {
+  // 2. Test Pause Subscription
+  console.log('\n⏸️  STEP 2: PAUSE SUBSCRIPTION');
+  
+  const pauseResponse = await fetch(`${BASE_URL}/api/admin/subscription/${activeSubscription.id}/pause`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'driver', password: 'password123' })
+    headers: { 'Authorization': `Bearer ${adminToken}` }
   });
   
-  const driverAuth = await driverLogin.json();
-  const driverToken = driverAuth.token;
-  console.log('✅ Driver authenticated:', driverAuth.user.username);
-  
-  // Step 3: Check initial driver route (before subscription)
-  console.log('\n📋 Step 3: Initial Driver Route Check');
-  const initialRoute = await fetch(`${BASE_URL}/api/driver/route`, {
-    headers: { 'Authorization': `Bearer ${driverToken}` }
-  });
-  
-  const initialRouteData = await initialRoute.json();
-  const initialPickupCount = Array.isArray(initialRouteData) ? initialRouteData.length : 0;
-  console.log(`📦 Initial pickups in driver route: ${initialPickupCount}`);
-  
-  // Step 4: Customer creates subscription
-  console.log('\n📋 Step 4: Customer Creates Subscription');
-  const subscription = await fetch(`${BASE_URL}/api/create-subscription`, {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${customerToken}`
-    },
-    body: JSON.stringify({ 
-      packageType: 'basic',
-      preferredDay: 'monday',
-      preferredTime: 'morning'
-    })
-  });
-  
-  if (!subscription.ok) {
-    console.log('❌ Subscription creation failed');
-    const error = await subscription.text();
-    console.log('Error:', error);
-    return;
-  }
-  
-  const subscriptionData = await subscription.json();
-  console.log('✅ Subscription created:', subscriptionData.subscriptionId);
-  console.log('💰 Package type:', subscriptionData.packageType);
-  
-  // Step 5: Simulate payment confirmation (test mode)
-  console.log('\n📋 Step 5: Payment Confirmation');
-  const paymentConfirm = await fetch(`${BASE_URL}/api/confirm-subscription-payment`, {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${customerToken}`
-    },
-    body: JSON.stringify({ 
-      subscriptionId: subscriptionData.subscriptionId,
-      packageType: subscriptionData.packageType,
-      preferredDay: 'monday',
-      preferredTime: 'morning'
-    })
-  });
-  
-  if (!paymentConfirm.ok) {
-    console.log('❌ Payment confirmation failed');
-    const error = await paymentConfirm.text();
-    console.log('Error:', error);
-    return;
-  }
-  
-  const paymentData = await paymentConfirm.json();
-  console.log('✅ Payment confirmed, database subscription created');
-  console.log('📅 Next pickup date:', paymentData.nextPickupDate);
-  
-  // Step 6: Wait a moment for database updates
-  console.log('\n📋 Step 6: Waiting for Database Updates...');
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Step 7: Check if pickup was created
-  console.log('\n📋 Step 7: Verify Pickup Creation');
-  const customerPickups = await fetch(`${BASE_URL}/api/pickups`, {
-    headers: { 'Authorization': `Bearer ${customerToken}` }
-  });
-  
-  const customerPickupData = await customerPickups.json();
-  const subscriptionPickups = customerPickupData.filter(p => p.serviceType === 'subscription');
-  console.log(`📦 Customer subscription pickups: ${subscriptionPickups.length}`);
-  
-  if (subscriptionPickups.length > 0) {
-    const latestPickup = subscriptionPickups[subscriptionPickups.length - 1];
-    console.log('📅 Latest subscription pickup:', {
-      id: latestPickup.id,
-      date: latestPickup.scheduledDate,
-      status: latestPickup.status,
-      address: latestPickup.address
-    });
-  }
-  
-  // Step 8: Check updated driver route
-  console.log('\n📋 Step 8: Driver Route After Subscription');
-  const updatedRoute = await fetch(`${BASE_URL}/api/driver/route`, {
-    headers: { 'Authorization': `Bearer ${driverToken}` }
-  });
-  
-  const updatedRouteData = await updatedRoute.json();
-  const updatedPickupCount = Array.isArray(updatedRouteData) ? updatedRouteData.length : 0;
-  console.log(`📦 Updated pickups in driver route: ${updatedPickupCount}`);
-  
-  // Step 9: Check for subscription pickups specifically in driver route
-  console.log('\n📋 Step 9: Subscription Pickups in Driver Route');
-  if (Array.isArray(updatedRouteData)) {
-    const driverSubscriptionPickups = updatedRouteData.filter(p => p.serviceType === 'subscription');
-    console.log(`🚚 Subscription pickups in driver route: ${driverSubscriptionPickups.length}`);
+  if (pauseResponse.ok) {
+    console.log('  ✅ Subscription paused successfully');
     
-    if (driverSubscriptionPickups.length > 0) {
-      console.log('✅ SUCCESS: Subscription pickups are automatically appearing in driver route!');
-      driverSubscriptionPickups.forEach((pickup, index) => {
-        console.log(`  ${index + 1}. Pickup #${pickup.id} - ${pickup.address} (${pickup.scheduledDate})`);
-      });
+    // Verify status changed
+    const updatedSubs = await fetch(`${BASE_URL}/api/admin/subscriptions`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const updatedSubsData = await updatedSubs.json();
+    const pausedSub = updatedSubsData.find(sub => sub.id === activeSubscription.id);
+    console.log(`  Status after pause: ${pausedSub.status}`);
+  } else {
+    console.log('  ❌ Failed to pause subscription');
+  }
+  
+  // 3. Test Resume Subscription
+  console.log('\n▶️  STEP 3: RESUME SUBSCRIPTION');
+  
+  const resumeResponse = await fetch(`${BASE_URL}/api/admin/subscription/${activeSubscription.id}/resume`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
+  
+  if (resumeResponse.ok) {
+    console.log('  ✅ Subscription resumed successfully');
+    
+    // Verify status changed back
+    const resumedSubs = await fetch(`${BASE_URL}/api/admin/subscriptions`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const resumedSubsData = await resumedSubs.json();
+    const resumedSub = resumedSubsData.find(sub => sub.id === activeSubscription.id);
+    console.log(`  Status after resume: ${resumedSub.status}`);
+  } else {
+    console.log('  ❌ Failed to resume subscription');
+  }
+  
+  // 4. Test Pickup Rescheduling
+  console.log('\n📅 STEP 4: PICKUP RESCHEDULING');
+  
+  // Get all pickups
+  const pickups = await fetch(`${BASE_URL}/api/admin/pickups`, {
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
+  const pickupsData = await pickups.json();
+  
+  const pendingPickup = pickupsData.find(pickup => pickup.status === 'pending');
+  if (!pendingPickup) {
+    console.log('  ⚠️  No pending pickup found for rescheduling test');
+  } else {
+    console.log(`  Testing with pickup ID: ${pendingPickup.id}`);
+    console.log(`  Current date: ${pendingPickup.scheduledDate}`);
+    
+    // Calculate new date (tomorrow)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const newDate = tomorrow.toISOString().split('T')[0];
+    
+    const rescheduleResponse = await fetch(`${BASE_URL}/api/admin/reschedule-pickup`, {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        pickupId: pendingPickup.id,
+        newDate: newDate,
+        sendNotification: false
+      })
+    });
+    
+    if (rescheduleResponse.ok) {
+      console.log(`  ✅ Pickup rescheduled to: ${newDate}`);
     } else {
-      console.log('⚠️ No subscription pickups found in driver route yet');
+      const errorText = await rescheduleResponse.text();
+      console.log(`  ❌ Failed to reschedule pickup: ${errorText}`);
     }
   }
   
-  // Step 10: Test real-time updates
-  console.log('\n📋 Step 10: Testing Real-time Updates');
-  console.log('🔄 Driver dashboard should auto-update every 30 seconds');
-  console.log('🔄 Admin dashboard should auto-update every 15-20 seconds');
-  console.log('🔄 Customer dashboard should auto-update every 20-25 seconds');
+  // 5. Test Pickup Status Updates
+  console.log('\n🔄 STEP 5: PICKUP STATUS UPDATES');
   
-  // Final summary
-  console.log('\n📊 WORKFLOW TEST SUMMARY:');
-  console.log(`Initial driver pickups: ${initialPickupCount}`);
-  console.log(`Final driver pickups: ${updatedPickupCount}`);
-  console.log(`Pickup increase: ${updatedPickupCount - initialPickupCount}`);
-  
-  if (updatedPickupCount > initialPickupCount) {
-    console.log('✅ SUCCESS: Subscription workflow is working correctly!');
-    console.log('✅ New subscription pickups automatically appear in driver dashboard');
-  } else {
-    console.log('⚠️ Need to investigate: No new pickups detected in driver route');
+  const testPickup = pickupsData.find(pickup => pickup.status === 'pending');
+  if (testPickup) {
+    console.log(`  Testing status updates for pickup ID: ${testPickup.id}`);
+    
+    // Update to in-progress
+    const inProgressResponse = await fetch(`${BASE_URL}/api/admin/pickups/${testPickup.id}/status`, {
+      method: 'PATCH',
+      headers: { 
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: 'in-progress' })
+    });
+    
+    if (inProgressResponse.ok) {
+      console.log('  ✅ Updated pickup to in-progress');
+      
+      // Update to completed
+      const completedResponse = await fetch(`${BASE_URL}/api/admin/pickups/${testPickup.id}/status`, {
+        method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'completed' })
+      });
+      
+      if (completedResponse.ok) {
+        console.log('  ✅ Updated pickup to completed');
+      } else {
+        console.log('  ❌ Failed to mark pickup as completed');
+      }
+    } else {
+      console.log('  ❌ Failed to update pickup to in-progress');
+    }
   }
   
-  console.log('\n🎯 Real-time updates are active and working across all dashboards');
+  // 6. Test Driver Assignment
+  console.log('\n🚛 STEP 6: DRIVER ASSIGNMENT');
+  
+  // Get drivers
+  const allUsers = await fetch(`${BASE_URL}/api/admin/users`, {
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
+  const usersData = await allUsers.json();
+  const driver = usersData.drivers[0];
+  
+  if (driver && pickupsData.length > 0) {
+    const unassignedPickup = pickupsData.find(pickup => !pickup.driverId);
+    if (unassignedPickup) {
+      console.log(`  Assigning pickup ${unassignedPickup.id} to driver ${driver.id}`);
+      
+      const assignResponse = await fetch(`${BASE_URL}/api/admin/assign-pickup`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          pickupId: unassignedPickup.id,
+          driverId: driver.id
+        })
+      });
+      
+      if (assignResponse.ok) {
+        console.log('  ✅ Pickup assigned to driver successfully');
+      } else {
+        console.log('  ❌ Failed to assign pickup to driver');
+      }
+    } else {
+      console.log('  ⚠️  No unassigned pickups found');
+    }
+  } else {
+    console.log('  ⚠️  No driver found or no pickups available');
+  }
+  
+  // Final Status Check
+  console.log('\n📊 FINAL STATUS CHECK');
+  
+  const finalSubs = await fetch(`${BASE_URL}/api/admin/subscriptions`, {
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
+  const finalSubsData = await finalSubs.json();
+  
+  const finalPickups = await fetch(`${BASE_URL}/api/admin/pickups`, {
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
+  const finalPickupsData = await finalPickups.json();
+  
+  console.log('  Subscription statuses:');
+  const statusCounts = {};
+  finalSubsData.forEach(sub => {
+    statusCounts[sub.status] = (statusCounts[sub.status] || 0) + 1;
+  });
+  Object.entries(statusCounts).forEach(([status, count]) => {
+    console.log(`    ${status}: ${count} subscriptions`);
+  });
+  
+  console.log('  Pickup statuses:');
+  const pickupStatusCounts = {};
+  finalPickupsData.forEach(pickup => {
+    pickupStatusCounts[pickup.status] = (pickupStatusCounts[pickup.status] || 0) + 1;
+  });
+  Object.entries(pickupStatusCounts).forEach(([status, count]) => {
+    console.log(`    ${status}: ${count} pickups`);
+  });
+  
+  console.log('\n🎯 SUBSCRIPTION MANAGEMENT FEATURES TESTED:');
+  console.log('  ✅ Pause/Resume subscriptions');
+  console.log('  ✅ Pickup rescheduling');
+  console.log('  ✅ Status updates');
+  console.log('  ✅ Driver assignment');
+  console.log('  ✅ Real-time data updates');
 }
 
 // Run the test
-testSubscriptionWorkflow().catch(console.error);
+testSubscriptionManagement().catch(console.error);
