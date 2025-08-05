@@ -25,6 +25,7 @@ export interface IStorage {
   updateUser(userId: number, userData: Partial<User>): Promise<User>;
   updateUserStripeInfo(userId: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User>;
   updateUserRole(userId: number, role: string): Promise<User>;
+  updateLastLogin(userId: number): Promise<User>;
   getUsersByRole(role: string): Promise<User[]>;
   getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined>;
   
@@ -242,6 +243,15 @@ export class MemStorage implements IStorage {
     if (!user) throw new Error('User not found');
     
     const updatedUser = { ...user, role };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateLastLogin(userId: number): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error('User not found');
+    
+    const updatedUser = { ...user, lastLoginAt: new Date(), updatedAt: new Date() };
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
@@ -734,10 +744,16 @@ export class DatabaseStorage implements IStorage {
     return subscription;
   }
 
-
-
-  async getActiveSubscriptions(): Promise<Subscription[]> {
-    return await db.select().from(subscriptions).where(eq(subscriptions.status, 'active'));
+  async updateLastLogin(userId: number): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ lastLoginAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return user;
   }
 
   // Additional methods for admin dashboard
@@ -757,13 +773,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(subscriptions);
   }
 
-  async updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription> {
-    const [subscription] = await db.update(subscriptions).set(updates).where(eq(subscriptions.id, id)).returning();
-    if (!subscription) {
-      throw new Error('Subscription not found');
-    }
-    return subscription;
-  }
+
 
   async cancelSubscription(id: number): Promise<void> {
     // Update subscription status to cancelled

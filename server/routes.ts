@@ -348,6 +348,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid email/username or password" });
       }
 
+      // Update last login time
+      await storage.updateLastLogin(user.id);
+
       // Generate JWT token
       const token = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
@@ -449,6 +452,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isValidPassword) {
         return res.status(400).json({ message: "Invalid credentials" });
       }
+
+      // Update last login time
+      await storage.updateLastLogin(user.id);
 
       // Generate JWT token
       const token = jwt.sign(
