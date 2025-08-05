@@ -342,7 +342,10 @@ export default function Admin() {
   // Calculate metrics
   const customers = users.filter(u => u.role === 'customer');
   const drivers = users.filter(u => u.role === 'driver');
-  const totalRevenue = pickups.reduce((sum, p) => sum + (parseFloat(p.amount?.toString() || '0') || 0), 0);
+  // Calculate monthly revenue from active subscriptions instead of pickup amounts
+  const totalRevenue = subscriptions
+    .filter(sub => sub.status === 'active')
+    .reduce((sum, sub) => sum + (parseFloat(sub.pricePerMonth?.toString() || '0') || 0), 0);
   const pendingPickups = pickups.filter(p => p.status === 'pending');
   const completedPickups = pickups.filter(p => p.status === 'completed');
   const activeSubscriptions = subscriptions.filter((s: Subscription) => s.status === 'active');
