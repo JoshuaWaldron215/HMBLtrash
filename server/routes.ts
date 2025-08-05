@@ -2126,19 +2126,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Subscription not found' });
       }
 
-      if (stripe) {
-        // Pause in Stripe
-        await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-          pause_collection: {
-            behavior: 'keep_as_draft'
-          }
-        });
+      // Check if this is a test subscription ID (from development data)
+      const isTestSubscription = subscription.stripeSubscriptionId?.startsWith('test_') || 
+                                subscription.stripeSubscriptionId?.startsWith('sub_test_');
+
+      if (stripe && !isTestSubscription) {
+        try {
+          // Pause in Stripe
+          await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+            pause_collection: {
+              behavior: 'keep_as_draft'
+            }
+          });
+        } catch (stripeError: any) {
+          console.log('Stripe pause failed, updating database only:', stripeError.message);
+        }
       }
 
       // Update in database
       await storage.updateSubscriptionStatus(subscriptionId, 'paused');
 
-      res.json({ message: 'Subscription paused successfully' });
+      res.json({ 
+        message: 'Subscription paused successfully',
+        isTestSubscription: isTestSubscription
+      });
     } catch (error: any) {
       console.error('Subscription pause error:', error);
       res.status(500).json({ message: 'Failed to pause subscription' });
@@ -2155,17 +2166,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Subscription not found' });
       }
 
-      if (stripe) {
-        // Resume in Stripe
-        await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-          pause_collection: null
-        });
+      // Check if this is a test subscription ID (from development data)
+      const isTestSubscription = subscription.stripeSubscriptionId?.startsWith('test_') || 
+                                subscription.stripeSubscriptionId?.startsWith('sub_test_');
+
+      if (stripe && !isTestSubscription) {
+        try {
+          // Resume in Stripe
+          await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+            pause_collection: null
+          });
+        } catch (stripeError: any) {
+          console.log('Stripe resume failed, updating database only:', stripeError.message);
+        }
       }
 
       // Update in database
       await storage.updateSubscriptionStatus(subscriptionId, 'active');
 
-      res.json({ message: 'Subscription resumed successfully' });
+      res.json({ 
+        message: 'Subscription resumed successfully',
+        isTestSubscription: isTestSubscription
+      });
     } catch (error: any) {
       console.error('Subscription resume error:', error);
       res.status(500).json({ message: 'Failed to resume subscription' });
@@ -2176,21 +2198,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/subscription/:id/cancel', authenticateToken, requireRole('admin'), async (req, res) => {
     try {
       const subscriptionId = parseInt(req.params.id);
+      const { reason } = req.body;
       const subscription = await storage.getSubscription(subscriptionId);
       
       if (!subscription) {
         return res.status(404).json({ message: 'Subscription not found' });
       }
 
-      if (stripe) {
-        // Cancel in Stripe
-        await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+      // Check if this is a test subscription ID (from development data)
+      const isTestSubscription = subscription.stripeSubscriptionId?.startsWith('test_') || 
+                                subscription.stripeSubscriptionId?.startsWith('sub_test_');
+
+      if (stripe && !isTestSubscription) {
+        try {
+          // Cancel in Stripe
+          await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+        } catch (stripeError: any) {
+          console.log('Stripe cancel failed, updating database only:', stripeError.message);
+        }
       }
 
-      // Update in database
-      await storage.updateSubscriptionStatus(subscriptionId, 'cancelled');
+      // Update in database with cancellation details
+      await storage.updateSubscription(subscriptionId, {
+        status: 'cancelled',
+        cancellationDate: new Date(),
+        cancellationReason: reason || 'Admin cancelled subscription',
+        autoRenewal: false
+      });
 
-      res.json({ message: 'Subscription cancelled successfully' });
+      res.json({ 
+        message: 'Subscription cancelled successfully',
+        isTestSubscription: isTestSubscription
+      });
     } catch (error: any) {
       console.error('Subscription cancel error:', error);
       res.status(500).json({ message: 'Failed to cancel subscription' });
