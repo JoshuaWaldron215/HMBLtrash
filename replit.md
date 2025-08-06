@@ -41,6 +41,8 @@ Preferred communication style: Simple, everyday language.
 - **Subscription Management**: Pause, resume, cancel, and rescheduling all operational in production
 - **Route Optimization**: Driver route system with Google Maps integration fully functional
 - **Revenue Tracking**: $460/month active revenue from 8 subscriptions across all pricing tiers
+- **Subscription Pickup Generation**: RESOLVED - Active subscriptions now automatically create pickup records visible on driver dashboard (August 2025)
+- **Pickup Completion Workflow**: Subscription pickups auto-schedule next occurrence (7 days later), one-time pickups complete without recurring (August 2025)
 
 ### Database Design
 - **ORM**: Drizzle (PostgreSQL dialect)  
