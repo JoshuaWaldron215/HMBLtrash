@@ -14,7 +14,7 @@ All critical systems tested and verified operational. The application is fully f
 - Username: `admin` | Password: `admin123`
 
 **Driver Credentials:**  
-- Username: `driver` | Password: `password123`
+- Username: `driver` | Password: `[CREDENTIALS_REMOVED]`
 
 **Security Features:**
 - JWT token authentication with 24-hour expiration
@@ -236,8 +236,7 @@ All critical systems tested and verified operational. The application is fully f
 - Performance benchmarks met
 
 **Login Credentials for Testing:**
-- **Admin:** username: `admin`, password: `admin123`
-- **Driver:** username: `driver`, password: `password123`
+- Contact system administrator for login credentials
 
 ---
 

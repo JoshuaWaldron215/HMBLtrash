@@ -36,7 +36,7 @@ The driver interface now shows:
 - **Realistic single-customer testing scenario**
 
 ### 🔐 Test Credentials:
-- **Driver Login:** username: `driver` | password: `password123`
+- **Driver Login:** username: `driver` | password: `[CREDENTIALS_REMOVED]`
 - **Admin Login:** username: `admin` | password: `admin123`
 - **Customer Test:** username: `juice` | password: [Joshua's password]
 

@@ -2783,11 +2783,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Customer not found' });
       }
       
-      // Update the pickup with new date
+      // Update the pickup with new date (keep status as 'assigned' so driver can still see it)
       const updatedPickup = await storage.updatePickup(parseInt(id), {
         scheduledDate: new Date(newDate),
-        updatedAt: new Date(),
-        status: 'rescheduled'
+        updatedAt: new Date()
+        // Don't change status - keep it as 'assigned' so it shows on driver dashboard
       });
       
       // Send email notification (simple implementation without external API)

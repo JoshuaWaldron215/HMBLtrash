@@ -4,22 +4,21 @@
 
 ### **Step 1: Login as Admin**
 - Go to `/login`
-- Email: `admin@test.com`
-- Password: `password123`
+- Contact admin for login credentials
 - You'll be redirected to `/admin`
 
 ### **Step 2: Create Demo Data**
 - In admin dashboard, scroll to "Demo & Testing" section
 - Click "Create Demo Data" button
 - This creates 8 Philadelphia customers with real addresses:
-  - 4 subscription customers ($20/month)
+  - 4 subscription customers ($35/month)
   - 4 package customers (same-day + next-day)
 
 ### **Step 3: Test Route Optimization**
 - **Option A**: Click "Optimize Subscription Route"
   - Groups all subscription pickups
   - Shows 4 stops across Philly metro
-  - Revenue: ~$20 (predictable income)
+  - Revenue: ~$35 (predictable income)
 
 - **Option B**: Click "Optimize Package Route"  
   - Groups same-day ($25-35) + next-day ($10-15) pickups
@@ -28,16 +27,14 @@
 
 ### **Step 4: Test as Driver**
 - Go to `/login`
-- Email: `driver@test.com`  
-- Password: `password123`
+- Contact admin for driver credentials
 - View optimized route with completion checkboxes
 - One-click Google Maps navigation
 
 ### **Step 5: Test as Customer**
 - Go to `/login`
-- Email: `customer@test.com`
-- Password: `password123`
-- Subscribe for $20/month
+- Contact admin for customer credentials
+- Subscribe for $35/month
 - Request pickup
 
 ## **Key Demo Addresses** (Philadelphia Metro):

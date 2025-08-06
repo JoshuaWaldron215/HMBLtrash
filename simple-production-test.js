@@ -53,7 +53,7 @@ try {
 // Test 4: Admin Login Working  
 try {
   const { execSync } = await import('child_process');
-  const loginCmd = `curl -s -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d '{"username":"admin@test.com","password":"password123"}'`;
+  const loginCmd = `curl -s -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d '{"username":"admin@test.com","password":"[CREDENTIALS_REMOVED]"}'`;
   
   const loginResponse = execSync(loginCmd, { encoding: 'utf8' });
   const login = JSON.parse(loginResponse);

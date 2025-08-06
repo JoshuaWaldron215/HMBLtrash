@@ -15,7 +15,7 @@ async function testLastLoginFeature() {
   const users = [
     { username: 'lemhem', password: 'password', name: 'Customer (lemhem)' },
     { username: 'driver', password: 'password123', name: 'Driver' },
-    { username: 'admin', password: 'admin123', name: 'Admin' }
+    { username: 'admin', password: '[CREDENTIALS_REMOVED]', name: 'Admin' }
   ];
   
   let adminToken = '';

@@ -45,10 +45,7 @@ npm run dev
 ```
 
 ### Step 5: Test Login
-The application will start on the provided URL. Test with these accounts:
-- **Admin:** `admin@test.com` / `password123`
-- **Driver:** `driver@test.com` / `password123`
-- **Customer:** `customer@test.com` / `password123`
+The application will start on the provided URL. Contact the project admin for login credentials.
 
 ---
 

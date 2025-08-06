@@ -48,8 +48,15 @@ export default function ReschedulePickupModal({
       return response.json();
     },
     onSuccess: (data) => {
+      // Invalidate all relevant caches to sync all dashboards
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pickups'] }); // Customer dashboard
+      queryClient.invalidateQueries({ queryKey: ['/api/driver/route'] }); // Driver dashboard
+      queryClient.invalidateQueries({ queryKey: ['/api/subscription'] }); // Customer subscription
+      queryClient.invalidateQueries({ queryKey: ['/api/me'] }); // User data cache
+      
       if (isSubscription) {
-        queryClient.invalidateQueries({ queryKey: ['/api/admin/subscriptions'] });
         let emailStatus = "";
         if (data.emailAttempted) {
           emailStatus = data.emailSent ? "Customer has been notified via email." : "Email notification failed (domain verification needed).";
@@ -61,7 +68,6 @@ export default function ReschedulePickupModal({
           description: `Next pickup moved to ${new Date(data.subscription.nextPickupDate).toLocaleDateString()}. ${emailStatus}`,
         });
       } else {
-        queryClient.invalidateQueries({ queryKey: ['/api/admin/pickups'] });
         let emailStatus = "";
         if (data.emailAttempted) {
           emailStatus = data.emailSent ? "Customer has been notified via email." : "Email notification failed (domain verification needed).";
@@ -109,8 +115,8 @@ export default function ReschedulePickupModal({
   const originalDate = pickup.scheduledDate ? new Date(pickup.scheduledDate) : null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100]">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">

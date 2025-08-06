@@ -45,10 +45,10 @@ Should return 3 (or 4 if test account was created).
 ### Quick Test Account Created ✅
 I've created a test account for verification:
 - **Email**: collab@test.com
-- **Password**: password123
+- **Password**: [CONTACT_ADMIN_FOR_PASSWORD]
 - **Role**: customer
 
-Try logging in with this account. If it works, the database is shared correctly.
+Contact the project admin for login credentials. If the account works, the database is shared correctly.
 
 ### Next Steps:
 1. Test the collab@test.com account

@@ -32,7 +32,7 @@ async function verifyRealTimeUpdates() {
   const adminAuth = await fetch(`${BASE_URL}/api/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+    body: JSON.stringify({ username: 'admin', password: '[CREDENTIALS_REMOVED]' })
   });
   const adminData = await adminAuth.json();
   const adminToken = adminData.token;

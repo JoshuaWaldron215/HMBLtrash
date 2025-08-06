@@ -45,7 +45,7 @@ The application is now in a clean state with:
 
 ### 🔐 Test Credentials Still Active
 - **Admin Login:** username: `admin` | password: `admin123`
-- **Driver Login:** username: `driver` | password: `password123`
+- **Driver Login:** username: `driver` | password: `[CREDENTIALS_REMOVED]`
 
 ### ✅ System Verification
 - Authentication system operational

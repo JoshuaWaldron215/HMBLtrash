@@ -101,7 +101,7 @@ async function testCompleteUserFlow() {
   try {
     const loginResponse = await makeRequest('POST', '/api/auth/login', {
       username: 'admin@test.com',
-      password: 'password123'
+      password: '[CREDENTIALS_REMOVED]'
     });
     
     adminToken = loginResponse.token;
@@ -202,7 +202,7 @@ async function testCompleteUserFlow() {
   try {
     const driverLoginResponse = await makeRequest('POST', '/api/auth/login', {
       username: 'driver@test.com',
-      password: 'password123'
+      password: '[CREDENTIALS_REMOVED]'
     });
     
     const driverToken = driverLoginResponse.token;

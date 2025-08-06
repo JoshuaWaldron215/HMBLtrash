@@ -21,7 +21,7 @@ async function simulateUserSignup(userId) {
       body: JSON.stringify({
         username: `loadtest${userId}@test.com`,
         email: `loadtest${userId}@test.com`, 
-        password: 'password123',
+        password: '[CREDENTIALS_REMOVED]',
         firstName: 'Load',
         lastName: `Test${userId}`,
         phone: `(555) ${String(userId).padStart(3, '0')}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`,
@@ -46,7 +46,7 @@ async function simulateDashboardLoad(userId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'customer@test.com',
-        password: 'password123'
+        password: '[CREDENTIALS_REMOVED]'
       })
     });
     

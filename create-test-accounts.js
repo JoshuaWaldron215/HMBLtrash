@@ -126,7 +126,7 @@ async function createTestAccounts() {
     // Login as admin
     const adminLogin = await makeRequest('POST', '/api/auth/login', {
       username: 'admin@test.com',
-      password: 'password123'
+      password: '[CREDENTIALS_REMOVED]'
     });
     
     const adminToken = adminLogin.token;

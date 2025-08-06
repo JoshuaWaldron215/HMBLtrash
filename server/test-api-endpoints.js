@@ -18,7 +18,7 @@ async function testAuthEndpoints() {
       body: JSON.stringify({
         username: `testuser${Date.now()}`,
         email: `test${Date.now()}@example.com`,
-        password: 'password123',
+        password: '[CREDENTIALS_REMOVED]',
         firstName: 'Test',
         lastName: 'User',
         phone: '(555) 123-4567',
@@ -33,7 +33,7 @@ async function testAuthEndpoints() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'customer@test.com',
-        password: 'password123'
+        password: '[CREDENTIALS_REMOVED]'
       })
     });
     console.log(`✅ Login: ${loginResponse.status}`);

@@ -63,7 +63,7 @@ async function testEmailFunctionality() {
     // Login as admin to access email test endpoint
     const adminLogin = await makeRequest('POST', '/api/auth/login', {
       username: 'admin@test.com',
-      password: 'password123'
+      password: '[CREDENTIALS_REMOVED]'
     });
     
     const adminToken = adminLogin.token;
@@ -94,7 +94,7 @@ async function testPaymentIntegration() {
     // Test Stripe payment intent creation
     const customerLogin = await makeRequest('POST', '/api/auth/login', {
       username: 'customer@test.com',
-      password: 'password123'
+      password: '[CREDENTIALS_REMOVED]'
     });
     
     const customerToken = customerLogin.token;
@@ -161,7 +161,7 @@ async function testCompleteUserFlow() {
     // Test admin can see new user
     const adminLogin = await makeRequest('POST', '/api/auth/login', {
       username: 'admin@test.com', 
-      password: 'password123'
+      password: '[CREDENTIALS_REMOVED]'
     });
     
     const adminUsers = await makeRequest('GET', '/api/admin/users', null, {
@@ -213,7 +213,7 @@ async function testDatabaseIntegrity() {
     // Test data consistency
     const adminLogin = await makeRequest('POST', '/api/auth/login', {
       username: 'admin@test.com',
-      password: 'password123'
+      password: '[CREDENTIALS_REMOVED]'
     });
     
     const adminDashboard = await makeRequest('GET', '/api/admin/dashboard', null, {
