@@ -16,42 +16,38 @@ if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
 }
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
-// Subscription plans with their Stripe price IDs (you'll need to create these in Stripe Dashboard)
+// Subscription plans - these match the backend packages and pricing
 const SUBSCRIPTION_PLANS = [
   {
     id: 'basic',
     name: 'Basic Package',
     price: 35,
-    priceId: 'price_basic_weekly', // Replace with actual Stripe Price ID
     description: 'Perfect for small households',
-    features: ['Up to 3 bags per week', 'Standard pickup', 'Email notifications'],
+    features: ['Up to 6 bags weekly', 'Standard pickup', 'Email notifications', 'Customer support'],
     popular: false
   },
   {
-    id: 'clean_carry',
-    name: 'Clean & Carry Package',
+    id: 'clean-carry',
+    name: 'Clean & Carry Package', 
     price: 60,
-    priceId: 'price_clean_carry_weekly', // Replace with actual Stripe Price ID
     description: 'Enhanced service for busy families',
-    features: ['Up to 5 bags per week', 'Priority pickup', 'SMS notifications', 'Weekend availability'],
+    features: ['Up to 6 bags weekly', 'Furniture pickup included', 'Bin washing service', 'Priority support'],
     popular: true
   },
   {
-    id: 'heavy_duty',
+    id: 'heavy-duty',
     name: 'Heavy Duty Package',
     price: 75,
-    priceId: 'price_heavy_duty_weekly', // Replace with actual Stripe Price ID
     description: 'For larger households and businesses',
-    features: ['Up to 8 bags per week', 'Same-day pickup', 'Bulk item removal', 'Dedicated support'],
+    features: ['Up to 6 bags twice weekly', 'Furniture pickup included', 'Bin washing service', 'Monday & Thursday pickup'],
     popular: false
   },
   {
     id: 'premium',
     name: 'Premium Property Package',
     price: 150,
-    priceId: 'price_premium_weekly', // Replace with actual Stripe Price ID
     description: 'Complete property management solution',
-    features: ['Unlimited bags', 'Daily pickup available', 'Yard waste removal', 'Property maintenance', 'Premium support'],
+    features: ['Up to 6 bags twice weekly', 'Furniture & lawn service', 'Bin washing included', 'Premium support'],
     popular: false
   }
 ];
@@ -362,7 +358,7 @@ const PlanSelector = ({ selectedPlan, onSelectPlan }: {
 
 export default function SubscribePage() {
   const [clientSecret, setClientSecret] = useState("");
-  const [selectedPlanId, setSelectedPlanId] = useState('clean_carry'); // Default to popular plan
+  const [selectedPlanId, setSelectedPlanId] = useState('clean-carry'); // Default to popular plan
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
