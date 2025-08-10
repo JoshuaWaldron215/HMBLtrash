@@ -718,8 +718,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
-    const [subscription] = await db.insert(subscriptions).values(insertSubscription).returning();
-    return subscription;
+    try {
+      console.log('📝 Creating database subscription with data:', insertSubscription);
+      const [subscription] = await db.insert(subscriptions).values(insertSubscription).returning();
+      console.log('✅ Database subscription created successfully:', subscription);
+      return subscription;
+    } catch (error) {
+      console.error('❌ Failed to create database subscription:', error);
+      throw error;
+    }
   }
 
   async updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription> {
