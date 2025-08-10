@@ -436,8 +436,7 @@ export default function SubscribePage() {
                 stripe={stripePromise} 
                 options={{ 
                   clientSecret,
-                  appearance,
-                  paymentMethodTypes: ['card', 'apple_pay', 'google_pay']
+                  appearance
                 }}
               >
                 <SubscribeForm 

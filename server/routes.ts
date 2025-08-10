@@ -996,9 +996,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Update the invoice to link it with the payment intent
             try {
               await stripe.invoices.update(fullInvoice.id, {
-                payment_intent: paymentIntent.id
+                metadata: {
+                  payment_intent_id: paymentIntent.id
+                }
               });
-              console.log('Invoice updated with payment intent');
+              console.log('Invoice updated with payment intent metadata');
             } catch (updateError) {
               console.log('Could not update invoice, but payment intent is created');
             }
