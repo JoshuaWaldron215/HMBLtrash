@@ -261,12 +261,15 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
               googlePay: 'auto'
             },
             layout: {
-              type: 'accordion',
-              defaultCollapsed: false
+              type: 'tabs',
+              defaultCollapsed: false,
+              radios: false,
+              spacedAccordionItems: false
             },
             terms: {
               card: 'never'
-            }
+            },
+            paymentMethodOrder: ['apple_pay', 'google_pay', 'card']
           }}
           onChange={(event) => {
             console.log('PaymentElement status:', {

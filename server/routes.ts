@@ -978,7 +978,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               amount: fullInvoice.amount_due,
               currency: 'usd',
               customer: user.stripeCustomerId!,
-              payment_method_types: ['card'],
+              payment_method_types: ['card', 'apple_pay', 'google_pay'],
+              automatic_payment_methods: {
+                enabled: true,
+                allow_redirects: 'never'
+              },
               setup_future_usage: 'off_session',
               metadata: {
                 subscriptionId: subscription.id,
