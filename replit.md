@@ -31,6 +31,7 @@ Preferred communication style: Simple, everyday language.
 - **Authentication**: Admin and Driver role access verified and operational
 - **Payment System**: Stripe integration fully functional in LIVE production mode
 - **Payment Security**: Enhanced subscription flow prevents payment bypass (August 2025)
+- **Digital Wallets**: Apple Pay and Google Pay enabled for subscription payments (August 10, 2025)
 - **Billing System**: Complete transaction history, subscription management, and invoice integration
 - **Mobile Optimization**: Responsive design tested across all device types
 - **Admin Dashboard**: Full subscription management with pause/resume/cancel controls - ALL WORKING
@@ -40,11 +41,13 @@ Preferred communication style: Simple, everyday language.
 - **Real-Time Updates**: All three dashboards auto-sync with configurable intervals and background updates (August 2025)
 - **Subscription Management**: Pause, resume, cancel, and rescheduling all operational in production
 - **Route Optimization**: Driver route system with Google Maps integration fully functional
-- **Revenue Tracking**: $460/month active revenue from 8 subscriptions across all pricing tiers
+- **Revenue Tracking**: $70/month active revenue from 2 subscriptions (Juice2x, yerpchicken)
 - **Subscription Pickup Generation**: RESOLVED - Active subscriptions now automatically create pickup records visible on driver dashboard (August 2025)
 - **Pickup Completion Workflow**: Subscription pickups auto-schedule next occurrence (7 days later), one-time pickups complete without recurring (August 2025)
 - **Date Synchronization**: FIXED - All three dashboards now display consistent dates after reschedule operations (August 2025)
 - **UI/UX Issues**: RESOLVED - Reschedule popup z-index fixed, no longer hidden behind other elements (August 2025)
+- **Subscription Database Sync**: FIXED - Database subscription records now properly created for all paying customers (August 10, 2025)
+- **Customer Dashboard Display**: VERIFIED - Subscriptions correctly appear on customer dashboards (August 10, 2025)
 - **Public Launch Ready**: Complete deployment checklist created for going live with paying customers (August 2025)
 
 ### Database Design
