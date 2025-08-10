@@ -910,7 +910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         payment_behavior: 'default_incomplete',
         payment_settings: {
           save_default_payment_method: 'on_subscription',
-          payment_method_types: ['card']
+          payment_method_types: ['card', 'us_bank_account']
         },
         expand: ['latest_invoice.payment_intent'],
         metadata: {

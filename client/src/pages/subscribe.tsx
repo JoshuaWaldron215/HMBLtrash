@@ -257,8 +257,8 @@ const SubscribeForm = ({ selectedPlan, subscriptionDetails, onSuccess }: {
               }
             },
             wallets: {
-              applePay: 'never',
-              googlePay: 'never'
+              applePay: 'auto',
+              googlePay: 'auto'
             },
             layout: {
               type: 'accordion',
@@ -436,7 +436,8 @@ export default function SubscribePage() {
                 stripe={stripePromise} 
                 options={{ 
                   clientSecret,
-                  appearance
+                  appearance,
+                  paymentMethodTypes: ['card', 'apple_pay', 'google_pay']
                 }}
               >
                 <SubscribeForm 
